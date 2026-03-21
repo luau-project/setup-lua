@@ -100,8 +100,14 @@ jobs:
         run: |
           old_major=$(echo "${{ needs.version-info.outputs.version }}" | cut -d. -f1)
           new_major=$(echo "${{ needs.version-info.outputs.new-version }}" | cut -d. -f1)
-          sed -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" -i README.md
-          sed -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" -i docs/GitHub.md
+          sed \
+            -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" \
+            -e "s/setup\-lua\-${old_major}/setup-lua-${new_major}/g" \
+            -i README.md
+          sed \
+            -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" \
+            -e "s/setup\-lua\-${old_major}/setup-lua-${new_major}/g" \
+            -i docs/GitHub.md
 
       - name: Setup node 24
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
