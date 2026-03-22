@@ -115,7 +115,7 @@ export function extractZip(path: string, opts?: ExtractZipOptions): Promise<numb
                         .catch(powershellErr => {
                             findGitUnzipPath()
                                 .then(gitUnzip => {
-                                    executeProcess(gitUnzip, { cwd: dir, args: [path], verbose: opts?.verbose })
+                                    executeProcess(gitUnzip, { cwd: dir, args: [path.replace(/\\/g, "/")], verbose: opts?.verbose })
                                         .then(code => {
                                             resolve(code);
                                         })
