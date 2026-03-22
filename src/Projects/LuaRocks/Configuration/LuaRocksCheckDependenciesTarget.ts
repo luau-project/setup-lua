@@ -5,6 +5,7 @@ import { ITarget } from "../../Targets/ITarget";
 import { LuaRocksProject } from "../LuaRocksProject";
 import { LuaRocksFetchTarget } from "./LuaRocksFetchTarget";
 import { Console } from "../../../Console";
+import { isCygwin } from "../../../Util/CygwinDetection";
 
 export class LuaRocksCheckDependenciesTarget implements ITarget {
     private parent: ITarget | null;
@@ -30,11 +31,12 @@ export class LuaRocksCheckDependenciesTarget implements ITarget {
     }
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            if (process.platform === 'win32') {
+            const cygwin = isCygwin();
+            if (process.platform === 'win32' && !cygwin) {
                 resolve();
             }
             else {
-                sequentialPromises(process.platform === 'darwin' ? [
+                sequentialPromises(process.platform === 'darwin' || cygwin ? [
                     () => findProgram("unzip")
                 ] : [
                     () => findProgram("unzip"),
