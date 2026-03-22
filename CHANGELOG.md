@@ -1,3 +1,8 @@
+## setup-lua v1.1.0
+
+* Added basic support to install Lua / LuaJIT / OpenResty + LuaRocks on `setup-lua` running in a MSYS2 shell through the CLI interface;
+* Added examples on docs showing how to install on MSYS2.
+
 ## setup-lua v1.0.9
 
 * Added support for LuaRocks 3.13.0;
