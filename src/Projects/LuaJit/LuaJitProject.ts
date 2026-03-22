@@ -29,6 +29,7 @@ export class LuaJitProject implements IProject {
     private installCModulesDir: string;
     private _configurationResult: IGetSetProperty<any>;
     private _buildResult: IGetSetProperty<any>;
+    private _installationResult: IGetSetProperty<any>;
 
     getVersion(): ILuaJitRepositoryVersion {
         return this.version;
@@ -78,6 +79,9 @@ export class LuaJitProject implements IProject {
     buildResult(): IGetSetProperty<any> {
         return this._buildResult;
     }
+    installationResult(): IGetSetProperty<any> {
+        return this._installationResult;
+    }
 
     constructor(
         version: ILuaJitRepositoryVersion,
@@ -106,6 +110,7 @@ export class LuaJitProject implements IProject {
         }
         this._configurationResult = new GetSetProperty<any>(null);
         this._buildResult = new GetSetProperty<any>(null);
+        this._installationResult = new GetSetProperty<any>(null);
     }
 
     configure(): Promise<void> {

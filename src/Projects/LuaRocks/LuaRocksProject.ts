@@ -8,11 +8,13 @@ import { LuaRocksCreateBuildDirectoriesTarget } from "./Configuration/LuaRocksCr
 import { ILuaRocksVersion } from "./LuaRocksVersion";
 import { LuaRocksBuildTarget } from "./Building/LuaRocksBuildTarget";
 import { LuaRocksInstallTarget } from "./Installation/LuaRocksInstallTarget";
+import { ILuaInstallation } from "../ILuaInstallation";
 
 export class LuaRocksProject implements IProject {
     private version: ILuaRocksVersion;
     private buildDir: string;
     private installDir: string;
+    private luaInstallation: ILuaInstallation;
     private toolchain: IToolchain;
     /* build directories */
     private remotePatchesBuildDir: string;
@@ -20,6 +22,7 @@ export class LuaRocksProject implements IProject {
     private installBinDir: string;
     private _configurationResult: IGetSetProperty<any>;
     private _buildResult: IGetSetProperty<any>;
+    private _installationResult: IGetSetProperty<any>;
 
     getVersion(): ILuaRocksVersion {
         return this.version;
@@ -33,6 +36,9 @@ export class LuaRocksProject implements IProject {
     getInstallDir(): string {
         return this.installDir;
     }
+    getLuaInstallation(): ILuaInstallation {
+        return this.luaInstallation;
+    }
     getToolchain(): IToolchain {
         return this.toolchain;
     }
@@ -45,21 +51,27 @@ export class LuaRocksProject implements IProject {
     buildResult(): IGetSetProperty<any> {
         return this._buildResult;
     }
+    installationResult(): IGetSetProperty<any> {
+        return this._installationResult;
+    }
 
     constructor(
         version: ILuaRocksVersion,
         buildDir: string,
         installDir: string,
+        luaInstallation: ILuaInstallation,
         toolchain: IToolchain
     ) {
         this.version = version;
         this.buildDir = buildDir;
         this.installDir = installDir;
+        this.luaInstallation = luaInstallation;
         this.toolchain = toolchain;
         this.remotePatchesBuildDir = join(this.buildDir, "remote-patches");
         this.installBinDir = join(installDir, "bin");
         this._configurationResult = new GetSetProperty<any>(null);
         this._buildResult = new GetSetProperty<any>(null);
+        this._installationResult = new GetSetProperty<any>(null);
     }
     configure(): Promise<void> {
         return new Promise<void>((resolve, reject) => {

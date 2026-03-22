@@ -10,7 +10,6 @@ import { LuaJitProject } from "./Projects/LuaJit/LuaJitProject";
 import { ILuaJitRepositoryVersion, parseLuaJitRepositoryVersion } from "./Projects/LuaJit/LuaJitRepositoryVersion";
 import { ILuaRocksVersion, parseLuaRocksVersion } from "./Projects/LuaRocks/LuaRocksVersion";
 import { LuaRocksProject } from "./Projects/LuaRocks/LuaRocksProject";
-import { IProject } from "./Projects/IProject";
 import { IToolchain } from "./Toolchains/IToolchain";
 import { sequentialPromises } from "./Util/SequentialPromises";
 import { GitHubInput } from "./Util/GitHubInput";
@@ -81,7 +80,12 @@ function readLuaRocksVersionFromEnv(luaRocksVersion: string): Promise<ILuaRocksV
     });
 }
 
-function installLuaProject(luaProject: IProject, buildDir: string, installDir: string, toolchain: IToolchain): Promise<void> {
+function installLuaProject(
+    luaProject: PucLuaProject | LuaJitProject,
+    buildDir: string,
+    installDir: string,
+    toolchain: IToolchain
+): Promise<void> {
     return new Promise<void>((promiseResolve, reject) => {
         const luaRocksVersion = (GitHubInput.instance().getInputLuaRocksVersion() || process.env["LUAROCKS_VERSION"] || "").trim();
         sequentialPromises<void>([
@@ -96,7 +100,13 @@ function installLuaProject(luaProject: IProject, buildDir: string, installDir: s
                             const version = lrVersions[0];
                             mkdtemp(join(buildDir, "luarocks-"))
                                 .then(luaRocksBuildDir => {
-                                    const luaRocksProject = new LuaRocksProject(version, luaRocksBuildDir, installDir, toolchain);
+                                    const luaRocksProject = new LuaRocksProject(
+                                        version,
+                                        luaRocksBuildDir,
+                                        installDir,
+                                        luaProject.installationResult().getValue(),
+                                        toolchain
+                                    );
                                     sequentialPromises<void>([
                                         () => luaRocksProject.configure(),
                                         () => luaRocksProject.build(),

@@ -7,4 +7,5 @@ export interface IProject {
 
     configurationResult(): IGetSetProperty<any>;
     buildResult(): IGetSetProperty<any>;
+    installationResult(): IGetSetProperty<any>;
 }

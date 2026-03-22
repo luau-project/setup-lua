@@ -178,6 +178,10 @@ export interface IPucLuaVersion {
     compareTo(other: IPucLuaVersion): number;
 }
 
+export function isKnownLuaShortVersion(version: string): boolean {
+    return version in CONVERT_LUA_RELEASE_VERSION;
+}
+
 export function parsePucLuaVersion(version: string): Promise<IPucLuaVersion> {
     return new Promise<IPucLuaVersion>((resolve, reject) => {
         const pucLuaVersion = version in CONVERT_LUA_RELEASE_VERSION ?
