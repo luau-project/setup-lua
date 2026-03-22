@@ -1,4 +1,5 @@
 import { arch } from "node:os";
+import { isCygwin } from "../../Util/CygwinDetection";
 
 export interface ILuaRocksVersion {
     getDownloadUrl(): string;
@@ -79,7 +80,7 @@ export function parseLuaRocksVersion(version: string): Promise<ILuaRocksVersion 
         if (luaRocksVersion === "none") {
             resolve(undefined);
         }
-        else if (process.platform === 'win32') {
+        else if (process.platform === 'win32' && !isCygwin()) {
             const osArch = arch();
             if (osArch === 'ia32' || osArch === 'arm64') {
                 if (luaRocksVersion in LUAROCKS_RELEASES_WINDOWS_X86) {

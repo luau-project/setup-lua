@@ -7,11 +7,16 @@ import { AbstractFetchCompressedTarget } from "../../Targets/Fetch/AbstractFetch
 import { extractTarGz } from "../../../Util/ExtractTarGz";
 import { extractZip } from "../../../Util/ExtractZip";
 import { checkFiles } from "../../../Util/CheckFiles";
-import { LuaRocksSourcesInfo, LuaRocksUnixSourcesInfoDetails, LuaRocksWindowsSourcesInfoDetails } from "./LuaRocksSourcesInfo";
+import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksSourcesInfo, LuaRocksUnixSourcesInfoDetails, LuaRocksWindowsSourcesInfoDetails } from "./LuaRocksSourcesInfo";
 import { LuaRocksCheckDependenciesTarget } from "./LuaRocksCheckDependenciesTarget";
 import { LuaRocksReleaseVersion } from "../LuaRocksVersion";
 import { LuaRocksApplyPatchesTarget } from "./LuaRocksApplyPatchesTarget";
 import { Console } from "../../../Console";
+import { isCygwin } from "../../../Util/CygwinDetection";
+import { getCygpathFromCygwin } from "../../../Util/CygwinPath";
+import { sequentialPromises } from "../../../Util/SequentialPromises";
+import { getFirstLineFromProcessExecution } from "../../../Util/ExecuteProcess";
+import { CygwinFileSystemPath } from "../../../CygwinFileSystemPath";
 
 export class LuaRocksFetchTarget extends AbstractFetchCompressedTarget {
     private parent: LuaRocksCheckDependenciesTarget;
@@ -59,7 +64,7 @@ export class LuaRocksFetchTarget extends AbstractFetchCompressedTarget {
                 .then(() => {
                     const workDir = this.getWorkDir();
                     const filename = basename(this.project.getVersion().getDownloadUrl());
-                    if (process.platform === 'win32') {
+                    if (process.platform === 'win32' && !isCygwin()) {
                         const extension = extname(filename);
                         if (extension === ".zip") {
                             const extractedDir = filename.substring(0, filename.length - extension.length);
@@ -96,7 +101,42 @@ export class LuaRocksFetchTarget extends AbstractFetchCompressedTarget {
                                                         stat(configureScript)
                                                             .then(configureScriptStat => {
                                                                 if (configureScriptStat.isFile()) {
-                                                                    if (configureScriptStat.mode & constants.X_OK) {
+                                                                    if (isCygwin()) {
+                                                                        getCygpathFromCygwin()
+                                                                            .then(cygPath => {
+                                                                                const installDir = this.project.getInstallDir();
+                                                                                sequentialPromises<string>([
+                                                                                    () => getFirstLineFromProcessExecution(cygPath, [ "-w", "/usr/bin/bash.exe"], true),
+                                                                                    () => getFirstLineFromProcessExecution(cygPath, [ "-u", extractedDir], true),
+                                                                                    () => getFirstLineFromProcessExecution(cygPath, [ "-u", configureScript], true),
+                                                                                    () => getFirstLineFromProcessExecution(cygPath, [ "-u", installDir], true)
+                                                                                ])
+                                                                                    .then(paths => {
+                                                                                        const bash = paths[0];
+                                                                                        checkFiles([bash])
+                                                                                            .then(() => {
+                                                                                                const extractedDirUnix = paths[1];
+                                                                                                const configureScriptUnix = paths[2];
+                                                                                                const installDirUnix = paths[3];
+                                                                                                this.luaRocksSourcesInfo = new LuaRocksSourcesInfo(
+                                                                                                    extractedDir,
+                                                                                                    new LuaRocksCygwinUnixSourcesInfoDetails(
+                                                                                                        bash,
+                                                                                                        cygPath,
+                                                                                                        new CygwinFileSystemPath(extractedDir, extractedDirUnix),
+                                                                                                        new CygwinFileSystemPath(configureScript, configureScriptUnix),
+                                                                                                        new CygwinFileSystemPath(installDir, installDirUnix)
+                                                                                                    )
+                                                                                                );
+                                                                                                resolve();
+                                                                                            })
+                                                                                            .catch(reject);
+                                                                                    })
+                                                                                    .catch(reject);
+                                                                            })
+                                                                            .catch(reject);
+                                                                    }
+                                                                    else if (configureScriptStat.mode & constants.X_OK) {
                                                                         this.luaRocksSourcesInfo = new LuaRocksSourcesInfo(
                                                                             extractedDir,
                                                                             new LuaRocksUnixSourcesInfoDetails(configureScript)
