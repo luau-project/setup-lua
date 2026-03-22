@@ -306,6 +306,29 @@ exports.Console = CliConsole_1.CliConsole;
 
 /***/ }),
 
+/***/ 6306:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CygwinFileSystemPath = void 0;
+class CygwinFileSystemPath {
+    getWindowsPath() {
+        return this.windowsPath;
+    }
+    getUnixPath() {
+        return this.unixPath;
+    }
+    constructor(windowsPath, unixPath) {
+        this.windowsPath = windowsPath;
+        this.unixPath = unixPath;
+    }
+}
+exports.CygwinFileSystemPath = CygwinFileSystemPath;
+
+
+/***/ }),
+
 /***/ 7787:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -314,6 +337,60 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GitHubCore = void 0;
 const CliGitHubCore_1 = __nccwpck_require__(6825);
 exports.GitHubCore = CliGitHubCore_1.CliGitHubCore;
+
+
+/***/ }),
+
+/***/ 3627:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LuaInstallation = void 0;
+class LuaInstallation {
+    constructor(installDir, luaInterpreter, luaShortVersion) {
+        this.installDir = installDir;
+        this.luaInterpreter = luaInterpreter;
+        this.luaShortVersion = luaShortVersion;
+    }
+    getInstallDir() {
+        return this.installDir;
+    }
+    getLuaInterpreter() {
+        return this.luaInterpreter;
+    }
+    getLuaShortVersion() {
+        return this.luaShortVersion;
+    }
+}
+exports.LuaInstallation = LuaInstallation;
+
+
+/***/ }),
+
+/***/ 7969:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.LuaRocksInstallation = void 0;
+class LuaRocksInstallation {
+    constructor(installDir, luaRocksTool, luaRocksAdminTool) {
+        this.installDir = installDir;
+        this.luaRocksTool = luaRocksTool;
+        this.luaRocksAdminTool = luaRocksAdminTool;
+    }
+    getInstallDir() {
+        return this.installDir;
+    }
+    getLuaRocksTool() {
+        return this.luaRocksTool;
+    }
+    getLuaRocksAdminTool() {
+        return this.luaRocksAdminTool;
+    }
+}
+exports.LuaRocksInstallation = LuaRocksInstallation;
 
 
 /***/ }),
@@ -474,7 +551,14 @@ class LuaJitBuildTarget {
                     const coreBuildForMinGW = (statusLongJump) => {
                         const MACRO_FOR_STATUS_LONGJUMP = statusLongJump ? "" : `-DSTATUS_LONGJUMP=0x80000026UL`;
                         (0, ExecuteProcess_1.executeProcess)(make, {
-                            args: [
+                            args: (process.env["MSYSTEM"]) ? [
+                                "-C",
+                                luaJitSrcDir,
+                                `DEFAULT_CC=${envCC}`,
+                                `CROSS=${cross}`,
+                                `XCFLAGS= ${MACRO_FOR_STATUS_LONGJUMP} ${combinedXcflags.join(' ')} `,
+                                "all"
+                            ] : [
                                 "-C",
                                 luaJitSrcDir,
                                 `SHELL=${cmd}`,
@@ -1472,9 +1556,13 @@ exports.LuaJitFinishInstallationTarget = LuaJitFinishInstallationTarget;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LuaJitPostInstallTarget = void 0;
+const node_path_1 = __nccwpck_require__(6760);
 const AbstractUpdateLuaEnvVarsTarget_1 = __nccwpck_require__(6962);
 const LuaJitFinishInstallationTarget_1 = __nccwpck_require__(9768);
 const Console_1 = __nccwpck_require__(946);
+const ILuaInstallation_1 = __nccwpck_require__(3627);
+const ExecuteProcess_1 = __nccwpck_require__(6522);
+const CheckFiles_1 = __nccwpck_require__(8105);
 class LuaJitPostInstallTarget extends AbstractUpdateLuaEnvVarsTarget_1.AbstractUpdateLuaEnvVarsTarget {
     constructor(project, parent) {
         super(project, parent);
@@ -1500,6 +1588,36 @@ class LuaJitPostInstallTarget extends AbstractUpdateLuaEnvVarsTarget_1.AbstractU
     }
     getNext() {
         return new LuaJitFinishInstallationTarget_1.LuaJitFinishInstallationTarget(this.getProject(), this);
+    }
+    setInstallationResult(installDir, luaInterpreter, luaShortVersion) {
+        this.getProject().installationResult().setValue(new ILuaInstallation_1.LuaInstallation(installDir, luaInterpreter, luaShortVersion));
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            super.execute()
+                .then(() => {
+                const installDir = this.getProjectInstallDir();
+                const binDir = this.getProjectInstallBinDir();
+                const ext = process.platform === "win32" ? ".exe" : "";
+                const luaInterpreter = (0, node_path_1.join)(binDir, `luajit${ext}`);
+                (0, CheckFiles_1.checkFiles)([luaInterpreter])
+                    .then(() => {
+                    (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(luaInterpreter, ["-e", "print(_VERSION:sub(5))"], true)
+                        .then(luaShortVersion => {
+                        if (luaShortVersion === "5.1") {
+                            this.setInstallationResult(installDir, luaInterpreter, luaShortVersion);
+                            resolve();
+                        }
+                        else {
+                            reject(new Error("Unexpected LuaJIT / OpenResty short version"));
+                        }
+                    })
+                        .catch(reject);
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        });
     }
     finalize() {
         return new Promise((resolve, reject) => {
@@ -1882,6 +2000,9 @@ class LuaJitProject {
     buildResult() {
         return this._buildResult;
     }
+    installationResult() {
+        return this._installationResult;
+    }
     constructor(version, buildDir, installDir, toolchain) {
         this.version = version;
         this.buildDir = buildDir;
@@ -1904,6 +2025,7 @@ class LuaJitProject {
         }
         this._configurationResult = new GetSetProperty_1.GetSetProperty(null);
         this._buildResult = new GetSetProperty_1.GetSetProperty(null);
+        this._installationResult = new GetSetProperty_1.GetSetProperty(null);
     }
     configure() {
         return new Promise((resolve, reject) => {
@@ -2171,7 +2293,21 @@ class LuaRocksBuildTarget {
     execute() {
         return new Promise((resolve, reject) => {
             const details = this.srcInfo.getDetails();
-            if (details instanceof LuaRocksSourcesInfo_1.LuaRocksUnixSourcesInfoDetails) {
+            if (details instanceof LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails) {
+                const make = "make";
+                const makeArgs = ["-C", `'${details.getDirPath().getUnixPath()}'`];
+                (0, ExecuteProcess_1.executeProcess)(details.getBash(), {
+                    args: ["-lc", `${make} ${makeArgs.join(" ")}`],
+                    verbose: true,
+                    stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                })
+                    .then(code => {
+                    this.setUnixBuildResult(make, makeArgs);
+                    resolve();
+                })
+                    .catch(reject);
+            }
+            else if (details instanceof LuaRocksSourcesInfo_1.LuaRocksUnixSourcesInfoDetails) {
                 const make = ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getMake();
                 const makeArgs = ["-C", this.srcInfo.getDir()];
                 (0, ExecuteProcess_1.executeProcess)(make, {
@@ -2254,10 +2390,17 @@ exports.LuaRocksFinishBuildingTarget = LuaRocksFinishBuildingTarget;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LuaRocksApplyPatchesTarget = void 0;
+const promises_1 = __nccwpck_require__(1455);
+const node_path_1 = __nccwpck_require__(6760);
+const node_os_1 = __nccwpck_require__(8161);
 const ToolchainEnvironmentVariables_1 = __nccwpck_require__(5921);
 const AbstractApplyPatchesTarget_1 = __nccwpck_require__(3714);
 const LuaRocksConfigureSourcesTarget_1 = __nccwpck_require__(3775);
+const LuaRocksSourcesInfo_1 = __nccwpck_require__(5724);
 const Console_1 = __nccwpck_require__(946);
+const CheckFiles_1 = __nccwpck_require__(8105);
+const SequentialPromises_1 = __nccwpck_require__(923);
+const ReplaceInFile_1 = __nccwpck_require__(9913);
 class LuaRocksApplyPatchesTarget extends AbstractApplyPatchesTarget_1.AbstractApplyPatchesTarget {
     constructor(project, parent) {
         super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getLuaRocksPatches());
@@ -2273,6 +2416,302 @@ class LuaRocksApplyPatchesTarget extends AbstractApplyPatchesTarget_1.AbstractAp
     }
     getNext() {
         return new LuaRocksConfigureSourcesTarget_1.LuaRocksConfigureSourcesTarget(this.getProject(), this);
+    }
+    cygwinEnsureMsys2MinGWw64FsLuaFile(srcDir) {
+        return new Promise((resolve, reject) => {
+            const msysFsPath = (0, node_path_1.join)(srcDir, "src", "luarocks", "fs", "msys2_mingw_w64.lua");
+            (0, CheckFiles_1.checkFiles)([msysFsPath])
+                .then(resolve)
+                .catch(err => {
+                (0, promises_1.writeFile)(msysFsPath, [
+                    "local msys2_tools = {}",
+                    "",
+                    "local fs = require(\"luarocks.fs\")",
+                    "",
+                    "local unix_tools = require(\"luarocks.fs.unix.tools\")",
+                    "",
+                    "local function uncompress(default_ext, program, infile, outfile)",
+                    "   assert(type(infile) == \"string\")",
+                    "   assert(outfile == nil or type(outfile) == \"string\")",
+                    "   if not outfile then",
+                    "      outfile = infile:gsub(\"%.\"..default_ext..\"$\", \"\")",
+                    "   end",
+                    "   if fs.execute(fs.Q(program)..\" -d -c \"..fs.Q(infile)..\" > \"..fs.Q(outfile)) then",
+                    "      return true",
+                    "   else",
+                    "      return nil, \"failed extracting \" .. infile",
+                    "   end",
+                    "end",
+                    "",
+                    "--- Uncompresses a .gz file.",
+                    "-- @param infile string: pathname of .gz file to be extracted.",
+                    "-- @param outfile string or nil: pathname of output file to be produced.",
+                    "-- If not given, name is derived from input file.",
+                    "-- @return boolean: true on success; nil and error message on failure.",
+                    "function msys2_tools.gunzip(infile, outfile)",
+                    "   return uncompress(\"gz\", \"gzip\", infile, outfile)",
+                    "end",
+                    "",
+                    "--- Uncompresses a .bz2 file.",
+                    "-- @param infile string: pathname of .bz2 file to be extracted.",
+                    "-- @param outfile string or nil: pathname of output file to be produced.",
+                    "-- If not given, name is derived from input file.",
+                    "-- @return boolean: true on success; nil and error message on failure.",
+                    "function msys2_tools.bunzip2(infile, outfile)",
+                    "   return uncompress(\"bz2\", \"bzip2\", infile, outfile)",
+                    "end",
+                    "",
+                    "msys2_tools.zip = unix_tools.zip",
+                    "msys2_tools.unzip = unix_tools.unzip",
+                    "msys2_tools.copy_contents = unix_tools.copy_contents",
+                    "",
+                    "return msys2_tools"
+                ].join(node_os_1.EOL))
+                    .then(resolve)
+                    .catch(reject);
+            });
+        });
+    }
+    getLuaRocksPersistPath(srcDir) {
+        return (0, node_path_1.join)(srcDir, "src", "luarocks", "persist.lua");
+    }
+    getLuaRocksGnumakefilePath(srcDir) {
+        return (0, node_path_1.join)(srcDir, "GNUmakefile");
+    }
+    getLuaRocksCoreCfgFilePath(srcDir) {
+        return (0, node_path_1.join)(srcDir, "src", "luarocks", "core", "cfg.lua");
+    }
+    cygwinReadLuaRocksVersionFromCoreCfg(cfgPath) {
+        return new Promise((resolve, reject) => {
+            (0, promises_1.readFile)(cfgPath, { encoding: "utf-8" })
+                .then(content => {
+                const match = /local program_version \= "([0-9]+\.[0-9]+\.[0-9]+)"/.exec(content);
+                if (match) {
+                    resolve(match[1]);
+                }
+                else {
+                    reject(new Error(`Failed to find LuaRocks version on "${cfgPath}" file`));
+                }
+            })
+                .catch(reject);
+        });
+    }
+    cygwinPatchLuaRocksPersist(persistPath, luaRocksVersion) {
+        return new Promise((resolve, reject) => {
+            switch (luaRocksVersion) {
+                case "3.9.1": {
+                    const targetStr = [
+                        "-- @return boolean or (nil, string): true if successful, or nil and a",
+                        "-- message in case of errors.",
+                        "function persist.save_from_table(filename, tbl, field_order)",
+                        "   local out = io.open(filename, \"w\")",
+                        "   if not out then",
+                        "      return nil, \"Cannot create file at \"..filename",
+                        "   end",
+                        "   local ok, err = write_table_as_assignments(out, tbl, field_order)",
+                        "   out:close()",
+                        "   if not ok then",
+                        "      return nil, err",
+                        "   end",
+                        "   return true",
+                        "end"
+                    ].join("\n");
+                    const replacementStr = [
+                        "-- @return boolean or (nil, string): true if successful, or nil and a",
+                        "-- message in case of errors.",
+                        "function persist.save_from_table(filename, tbl, field_order)",
+                        "   local prefix = dir.dir_name(filename)",
+                        "   fs.make_dir(prefix)",
+                        "   local out = io.open(filename, \"w\")",
+                        "   if not out then",
+                        "      return nil, \"Cannot create file at \"..filename",
+                        "   end",
+                        "   local ok, err = write_table_as_assignments(out, tbl, field_order)",
+                        "   out:close()",
+                        "   if not ok then",
+                        "      return nil, err",
+                        "   end",
+                        "   return true",
+                        "end"
+                    ].join("\n");
+                    (0, ReplaceInFile_1.replaceFirstInFile)(persistPath, 0, targetStr, replacementStr, "utf8")
+                        .then(resolve)
+                        .catch(reject);
+                    break;
+                }
+                default: {
+                    resolve();
+                    break;
+                }
+            }
+        });
+    }
+    cygwinPatchGNUmakefile(makefilePath, luaRocksVersion) {
+        return new Promise((resolve, reject) => {
+            switch (luaRocksVersion) {
+                case "3.9.1":
+                case "3.9.2":
+                case "3.10.0": {
+                    const targetStr = [
+                        "",
+                        "# ----------------------------------------",
+                        "# Base build",
+                        "# ----------------------------------------",
+                        "",
+                        "build: luarocks luarocks-admin $(builddir)/luarocks $(builddir)/luarocks-admin",
+                        "",
+                        "config.unix:",
+                        "	@echo Please run the \"./configure\" script before building.",
+                        "	@echo",
+                        "	@exit 1",
+                        ""
+                    ].join("\n");
+                    const replacementStr = [
+                        "",
+                        "# ----------------------------------------",
+                        "# Base build",
+                        "# ----------------------------------------",
+                        "",
+                        "build: config.unix $(builddir)/config-$(LUA_VERSION).lua $(builddir)/luarocks $(builddir)/luarocks-admin",
+                        "",
+                        "config.unix:",
+                        "	@echo Please run the \"./configure\" script before building.",
+                        "	@echo",
+                        "	@exit 1",
+                        ""
+                    ].join("\n");
+                    (0, ReplaceInFile_1.replaceFirstInFile)(makefilePath, 0, targetStr, replacementStr, "utf8")
+                        .then(resolve)
+                        .catch(reject);
+                    break;
+                }
+                default: {
+                    resolve();
+                    break;
+                }
+            }
+        });
+    }
+    cygwinPatchCoreCfg(cfgPath, luaRocksVersion) {
+        return new Promise((resolve, reject) => {
+            switch (luaRocksVersion) {
+                case "3.9.1":
+                case "3.9.2": {
+                    const targetStr = [
+                        "   local defaults = make_defaults(cfg.lua_version, processor, platforms, cfg.home)",
+                        "",
+                        "   if platforms.windows and hardcoded.WIN_TOOLS then",
+                        "      local tools = { \"SEVENZ\", \"CP\", \"FIND\", \"LS\", \"MD5SUM\", \"WGET\", }",
+                        "      for _, tool in ipairs(tools) do",
+                        "         defaults.variables[tool] = \'\"\' .. hardcoded.WIN_TOOLS .. \"/\" .. defaults.variables[tool] .. \'.exe\"\'",
+                        "      end",
+                        "   else",
+                        "      defaults.fs_use_modules = true",
+                        "   end"
+                    ].join("\n");
+                    const replacementStr = [
+                        "   local defaults = make_defaults(cfg.lua_version, processor, platforms, cfg.home)",
+                        "",
+                        "   if platforms.windows and not platforms.msys2_mingw_w64 and hardcoded.WIN_TOOLS then",
+                        "      local dir = require(\"luarocks.core.dir\")",
+                        "      local tools = { \"SEVENZ\", \"CP\", \"FIND\", \"LS\", \"MD5SUM\", \"WGET\", }",
+                        "      for _, tool in ipairs(tools) do",
+                        "         defaults.variables[tool] = \'\"\' .. dir.path(hardcoded.WIN_TOOLS, defaults.variables[tool] .. \'.exe\') .. \'\"\'",
+                        "      end",
+                        "   elseif platforms.msys2_mingw_w64 then",
+                        "      defaults.fs_use_modules = false",
+                        "   else",
+                        "      defaults.fs_use_modules = true",
+                        "   end"
+                    ].join("\n");
+                    (0, ReplaceInFile_1.replaceFirstInFile)(cfgPath, 0, targetStr, replacementStr, "utf8")
+                        .then(resolve)
+                        .catch(reject);
+                    break;
+                }
+                case "3.10.0":
+                case "3.11.0":
+                case "3.11.1": {
+                    const targetStr = [
+                        "   local defaults = make_defaults(cfg.lua_version, processor, platforms, cfg.home)",
+                        "",
+                        "   if platforms.windows and hardcoded.WIN_TOOLS then",
+                        "      local tools = { \"SEVENZ\", \"CP\", \"FIND\", \"LS\", \"MD5SUM\", \"WGET\", }",
+                        "      for _, tool in ipairs(tools) do",
+                        "         defaults.variables[tool] = \'\"\' .. dir.path(hardcoded.WIN_TOOLS, defaults.variables[tool] .. \'.exe\') .. \'\"\'",
+                        "      end",
+                        "   else",
+                        "      defaults.fs_use_modules = true",
+                        "   end"
+                    ].join("\n");
+                    const replacementStr = [
+                        "   local defaults = make_defaults(cfg.lua_version, processor, platforms, cfg.home)",
+                        "",
+                        "   if platforms.windows and not platforms.msys2_mingw_w64 and hardcoded.WIN_TOOLS then",
+                        "      local tools = { \"SEVENZ\", \"CP\", \"FIND\", \"LS\", \"MD5SUM\", \"WGET\", }",
+                        "      for _, tool in ipairs(tools) do",
+                        "         defaults.variables[tool] = \'\"\' .. dir.path(hardcoded.WIN_TOOLS, defaults.variables[tool] .. \'.exe\') .. \'\"\'",
+                        "      end",
+                        "   elseif platforms.msys2_mingw_w64 then",
+                        "      defaults.fs_use_modules = false",
+                        "   else",
+                        "      defaults.fs_use_modules = true",
+                        "   end"
+                    ].join("\n");
+                    (0, ReplaceInFile_1.replaceFirstInFile)(cfgPath, 0, targetStr, replacementStr, "utf8")
+                        .then(resolve)
+                        .catch(reject);
+                    break;
+                }
+                default: {
+                    resolve();
+                    break;
+                }
+            }
+        });
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            const sourcesInfo = this.getLuaRocksSourcesInfo();
+            const details = sourcesInfo.getDetails();
+            if (details instanceof LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails) {
+                super.execute()
+                    .then(() => {
+                    const srcDir = sourcesInfo.getDir();
+                    const cfgPath = this.getLuaRocksCoreCfgFilePath(srcDir);
+                    const GNUmakefilePath = this.getLuaRocksGnumakefilePath(srcDir);
+                    (0, CheckFiles_1.checkFiles)([cfgPath, GNUmakefilePath])
+                        .then(() => {
+                        this.cygwinReadLuaRocksVersionFromCoreCfg(cfgPath)
+                            .then(luaRocksVersion => {
+                            const patches = [
+                                () => this.cygwinEnsureMsys2MinGWw64FsLuaFile(srcDir),
+                                () => this.cygwinPatchCoreCfg(cfgPath, luaRocksVersion),
+                                () => this.cygwinPatchGNUmakefile(GNUmakefilePath, luaRocksVersion)
+                            ];
+                            if (luaRocksVersion === "3.9.1") {
+                                const persistPath = this.getLuaRocksPersistPath(srcDir);
+                                patches.push(() => (0, CheckFiles_1.checkFiles)([persistPath]));
+                                patches.push(() => this.cygwinPatchLuaRocksPersist(persistPath, luaRocksVersion));
+                            }
+                            (0, SequentialPromises_1.sequentialPromises)(patches)
+                                .then(_ => {
+                                resolve();
+                            })
+                                .catch(reject);
+                        })
+                            .catch(reject);
+                    })
+                        .catch(reject);
+                })
+                    .catch(reject);
+            }
+            else {
+                super.execute()
+                    .then(resolve)
+                    .catch(reject);
+            }
+        });
     }
     finalize() {
         return new Promise((resolve, reject) => {
@@ -2296,6 +2735,7 @@ const FindProgram_1 = __nccwpck_require__(2437);
 const SequentialPromises_1 = __nccwpck_require__(923);
 const LuaRocksFetchTarget_1 = __nccwpck_require__(5955);
 const Console_1 = __nccwpck_require__(946);
+const CygwinDetection_1 = __nccwpck_require__(7700);
 class LuaRocksCheckDependenciesTarget {
     constructor(project, parent) {
         this.project = project;
@@ -2318,11 +2758,12 @@ class LuaRocksCheckDependenciesTarget {
     }
     execute() {
         return new Promise((resolve, reject) => {
-            if (process.platform === 'win32') {
+            const cygwin = (0, CygwinDetection_1.isCygwin)();
+            if (process.platform === 'win32' && !cygwin) {
                 resolve();
             }
             else {
-                (0, SequentialPromises_1.sequentialPromises)(process.platform === 'darwin' ? [
+                (0, SequentialPromises_1.sequentialPromises)(process.platform === 'darwin' || cygwin ? [
                     () => (0, FindProgram_1.findProgram)("unzip")
                 ] : [
                     () => (0, FindProgram_1.findProgram)("unzip"),
@@ -2353,11 +2794,13 @@ exports.LuaRocksCheckDependenciesTarget = LuaRocksCheckDependenciesTarget;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LuaRocksConfigureSourcesTarget = void 0;
+const node_path_1 = __nccwpck_require__(6760);
 const ExecuteProcess_1 = __nccwpck_require__(6522);
 const LuaRocksFinishConfigurationTarget_1 = __nccwpck_require__(2764);
 const LuaRocksSourcesInfo_1 = __nccwpck_require__(5724);
 const DefaultStdOutHandler_1 = __nccwpck_require__(840);
 const Console_1 = __nccwpck_require__(946);
+const CygwinDetection_1 = __nccwpck_require__(7700);
 class LuaRocksConfigureSourcesTarget {
     constructor(project, parent) {
         this.project = project;
@@ -2384,20 +2827,44 @@ class LuaRocksConfigureSourcesTarget {
     }
     execute() {
         return new Promise((resolve, reject) => {
-            if (process.platform === 'win32') {
+            const luaInstallation = this.project.getLuaInstallation();
+            const interpreter = (0, node_path_1.basename)(luaInstallation.getLuaInterpreter());
+            const luaShortVersion = luaInstallation.getLuaShortVersion();
+            const cygwin = (0, CygwinDetection_1.isCygwin)();
+            if (process.platform === 'win32' && !cygwin) {
                 this.setConfigurationResult();
                 resolve();
             }
             else {
                 const sourcesInfo = this.parent.getLuaRocksSourcesInfo();
                 const details = sourcesInfo.getDetails();
-                if (details instanceof LuaRocksSourcesInfo_1.LuaRocksUnixSourcesInfoDetails) {
+                if (details instanceof LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails) {
+                    const dirUnix = details.getDirPath().getUnixPath();
+                    const configureScriptUnix = details.getConfigureScriptPath().getUnixPath();
+                    const installDirUnix = details.getInstallDirPath().getUnixPath();
+                    (0, ExecuteProcess_1.executeProcess)(details.getBash(), {
+                        args: [
+                            "-lc",
+                            `cd '${dirUnix}' && '${configureScriptUnix}' '--prefix=${installDirUnix}' '--lua-version=${luaShortVersion}' '--with-lua=${installDirUnix}' '--with-lua-interpreter=${interpreter}'`,
+                        ],
+                        verbose: true,
+                        stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                    })
+                        .then(code => {
+                        this.setConfigurationResult();
+                        resolve();
+                    })
+                        .catch(reject);
+                }
+                else if (details instanceof LuaRocksSourcesInfo_1.LuaRocksUnixSourcesInfoDetails) {
                     const installDir = this.project.getInstallDir();
                     (0, ExecuteProcess_1.executeProcess)(details.getConfigureScript(), {
                         cwd: sourcesInfo.getDir(),
                         args: [
                             `--prefix=${installDir}`,
-                            `--with-lua=${installDir}`
+                            `--lua-version=${luaShortVersion}`,
+                            `--with-lua=${installDir}`,
+                            `--with-lua-interpreter=${interpreter}`
                         ],
                         verbose: true,
                         stdout: DefaultStdOutHandler_1.defaultStdOutHandler
@@ -2487,6 +2954,11 @@ const LuaRocksSourcesInfo_1 = __nccwpck_require__(5724);
 const LuaRocksVersion_1 = __nccwpck_require__(3527);
 const LuaRocksApplyPatchesTarget_1 = __nccwpck_require__(9199);
 const Console_1 = __nccwpck_require__(946);
+const CygwinDetection_1 = __nccwpck_require__(7700);
+const CygwinPath_1 = __nccwpck_require__(2168);
+const SequentialPromises_1 = __nccwpck_require__(923);
+const ExecuteProcess_1 = __nccwpck_require__(6522);
+const CygwinFileSystemPath_1 = __nccwpck_require__(6306);
 class LuaRocksFetchTarget extends AbstractFetchCompressedTarget_1.AbstractFetchCompressedTarget {
     constructor(project, parent) {
         super(project.getVersion().getDownloadUrl(), project.getBuildDir(), project.getVersion() instanceof LuaRocksVersion_1.LuaRocksReleaseVersion ? `luarocks-${project.getVersion().getIdentifier()}` : null, (0, node_path_1.extname)((0, node_path_1.basename)(project.getVersion().getDownloadUrl())) === ".zip" ? ExtractZip_1.extractZip : ExtractTarGz_1.extractTarGz, project.getVersion() instanceof LuaRocksVersion_1.LuaRocksReleaseVersion ? {
@@ -2524,7 +2996,7 @@ class LuaRocksFetchTarget extends AbstractFetchCompressedTarget_1.AbstractFetchC
                 .then(() => {
                 const workDir = this.getWorkDir();
                 const filename = (0, node_path_1.basename)(this.project.getVersion().getDownloadUrl());
-                if (process.platform === 'win32') {
+                if (process.platform === 'win32' && !(0, CygwinDetection_1.isCygwin)()) {
                     const extension = (0, node_path_1.extname)(filename);
                     if (extension === ".zip") {
                         const extractedDir = filename.substring(0, filename.length - extension.length);
@@ -2557,7 +3029,33 @@ class LuaRocksFetchTarget extends AbstractFetchCompressedTarget_1.AbstractFetchC
                                             (0, promises_1.stat)(configureScript)
                                                 .then(configureScriptStat => {
                                                 if (configureScriptStat.isFile()) {
-                                                    if (configureScriptStat.mode & promises_1.constants.X_OK) {
+                                                    if ((0, CygwinDetection_1.isCygwin)()) {
+                                                        (0, CygwinPath_1.getCygpathFromCygwin)()
+                                                            .then(cygPath => {
+                                                            const installDir = this.project.getInstallDir();
+                                                            (0, SequentialPromises_1.sequentialPromises)([
+                                                                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-w", "/usr/bin/bash.exe"], true),
+                                                                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-u", extractedDir], true),
+                                                                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-u", configureScript], true),
+                                                                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-u", installDir], true)
+                                                            ])
+                                                                .then(paths => {
+                                                                const bash = paths[0];
+                                                                (0, CheckFiles_1.checkFiles)([bash])
+                                                                    .then(() => {
+                                                                    const extractedDirUnix = paths[1];
+                                                                    const configureScriptUnix = paths[2];
+                                                                    const installDirUnix = paths[3];
+                                                                    this.luaRocksSourcesInfo = new LuaRocksSourcesInfo_1.LuaRocksSourcesInfo(extractedDir, new LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails(bash, cygPath, new CygwinFileSystemPath_1.CygwinFileSystemPath(extractedDir, extractedDirUnix), new CygwinFileSystemPath_1.CygwinFileSystemPath(configureScript, configureScriptUnix), new CygwinFileSystemPath_1.CygwinFileSystemPath(installDir, installDirUnix)));
+                                                                    resolve();
+                                                                })
+                                                                    .catch(reject);
+                                                            })
+                                                                .catch(reject);
+                                                        })
+                                                            .catch(reject);
+                                                    }
+                                                    else if (configureScriptStat.mode & promises_1.constants.X_OK) {
                                                         this.luaRocksSourcesInfo = new LuaRocksSourcesInfo_1.LuaRocksSourcesInfo(extractedDir, new LuaRocksSourcesInfo_1.LuaRocksUnixSourcesInfoDetails(configureScript));
                                                         resolve();
                                                     }
@@ -2672,7 +3170,7 @@ exports.LuaRocksFinishConfigurationTarget = LuaRocksFinishConfigurationTarget;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.LuaRocksSourcesInfo = exports.LuaRocksUnixSourcesInfoDetails = exports.LuaRocksWindowsSourcesInfoDetails = void 0;
+exports.LuaRocksSourcesInfo = exports.LuaRocksCygwinUnixSourcesInfoDetails = exports.LuaRocksUnixSourcesInfoDetails = exports.LuaRocksWindowsSourcesInfoDetails = void 0;
 class LuaRocksWindowsSourcesInfoDetails {
     getLuaRocks() {
         return this.luarocks;
@@ -2695,6 +3193,32 @@ class LuaRocksUnixSourcesInfoDetails {
     }
 }
 exports.LuaRocksUnixSourcesInfoDetails = LuaRocksUnixSourcesInfoDetails;
+class LuaRocksCygwinUnixSourcesInfoDetails extends LuaRocksUnixSourcesInfoDetails {
+    constructor(bash, cygpath, dir, configureScript, installDir) {
+        super(configureScript.getWindowsPath());
+        this.bash = bash;
+        this.cygpath = cygpath;
+        this.dirPath = dir;
+        this.configureScriptPath = configureScript;
+        this.installDirPath = installDir;
+    }
+    getBash() {
+        return this.bash;
+    }
+    getCygpath() {
+        return this.cygpath;
+    }
+    getDirPath() {
+        return this.dirPath;
+    }
+    getConfigureScriptPath() {
+        return this.configureScriptPath;
+    }
+    getInstallDirPath() {
+        return this.installDirPath;
+    }
+}
+exports.LuaRocksCygwinUnixSourcesInfoDetails = LuaRocksCygwinUnixSourcesInfoDetails;
 class LuaRocksSourcesInfo {
     constructor(dir, details) {
         this.dir = dir;
@@ -2798,22 +3322,35 @@ class LuaRocksInstallTarget {
     execute() {
         return new Promise((resolve, reject) => {
             const info = this.buildInfo;
+            const sourcesInfo = info.getSourcesInfo();
+            const infoDetails = sourcesInfo.getDetails();
             if (info instanceof LuaRocksBuildInfo_1.LuaRocksUnixBuildInfo) {
                 const makeArgs = info.getMakeArguments().createCopy();
                 makeArgs.push("install");
-                (0, ExecuteProcess_1.executeProcess)(info.getMake(), {
-                    args: makeArgs,
-                    verbose: true,
-                    stdout: DefaultStdOutHandler_1.defaultStdOutHandler
-                })
-                    .then(code => {
-                    resolve();
-                })
-                    .catch(reject);
+                if (infoDetails instanceof LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails) {
+                    (0, ExecuteProcess_1.executeProcess)(infoDetails.getBash(), {
+                        args: ["-lc", `${info.getMake()} ${makeArgs.join(" ")}`],
+                        verbose: true,
+                        stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                    })
+                        .then(code => {
+                        resolve();
+                    })
+                        .catch(reject);
+                }
+                else {
+                    (0, ExecuteProcess_1.executeProcess)(info.getMake(), {
+                        args: makeArgs,
+                        verbose: true,
+                        stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                    })
+                        .then(code => {
+                        resolve();
+                    })
+                        .catch(reject);
+                }
             }
             else {
-                const sourcesInfo = info.getSourcesInfo();
-                const infoDetails = sourcesInfo.getDetails();
                 if (infoDetails instanceof LuaRocksSourcesInfo_1.LuaRocksWindowsSourcesInfoDetails) {
                     const binDir = this.project.getInstallBinDir();
                     const filesToCopy = [
@@ -2868,15 +3405,14 @@ const LuaRocksSourcesInfo_1 = __nccwpck_require__(5724);
 const GitHub_1 = __nccwpck_require__(5249);
 const ToolchainEnvironmentVariables_1 = __nccwpck_require__(5921);
 const SequentialPromises_1 = __nccwpck_require__(923);
-const ReadOnlyArray_1 = __nccwpck_require__(2483);
 const DefaultStdOutHandler_1 = __nccwpck_require__(840);
 const IGccLikeToolchain_1 = __nccwpck_require__(9372);
 const LuaRocksFinishInstallationTarget_1 = __nccwpck_require__(7563);
 const Console_1 = __nccwpck_require__(946);
-const LUA_INTERPRETER_CANDIDATES = new ReadOnlyArray_1.ReadOnlyArray([
-    "lua.exe",
-    "luajit.exe"
-]);
+const CygwinDetection_1 = __nccwpck_require__(7700);
+const CygwinEnvVars_1 = __nccwpck_require__(1886);
+const ReplaceInFile_1 = __nccwpck_require__(9913);
+const ILuaRocksInstallation_1 = __nccwpck_require__(7969);
 class LuaRocksPostInstallTarget {
     constructor(project, parent) {
         this.project = project;
@@ -2897,6 +3433,38 @@ class LuaRocksPostInstallTarget {
     getNext() {
         return new LuaRocksFinishInstallationTarget_1.LuaRocksFinishInstallationTarget(this.project, this);
     }
+    setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix) {
+        return new Promise((resolve, reject) => {
+            (0, SequentialPromises_1.sequentialPromises)([
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(bash, ["-lc", `'${luaRocksUnix}' path --lr-bin`], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(bash, ["-lc", `'${luaRocksUnix}' path --lr-cpath`], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(bash, ["-lc", `'${luaRocksUnix}' path --lr-path`], true)
+            ])
+                .then(values => {
+                const lrBin = values[0];
+                const lrCPath = values[1];
+                const lrPath = values[2];
+                (0, SequentialPromises_1.sequentialPromises)([
+                    () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_PATH", lrPath),
+                    () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_CPATH", lrCPath),
+                    () => (0, GitHub_1.appendToGitHubPath)(lrBin)
+                ])
+                    .then(_values => {
+                    if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                        /* we are on a GitHub action inside MSYS2 */
+                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBin)
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                    else {
+                        resolve();
+                    }
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        });
+    }
     setEnvironmentVariablesOnGitHub(luarocks) {
         return new Promise((resolve, reject) => {
             (0, SequentialPromises_1.sequentialPromises)([
@@ -2914,9 +3482,32 @@ class LuaRocksPostInstallTarget {
                     () => (0, GitHub_1.appendToGitHubPath)(lrBin)
                 ])
                     .then(_values => {
-                    resolve();
+                    if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                        /* we are on a GitHub action inside MSYS2 */
+                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBin)
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                    else {
+                        resolve();
+                    }
                 })
                     .catch(reject);
+            })
+                .catch(reject);
+        });
+    }
+    setCygwinLuaRocksConfig(bash, luaRocksUnix, key, value) {
+        return new Promise((resolve, reject) => {
+            (0, ExecuteProcess_1.executeProcess)(bash, {
+                args: [
+                    "-lc", `'${luaRocksUnix}' config '${key}' '${value}'`
+                ],
+                verbose: true,
+                stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+            })
+                .then(_configSetEnvVar => {
+                resolve();
             })
                 .catch(reject);
         });
@@ -2938,8 +3529,29 @@ class LuaRocksPostInstallTarget {
                 .catch(reject);
         });
     }
+    setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, key, value) {
+        return this.setCygwinLuaRocksConfig(bash, luaRocksUnix, `variables.${key}`, value);
+    }
     setLuaRocksConfigVariable(luarocks, key, value) {
         return this.setLuaRocksConfig(luarocks, `variables.${key}`, value);
+    }
+    setCygwinLuaRocksToolchainEnvVars(bash, luaRocksUnix, toolchainEnvVars) {
+        return new Promise((resolve, reject) => {
+            const iter = (i) => {
+                if (i < toolchainEnvVars.length) {
+                    const envVar = toolchainEnvVars[i];
+                    this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, envVar.key, envVar.value)
+                        .then(() => {
+                        iter(i + 1);
+                    })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+            iter(0);
+        });
     }
     setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars) {
         return new Promise((resolve, reject) => {
@@ -3071,30 +3683,148 @@ class LuaRocksPostInstallTarget {
             });
         });
     }
+    setInstallationResult(installDir, luaRocksTool, luaRocksAdminTool) {
+        this.project.installationResult().setValue(new ILuaRocksInstallation_1.LuaRocksInstallation(installDir, luaRocksTool, luaRocksAdminTool));
+    }
     execute() {
         return new Promise((resolve, reject) => {
             const isGccLike = (0, IGccLikeToolchain_1.isGccLikeToolchain)(this.project.getToolchain());
             const buildInfo = this.parent.getLuaRocksBuildInfo();
             const srcInfo = buildInfo.getSourcesInfo();
             const infoDetails = srcInfo.getDetails();
+            const installDir = this.project.getInstallDir();
             const binDir = this.project.getInstallBinDir();
+            const luaInstallation = this.project.getLuaInstallation();
             if (infoDetails instanceof LuaRocksSourcesInfo_1.LuaRocksWindowsSourcesInfoDetails) {
-                const installDir = this.project.getInstallDir();
                 const luarocks = (0, node_path_1.join)(binDir, (0, node_path_1.basename)(infoDetails.getLuaRocks()));
-                (0, CheckFiles_1.checkFiles)([luarocks])
+                const luarocksAdmin = (0, node_path_1.join)(binDir, (0, node_path_1.basename)(infoDetails.getLuaRocksAdmin()));
+                (0, CheckFiles_1.checkFiles)([luarocks, luarocksAdmin])
                     .then(() => {
-                    const candidateInterpreter_iter = (idx) => {
-                        if (idx < LUA_INTERPRETER_CANDIDATES.getLenght()) {
-                            const advanceCandidate = (err) => {
-                                candidateInterpreter_iter(idx + 1);
+                    if (isGccLike) {
+                        this.getWindowsGccExternalDepsDirs()
+                            .then(externalDepsDirs => {
+                            const toolchainEnvVars = [
+                                { key: "MAKE", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getMake() },
+                                { key: "CC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getCC() },
+                                { key: "LD", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getLD() },
+                                { key: "AR", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getAR() },
+                                { key: "STRIP", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getSTRIP() },
+                                { key: "RANLIB", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getRANLIB() },
+                                { key: "RC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getRC() }
+                            ];
+                            const configChanges = [
+                                () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                                () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                            ];
+                            const externalDepsDirsPromisesGen = (k) => {
+                                return () => this.setLuaRocksConfig(luarocks, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
                             };
-                            const candidateInterpreterBasename = LUA_INTERPRETER_CANDIDATES.getItem(idx);
-                            const interpreter = (0, node_path_1.join)(binDir, candidateInterpreterBasename);
-                            (0, promises_1.stat)(interpreter)
-                                .then(candidateInterpreterBasenameStat => {
-                                if (candidateInterpreterBasenameStat.isFile()) {
-                                    (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(interpreter, ["-e", "print(_VERSION:sub(5))"], true)
-                                        .then(luaVersion => {
+                            for (let idxExternalDepsDirs = 0; idxExternalDepsDirs < externalDepsDirs.length; idxExternalDepsDirs++) {
+                                configChanges.push(externalDepsDirsPromisesGen(idxExternalDepsDirs));
+                            }
+                            (0, SequentialPromises_1.sequentialPromises)(configChanges)
+                                .then(_values => {
+                                this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                resolve();
+                            })
+                                .catch(reject);
+                        })
+                            .catch(reject);
+                    }
+                    else { /* MSVC */
+                        if ((0, node_path_1.basename)(luaInstallation.getLuaInterpreter()) === "luajit.exe") {
+                            /*
+                            ** For a LuaJIT build using MSVC,
+                            ** msvcbuild.bat only supports
+                            ** cl and link, not clang-cl.
+                            ** So, environment variables for
+                            ** different toolchains are not set.
+                            */
+                            (0, SequentialPromises_1.sequentialPromises)([
+                                () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                            ])
+                                .then(_values => {
+                                this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                resolve();
+                            })
+                                .catch(reject);
+                        }
+                        else {
+                            const toolchainEnvVars = [
+                                { key: "MAKE", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getMake() },
+                                { key: "CC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getCC() },
+                                { key: "LD", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getLD() },
+                                { key: "AR", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getAR() }
+                            ];
+                            (0, SequentialPromises_1.sequentialPromises)([
+                                () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                                () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                            ])
+                                .then(_values => {
+                                this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                resolve();
+                            })
+                                .catch(reject);
+                        }
+                    }
+                })
+                    .catch(reject);
+            }
+            else if (infoDetails instanceof LuaRocksSourcesInfo_1.LuaRocksCygwinUnixSourcesInfoDetails) {
+                const luarocks = (0, node_path_1.join)(binDir, "luarocks");
+                const luarocksAdmin = (0, node_path_1.join)(binDir, "luarocks-admin");
+                (0, CheckFiles_1.checkFiles)([luarocks, luarocksAdmin])
+                    .then(() => {
+                    const luarocksConfig = (0, node_path_1.join)(this.project.getInstallDir(), "etc", "luarocks", `config-${luaInstallation.getLuaShortVersion()}.lua`);
+                    (0, CheckFiles_1.checkFiles)([luarocksConfig])
+                        .then(() => {
+                        const installDirUnix = infoDetails.getInstallDirPath().getUnixPath();
+                        (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(infoDetails.getCygpath(), [
+                            "-m",
+                            installDir
+                        ], true)
+                            .then(installDirMixed => {
+                            /*
+                            ** for each file listed in the following
+                            ** array, we are going to replace
+                            ** Lua's install directory (which is written
+                            ** as a Unix dir) by the corresponding
+                            ** path formatted as Windows directory.
+                            ** However, we are going to use
+                            ** slash (/) as directory separator.
+                            ** In short:
+                            ** path/to/lua_dir -> $(cygpath -m "path/to/lua_dir")
+                            */
+                            const replacements = [
+                                {
+                                    filepath: luarocks,
+                                    linesToSkip: 1 /* skip shebang */
+                                },
+                                {
+                                    filepath: luarocksAdmin,
+                                    linesToSkip: 1 /* skip shebang */
+                                },
+                                {
+                                    filepath: luarocksConfig,
+                                    linesToSkip: 0
+                                }
+                            ];
+                            const replacement_iter = (i) => {
+                                if (i < replacements.length) {
+                                    const replacement = replacements[i];
+                                    (0, ReplaceInFile_1.replaceAllInFile)(replacement.filepath, replacement.linesToSkip, installDirUnix, installDirMixed)
+                                        .then(() => {
+                                        replacement_iter(i + 1);
+                                    })
+                                        .catch(reject);
+                                }
+                                else {
+                                    (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(infoDetails.getCygpath(), ["-u", luarocks], true)
+                                        .then(luaRocksUnix => {
+                                        const bash = infoDetails.getBash();
                                         if (isGccLike) {
                                             this.getWindowsGccExternalDepsDirs()
                                                 .then(externalDepsDirs => {
@@ -3108,26 +3838,28 @@ class LuaRocksPostInstallTarget {
                                                     { key: "RC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getRC() }
                                                 ];
                                                 const configChanges = [
-                                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                                                    () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, "cmake_generator", "MinGW Makefiles"),
+                                                    () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
+                                                    () => this.setCygwinLuaRocksToolchainEnvVars(bash, luaRocksUnix, toolchainEnvVars),
+                                                    () => this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
                                                 ];
                                                 const externalDepsDirsPromisesGen = (k) => {
-                                                    return () => this.setLuaRocksConfig(luarocks, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
+                                                    return () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
                                                 };
                                                 for (let idxExternalDepsDirs = 0; idxExternalDepsDirs < externalDepsDirs.length; idxExternalDepsDirs++) {
                                                     configChanges.push(externalDepsDirsPromisesGen(idxExternalDepsDirs));
                                                 }
                                                 (0, SequentialPromises_1.sequentialPromises)(configChanges)
                                                     .then(_values => {
+                                                    this.setInstallationResult(installDir, luarocks, luarocksAdmin);
                                                     resolve();
                                                 })
-                                                    .catch(advanceCandidate);
+                                                    .catch(reject);
                                             })
-                                                .catch(advanceCandidate);
+                                                .catch(reject);
                                         }
                                         else { /* MSVC */
-                                            if (candidateInterpreterBasename === "luajit.exe") {
+                                            if ((0, node_path_1.basename)(luaInstallation.getLuaInterpreter()) === "luajit.exe") {
                                                 /*
                                                 ** For a LuaJIT build using MSVC,
                                                 ** msvcbuild.bat only supports
@@ -3135,14 +3867,12 @@ class LuaRocksPostInstallTarget {
                                                 ** So, environment variables for
                                                 ** different toolchains are not set.
                                                 */
-                                                (0, SequentialPromises_1.sequentialPromises)([
-                                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                                                ])
-                                                    .then(_values => {
+                                                this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
+                                                    .then(() => {
+                                                    this.setInstallationResult(installDir, luarocks, luarocksAdmin);
                                                     resolve();
                                                 })
-                                                    .catch(advanceCandidate);
+                                                    .catch(reject);
                                             }
                                             else {
                                                 const toolchainEnvVars = [
@@ -3152,49 +3882,51 @@ class LuaRocksPostInstallTarget {
                                                     { key: "AR", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getAR() }
                                                 ];
                                                 (0, SequentialPromises_1.sequentialPromises)([
-                                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                                                    () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
+                                                    () => this.setCygwinLuaRocksToolchainEnvVars(bash, luaRocksUnix, toolchainEnvVars),
+                                                    () => this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
                                                 ])
                                                     .then(_values => {
+                                                    this.setInstallationResult(installDir, luarocks, luarocksAdmin);
                                                     resolve();
                                                 })
-                                                    .catch(advanceCandidate);
+                                                    .catch(reject);
                                             }
                                         }
                                     })
-                                        .catch(advanceCandidate);
+                                        .catch(reject);
                                 }
-                                else {
-                                    advanceCandidate();
-                                }
-                            })
-                                .catch(advanceCandidate);
-                        }
-                        else {
-                            reject(new Error("Unable to find a working Lua interpreter to setup LuaRocks"));
-                        }
-                    };
-                    candidateInterpreter_iter(0);
+                            };
+                            replacement_iter(0);
+                        })
+                            .catch(reject);
+                    })
+                        .catch(reject);
                 })
                     .catch(reject);
             }
             else {
                 const luarocks = (0, node_path_1.join)(binDir, "luarocks");
-                const toolchainEnvVars = [
-                    { key: "MAKE", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getMake() },
-                    { key: "CC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getCC() },
-                    { key: "LD", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getLD() },
-                    { key: "AR", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getAR() },
-                    { key: "STRIP", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getSTRIP() },
-                    { key: "RANLIB", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getRANLIB() }
-                ];
-                (0, SequentialPromises_1.sequentialPromises)([
-                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                ])
-                    .then(_values => {
-                    resolve();
+                const luarocksAdmin = (0, node_path_1.join)(binDir, "luarocks-admin");
+                (0, CheckFiles_1.checkFiles)([luarocks, luarocksAdmin])
+                    .then(() => {
+                    const toolchainEnvVars = [
+                        { key: "MAKE", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getMake() },
+                        { key: "CC", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getCC() },
+                        { key: "LD", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getLD() },
+                        { key: "AR", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getAR() },
+                        { key: "STRIP", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getSTRIP() },
+                        { key: "RANLIB", value: ToolchainEnvironmentVariables_1.ToolchainEnvironmentVariables.instance().getRANLIB() }
+                    ];
+                    (0, SequentialPromises_1.sequentialPromises)([
+                        () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                        () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                    ])
+                        .then(_values => {
+                        this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                        resolve();
+                    })
+                        .catch(reject);
                 })
                     .catch(reject);
             }
@@ -3237,6 +3969,9 @@ class LuaRocksProject {
     getInstallDir() {
         return this.installDir;
     }
+    getLuaInstallation() {
+        return this.luaInstallation;
+    }
     getToolchain() {
         return this.toolchain;
     }
@@ -3249,15 +3984,20 @@ class LuaRocksProject {
     buildResult() {
         return this._buildResult;
     }
-    constructor(version, buildDir, installDir, toolchain) {
+    installationResult() {
+        return this._installationResult;
+    }
+    constructor(version, buildDir, installDir, luaInstallation, toolchain) {
         this.version = version;
         this.buildDir = buildDir;
         this.installDir = installDir;
+        this.luaInstallation = luaInstallation;
         this.toolchain = toolchain;
         this.remotePatchesBuildDir = (0, node_path_1.join)(this.buildDir, "remote-patches");
         this.installBinDir = (0, node_path_1.join)(installDir, "bin");
         this._configurationResult = new GetSetProperty_1.GetSetProperty(null);
         this._buildResult = new GetSetProperty_1.GetSetProperty(null);
+        this._installationResult = new GetSetProperty_1.GetSetProperty(null);
     }
     configure() {
         return new Promise((resolve, reject) => {
@@ -3300,6 +4040,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LuaRocksRepositoryVersion = exports.LuaRocksReleaseVersion = exports.LuaRocksBaseVersion = void 0;
 exports.parseLuaRocksVersion = parseLuaRocksVersion;
 const node_os_1 = __nccwpck_require__(8161);
+const CygwinDetection_1 = __nccwpck_require__(7700);
 const LATEST_LUAROCKS = "3.13.0";
 const LUAROCKS_RELEASES_WINDOWS_X86 = {
     "3.9.1": { "filename": "luarocks-3.9.1-windows-32.zip", "version": "3.9.1", "hash": { "algorithm": "sha256", "value": "1b473fd3b9494cec31d98f7642babf12cc832551fd69fb7081e8baf4c54e0fa5" } },
@@ -3359,7 +4100,7 @@ function parseLuaRocksVersion(version) {
         if (luaRocksVersion === "none") {
             resolve(undefined);
         }
-        else if (process.platform === 'win32') {
+        else if (process.platform === 'win32' && !(0, CygwinDetection_1.isCygwin)()) {
             const osArch = (0, node_os_1.arch)();
             if (osArch === 'ia32' || osArch === 'arm64') {
                 if (luaRocksVersion in LUAROCKS_RELEASES_WINDOWS_X86) {
@@ -5803,9 +6544,14 @@ exports.PucLuaFinishInstallationTarget = PucLuaFinishInstallationTarget;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PucLuaPostInstallTarget = void 0;
+const node_path_1 = __nccwpck_require__(6760);
 const AbstractUpdateLuaEnvVarsTarget_1 = __nccwpck_require__(6962);
 const PucLuaFinishInstallationTarget_1 = __nccwpck_require__(7336);
 const Console_1 = __nccwpck_require__(946);
+const ExecuteProcess_1 = __nccwpck_require__(6522);
+const PucLuaVersion_1 = __nccwpck_require__(5991);
+const ILuaInstallation_1 = __nccwpck_require__(3627);
+const CheckFiles_1 = __nccwpck_require__(8105);
 class PucLuaPostInstallTarget extends AbstractUpdateLuaEnvVarsTarget_1.AbstractUpdateLuaEnvVarsTarget {
     constructor(project, parent) {
         super(project, parent);
@@ -5831,6 +6577,36 @@ class PucLuaPostInstallTarget extends AbstractUpdateLuaEnvVarsTarget_1.AbstractU
     }
     getNext() {
         return new PucLuaFinishInstallationTarget_1.PucLuaFinishInstallationTarget(this.getProject(), this);
+    }
+    setInstallationResult(installDir, luaInterpreter, luaShortVersion) {
+        this.getProject().installationResult().setValue(new ILuaInstallation_1.LuaInstallation(installDir, luaInterpreter, luaShortVersion));
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            super.execute()
+                .then(() => {
+                const installDir = this.getProjectInstallDir();
+                const binDir = this.getProjectInstallBinDir();
+                const ext = process.platform === "win32" ? ".exe" : "";
+                const luaInterpreter = (0, node_path_1.join)(binDir, `lua${ext}`);
+                (0, CheckFiles_1.checkFiles)([luaInterpreter])
+                    .then(() => {
+                    (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(luaInterpreter, ["-e", "print(_VERSION:sub(5))"], true)
+                        .then(luaShortVersion => {
+                        if ((0, PucLuaVersion_1.isKnownLuaShortVersion)(luaShortVersion)) {
+                            this.setInstallationResult(installDir, luaInterpreter, luaShortVersion);
+                            resolve();
+                        }
+                        else {
+                            reject(new Error("Unexpected Lua short version"));
+                        }
+                    })
+                        .catch(reject);
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        });
     }
     finalize() {
         return new Promise((resolve, reject) => {
@@ -5916,6 +6692,9 @@ class PucLuaProject {
     buildResult() {
         return this._buildResult;
     }
+    installationResult() {
+        return this._installationResult;
+    }
     constructor(version, buildDir, installDir, toolchain) {
         this.version = version;
         this.buildDir = buildDir;
@@ -5942,6 +6721,7 @@ class PucLuaProject {
         }
         this._configurationResult = new GetSetProperty_1.GetSetProperty(null);
         this._buildResult = new GetSetProperty_1.GetSetProperty(null);
+        this._installationResult = new GetSetProperty_1.GetSetProperty(null);
     }
     configure() {
         return new Promise((resolve, reject) => {
@@ -5982,6 +6762,7 @@ exports.PucLuaProject = PucLuaProject;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LUA_55_VERSION = exports.LUA_54_VERSION = exports.LUA_53_VERSION = exports.LUA_52_VERSION = exports.LUA_51_VERSION = exports.PucLuaWorkVersion = exports.PucLuaReleaseVersion = exports.AbstractPucLuaVersion = void 0;
+exports.isKnownLuaShortVersion = isKnownLuaShortVersion;
 exports.parsePucLuaVersion = parsePucLuaVersion;
 const CompareVersions_1 = __nccwpck_require__(7654);
 const LATEST_LUA_RELEASE_VERSION = "5.5.0";
@@ -6137,6 +6918,9 @@ const LUA_WORKS = {
     "5.1.1-rc2": { "version": "5.1.1-rc2", "hash": { "algorithm": "sha256", "value": "b14642c7f5f211f8f899ae4e97891d025a72245a3c6938b4d37024513730d71e" } },
     "5.1.1-rc1": { "version": "5.1.1-rc1", "hash": { "algorithm": "sha256", "value": "84dda3f7a03999785488304e9561e4f6771366845d3488efbb8e077b20839c99" } }
 };
+function isKnownLuaShortVersion(version) {
+    return version in CONVERT_LUA_RELEASE_VERSION;
+}
 function parsePucLuaVersion(version) {
     return new Promise((resolve, reject) => {
         const pucLuaVersion = version in CONVERT_LUA_RELEASE_VERSION ?
@@ -6324,7 +7108,9 @@ class AbstractApplyPatchesTarget {
                                             "-Np1",
                                             "--force",
                                             "-i",
-                                            patchPath
+                                            (process.platform === "win32") ?
+                                                patchPath.replace(/\\/g, "/") :
+                                                patchPath
                                         ],
                                         verbose: true,
                                         stdout: DefaultStdOutHandler_1.defaultStdOutHandler
@@ -6456,6 +7242,8 @@ exports.AbstractUpdateLuaEnvVarsTarget = void 0;
 const node_path_1 = __nccwpck_require__(6760);
 const GitHub_1 = __nccwpck_require__(5249);
 const SequentialPromises_1 = __nccwpck_require__(923);
+const CygwinDetection_1 = __nccwpck_require__(7700);
+const CygwinEnvVars_1 = __nccwpck_require__(1886);
 class AbstractUpdateLuaEnvVarsTarget {
     constructor(project, parent) {
         this.project = project;
@@ -6474,9 +7262,12 @@ class AbstractUpdateLuaEnvVarsTarget {
     }
     execute() {
         return new Promise((resolve, reject) => {
+            const pkgConfigPath = this.getProjectInstallPkgConfigDir();
+            const cmakePrefixPath = this.getProjectInstallDir();
+            const binDir = this.getProjectInstallBinDir();
             const changes = [
-                () => this.setConfigPathToGitHub("PKG_CONFIG_PATH", this.getProjectInstallPkgConfigDir()),
-                () => this.setConfigPathToGitHub("CMAKE_PREFIX_PATH", this.getProjectInstallDir())
+                () => this.setConfigPathToGitHub("PKG_CONFIG_PATH", pkgConfigPath),
+                () => this.setConfigPathToGitHub("CMAKE_PREFIX_PATH", cmakePrefixPath)
             ];
             if (process.platform === "darwin") {
                 changes.push(() => this.setConfigPathToGitHub("DYLD_LIBRARY_PATH", this.getProjectInstallLibDir()));
@@ -6484,10 +7275,18 @@ class AbstractUpdateLuaEnvVarsTarget {
             else if (process.platform !== "win32") {
                 changes.push(() => this.setConfigPathToGitHub("LD_LIBRARY_PATH", this.getProjectInstallLibDir()));
             }
-            changes.push(() => (0, GitHub_1.appendToGitHubPath)(this.getProjectInstallBinDir()));
+            changes.push(() => (0, GitHub_1.appendToGitHubPath)(binDir));
             (0, SequentialPromises_1.sequentialPromises)(changes)
                 .then(_ => {
-                resolve();
+                if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                    /* we are on a GitHub action inside MSYS2 */
+                    (0, CygwinEnvVars_1.exportLuaEnvVarsOnCygwinProfile)(pkgConfigPath, cmakePrefixPath, binDir)
+                        .then(resolve)
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
             })
                 .catch(reject);
         });
@@ -7616,9 +8415,13 @@ class ToolchainEnvironmentVariables {
                 ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
     }
     getRawLD() {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
         return (GitHubInput_1.GitHubInput.instance().getInputLD() || process.env["LD"] ||
             (process.env["VCINSTALLDIR"] ? "link" :
-                (process.platform === 'win32' ? "gcc" : "cc"))).trim();
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
     }
     getRawAR() {
         return (GitHubInput_1.GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
@@ -7779,6 +8582,127 @@ function compareVersions(v1, v2) {
         }
     }
     return result;
+}
+
+
+/***/ }),
+
+/***/ 7700:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isCygwin = isCygwin;
+exports.isCygwinOnGitHubAction = isCygwinOnGitHubAction;
+function isCygwin() {
+    return ((process.env["MSYSTEM"] || "").trim() !== "");
+}
+function isCygwinOnGitHubAction() {
+    return isCygwin() && (process.env["RUNNER_OS"] === "Windows");
+}
+
+
+/***/ }),
+
+/***/ 1886:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.exportLuaEnvVarsOnCygwinProfile = exportLuaEnvVarsOnCygwinProfile;
+exports.exportLuaRocksEnvVarsOnCygwinProfile = exportLuaRocksEnvVarsOnCygwinProfile;
+const node_path_1 = __nccwpck_require__(6760);
+const promises_1 = __nccwpck_require__(1455);
+const CygwinPath_1 = __nccwpck_require__(2168);
+const ExecuteProcess_1 = __nccwpck_require__(6522);
+const SequentialPromises_1 = __nccwpck_require__(923);
+function getCygwinProfilePath(baseDir) {
+    return (0, node_path_1.join)(baseDir, "etc", "profile.d", "setup-lua.sh");
+}
+function coreExportEnvVarOnCygwinFile(filepath, key, value, isRawVar) {
+    return new Promise((resolve, reject) => {
+        (0, promises_1.appendFile)(filepath, [
+            isRawVar ? `${key}='${value}'` : `${key}='${value}'":\${${key}}";`,
+            `export ${key};`,
+            ""
+        ].join("\n"), { encoding: "utf-8" })
+            .then(resolve)
+            .catch(reject);
+    });
+}
+function exportLuaEnvVarsOnCygwinProfile(pkgConfigPath, cmakePrefixPath, binDir) {
+    return new Promise((resolve, reject) => {
+        (0, CygwinPath_1.getCygpathFromCygwin)()
+            .then(cygPath => {
+            (0, SequentialPromises_1.sequentialPromises)([
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-w", "/"], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-p", "-u", pkgConfigPath], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-p", "-u", cmakePrefixPath], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-u", binDir], true)
+            ])
+                .then(paths => {
+                const profile = getCygwinProfilePath(paths[0]);
+                (0, SequentialPromises_1.sequentialPromises)([
+                    () => coreExportEnvVarOnCygwinFile(profile, "PKG_CONFIG_PATH", paths[1], false),
+                    () => coreExportEnvVarOnCygwinFile(profile, "CMAKE_PREFIX_PATH", paths[2], false),
+                    () => coreExportEnvVarOnCygwinFile(profile, "PATH", paths[3], false)
+                ]).then(() => {
+                    resolve();
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        })
+            .catch(reject);
+    });
+}
+function exportLuaRocksEnvVarsOnCygwinProfile(luaPath, luaCPath, luaRocksBinDir) {
+    return new Promise((resolve, reject) => {
+        (0, CygwinPath_1.getCygpathFromCygwin)()
+            .then(cygPath => {
+            (0, SequentialPromises_1.sequentialPromises)([
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-w", "/"], true),
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-p", "-u", luaRocksBinDir], true)
+            ])
+                .then(paths => {
+                const profile = getCygwinProfilePath(paths[0]);
+                (0, SequentialPromises_1.sequentialPromises)([
+                    () => coreExportEnvVarOnCygwinFile(profile, "LUA_PATH", luaPath, true),
+                    () => coreExportEnvVarOnCygwinFile(profile, "LUA_CPATH", luaCPath, true),
+                    () => coreExportEnvVarOnCygwinFile(profile, "PATH", paths[1], false)
+                ]).then(_values => {
+                    resolve();
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        })
+            .catch(reject);
+    });
+}
+
+
+/***/ }),
+
+/***/ 2168:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getCygpathFromCygwin = getCygpathFromCygwin;
+const node_path_1 = __nccwpck_require__(6760);
+const CheckFiles_1 = __nccwpck_require__(8105);
+function getCygpathFromCygwin() {
+    return new Promise((resolve, reject) => {
+        const shell = (process.env["SHELL"] || "").trim();
+        const shellDir = (0, node_path_1.dirname)(shell);
+        const cygPath = (0, node_path_1.join)(shellDir, "cygpath.exe");
+        (0, CheckFiles_1.checkFiles)([cygPath])
+            .then(() => {
+            resolve(cygPath);
+        })
+            .catch(reject);
+    });
 }
 
 
@@ -7973,9 +8897,91 @@ function getFirstLineFromProcessExecution(tool, args, verbose) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.extractTarGz = extractTarGz;
+const node_path_1 = __nccwpck_require__(6760);
+const CheckFiles_1 = __nccwpck_require__(8105);
+const FindGitForWindowsInstallDir_1 = __nccwpck_require__(5407);
 const ExecuteProcess_1 = __nccwpck_require__(6522);
+function getWin32TarPath() {
+    return new Promise((resolve, reject) => {
+        const cmdPath = (process.env["COMSPEC"] || "cmd.exe").trim();
+        const cmdDir = (0, node_path_1.dirname)(cmdPath);
+        const tarPath = cmdDir === "." ? "tar.exe" : (0, node_path_1.join)(cmdDir, "tar.exe");
+        (0, CheckFiles_1.checkFiles)([tarPath])
+            .then(() => {
+            resolve(tarPath);
+        })
+            .catch(reject);
+    });
+}
+function getGitTarPath() {
+    return new Promise((resolve, reject) => {
+        (0, FindGitForWindowsInstallDir_1.findGitForWindowsInstallDir)()
+            .then(gitDir => {
+            const tarPath = (0, node_path_1.join)(gitDir, "usr", "bin", "tar.exe");
+            const cygpath = (0, node_path_1.join)(gitDir, "usr", "bin", "cygpath.exe");
+            (0, CheckFiles_1.checkFiles)([tarPath, cygpath])
+                .then(() => {
+                resolve({
+                    program: tarPath,
+                    cygpath: cygpath
+                });
+            })
+                .catch(reject);
+        })
+            .catch(reject);
+    });
+}
+function win32ExtractTarGz(inputFile, opts) {
+    return new Promise((resolve, reject) => {
+        getWin32TarPath()
+            .then(win32Tar => {
+            (0, ExecuteProcess_1.executeProcess)(win32Tar, {
+                args: opts && opts.cwd ?
+                    ["-C", opts.cwd, "-xf", inputFile] :
+                    ["-xf", inputFile], verbose: opts === null || opts === void 0 ? void 0 : opts.verbose
+            })
+                .then(resolve)
+                .catch(reject);
+        })
+            .catch(win32TarErr => {
+            getGitTarPath()
+                .then(gitTargetProgram => {
+                (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(gitTargetProgram.cygpath, ["-u", inputFile], opts === null || opts === void 0 ? void 0 : opts.verbose)
+                    .then(inputFileUnixPath => {
+                    if (opts && opts.cwd) {
+                        (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(gitTargetProgram.cygpath, ["-u", opts.cwd], opts === null || opts === void 0 ? void 0 : opts.verbose)
+                            .then(cwdUnixPath => {
+                            (0, ExecuteProcess_1.executeProcess)(gitTargetProgram.program, {
+                                args: ["-C", cwdUnixPath, "-xf", inputFileUnixPath],
+                                verbose: opts === null || opts === void 0 ? void 0 : opts.verbose
+                            })
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    }
+                    else {
+                        (0, ExecuteProcess_1.executeProcess)(gitTargetProgram.program, {
+                            args: ["-xf", inputFileUnixPath],
+                            verbose: opts === null || opts === void 0 ? void 0 : opts.verbose
+                        })
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                })
+                    .catch(reject);
+            })
+                .catch(reject);
+        });
+    });
+}
 function extractTarGz(inputFile, opts) {
-    return (0, ExecuteProcess_1.executeProcess)("tar", { args: opts && opts.cwd ? ["-C", opts.cwd, "-xf", inputFile] : ["-xf", inputFile], verbose: opts === null || opts === void 0 ? void 0 : opts.verbose });
+    return (process.platform === "win32") ?
+        win32ExtractTarGz(inputFile, opts) :
+        (0, ExecuteProcess_1.executeProcess)("tar", {
+            args: opts && opts.cwd ?
+                ["-C", opts.cwd, "-xf", inputFile] :
+                ["-xf", inputFile], verbose: opts === null || opts === void 0 ? void 0 : opts.verbose
+        });
 }
 
 
@@ -8095,7 +9101,7 @@ function extractZip(path, opts) {
                     .catch(powershellErr => {
                     findGitUnzipPath()
                         .then(gitUnzip => {
-                        (0, ExecuteProcess_1.executeProcess)(gitUnzip, { cwd: dir, args: [path], verbose: opts === null || opts === void 0 ? void 0 : opts.verbose })
+                        (0, ExecuteProcess_1.executeProcess)(gitUnzip, { cwd: dir, args: [path.replace(/\\/g, "/")], verbose: opts === null || opts === void 0 ? void 0 : opts.verbose })
                             .then(code => {
                             resolve(code);
                         })
@@ -8550,6 +9556,64 @@ exports.ReadOnlyArray = ReadOnlyArray;
 
 /***/ }),
 
+/***/ 9913:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.replaceFirstInFile = replaceFirstInFile;
+exports.replaceAllInFile = replaceAllInFile;
+const promises_1 = __nccwpck_require__(1455);
+const StringReplaceAll_1 = __nccwpck_require__(7912);
+function replaceFirst(input, targetStr, replacementStr) {
+    return input.replace(targetStr, replacementStr);
+}
+function replacementInFile(callback, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return new Promise((resolve, reject) => {
+        (0, promises_1.readFile)(filePath, { encoding: encoding })
+            .then(content => {
+            if (numberOfLinesToSkip === 0) {
+                const newContent = callback(content.toString(), targetStr, replacementStr);
+                (0, promises_1.writeFile)(filePath, newContent, { encoding: encoding })
+                    .then(resolve)
+                    .catch(reject);
+            }
+            else {
+                const s = content.toString();
+                const rgx = /\r?\n/g;
+                let match;
+                let foundStart = false;
+                let i = 0;
+                let index = 0;
+                while (!foundStart && (match = rgx.exec(s)) != null) {
+                    index = match.index + match[0].length;
+                    i++;
+                    foundStart = i == numberOfLinesToSkip;
+                }
+                if (foundStart) {
+                    const newContent = s.substring(0, index) + callback(s.substring(index), targetStr, replacementStr);
+                    (0, promises_1.writeFile)(filePath, newContent, { encoding: encoding })
+                        .then(resolve)
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            }
+        })
+            .catch(reject);
+    });
+}
+function replaceFirstInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return replacementInFile(replaceFirst, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
+}
+function replaceAllInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return replacementInFile(StringReplaceAll_1.replaceAll, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
+}
+
+
+/***/ }),
+
 /***/ 923:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -8576,6 +9640,38 @@ function sequentialPromises(values) {
         };
         iter(0);
     });
+}
+
+
+/***/ }),
+
+/***/ 7912:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.replaceAll = replaceAll;
+function replaceAll(input, target, replacement) {
+    const l = input.length;
+    const tl = target.length;
+    const tokens = [];
+    if (l > 0) {
+        let i = 0;
+        let s = 0;
+        while (i < l) {
+            if (input.startsWith(target, i)) {
+                tokens.push(input.substring(s, i));
+                tokens.push(replacement);
+                i += tl;
+                s = i;
+            }
+            else {
+                i++;
+            }
+        }
+        tokens.push(input.substring(s));
+    }
+    return tokens.join("");
 }
 
 
@@ -8808,7 +9904,7 @@ function installLuaProject(luaProject, buildDir, installDir, toolchain) {
                     const version = lrVersions[0];
                     (0, promises_1.mkdtemp)((0, node_path_1.join)(buildDir, "luarocks-"))
                         .then(luaRocksBuildDir => {
-                        const luaRocksProject = new LuaRocksProject_1.LuaRocksProject(version, luaRocksBuildDir, installDir, toolchain);
+                        const luaRocksProject = new LuaRocksProject_1.LuaRocksProject(version, luaRocksBuildDir, installDir, luaProject.installationResult().getValue(), toolchain);
                         (0, SequentialPromises_1.sequentialPromises)([
                             () => luaRocksProject.configure(),
                             () => luaRocksProject.build(),
