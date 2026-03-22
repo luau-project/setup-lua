@@ -52,7 +52,9 @@ export abstract class AbstractApplyPatchesTarget implements ITarget {
                                                 "-Np1",
                                                 "--force",
                                                 "-i",
-                                                patchPath
+                                                (process.platform === "win32") ?
+                                                    patchPath.replace(/\\/g, "/") :
+                                                    patchPath
                                             ],
                                             verbose: true,
                                             stdout: defaultStdOutHandler
