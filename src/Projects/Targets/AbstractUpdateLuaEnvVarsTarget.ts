@@ -3,6 +3,8 @@ import { appendToGitHubEnvironmentVariables, appendToGitHubPath } from "../../Ut
 import { IProject } from "../IProject";
 import { ITarget } from "./ITarget";
 import { PromiseCallback, sequentialPromises } from "../../Util/SequentialPromises";
+import { isCygwinOnGitHubAction } from "../../Util/CygwinDetection";
+import { exportLuaEnvVarsOnCygwinProfile } from "../../Util/CygwinEnvVars";
 
 export abstract class AbstractUpdateLuaEnvVarsTarget implements ITarget {
     private parent: ITarget | null;
@@ -31,9 +33,13 @@ export abstract class AbstractUpdateLuaEnvVarsTarget implements ITarget {
     }
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
+            const pkgConfigPath = this.getProjectInstallPkgConfigDir();
+            const cmakePrefixPath = this.getProjectInstallDir();
+            const binDir = this.getProjectInstallBinDir();
+
             const changes: PromiseCallback<void>[] = [
-                () => this.setConfigPathToGitHub("PKG_CONFIG_PATH", this.getProjectInstallPkgConfigDir()),
-                () => this.setConfigPathToGitHub("CMAKE_PREFIX_PATH", this.getProjectInstallDir())
+                () => this.setConfigPathToGitHub("PKG_CONFIG_PATH", pkgConfigPath),
+                () => this.setConfigPathToGitHub("CMAKE_PREFIX_PATH", cmakePrefixPath)
             ];
 
             if (process.platform === "darwin") {
@@ -43,11 +49,20 @@ export abstract class AbstractUpdateLuaEnvVarsTarget implements ITarget {
                 changes.push(() => this.setConfigPathToGitHub("LD_LIBRARY_PATH", this.getProjectInstallLibDir()));
             }
 
-            changes.push(() => appendToGitHubPath(this.getProjectInstallBinDir()));
+            changes.push(() => appendToGitHubPath(binDir));
 
             sequentialPromises(changes)
                 .then(_ => {
-                    resolve();
+                    if (isCygwinOnGitHubAction()) {
+                        /* we are on a GitHub action inside MSYS2 */
+                        exportLuaEnvVarsOnCygwinProfile(pkgConfigPath, cmakePrefixPath, binDir)
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                    else
+                    {
+                        resolve();
+                    }
                 })
                 .catch(reject);
         });
