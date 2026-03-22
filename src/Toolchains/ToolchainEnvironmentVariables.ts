@@ -45,9 +45,14 @@ export class ToolchainEnvironmentVariables implements IToolchainEnvironmentVaria
                 ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
     }
     getRawLD(): string {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
+
         return (GitHubInput.instance().getInputLD() || process.env["LD"] ||
             (process.env["VCINSTALLDIR"] ? "link" :
-                (process.platform === 'win32' ? "gcc" : "cc"))).trim();
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
     }
     getRawAR(): string {
         return (GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
