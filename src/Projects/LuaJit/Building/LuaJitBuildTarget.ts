@@ -165,7 +165,14 @@ export class LuaJitBuildTarget implements ITarget {
                     const coreBuildForMinGW: (hasStatusLongJump: boolean) => void = (statusLongJump) => {
                         const MACRO_FOR_STATUS_LONGJUMP = statusLongJump ? "" : `-DSTATUS_LONGJUMP=0x80000026UL`;
                         executeProcess(make, {
-                            args: [
+                            args: (process.env["MSYSTEM"]) ? [
+                                "-C",
+                                luaJitSrcDir,
+                                `DEFAULT_CC=${envCC}`,
+                                `CROSS=${cross}`,
+                                `XCFLAGS= ${MACRO_FOR_STATUS_LONGJUMP} ${combinedXcflags.join(' ')} `,
+                                "all"
+                            ] : [
                                 "-C",
                                 luaJitSrcDir,
                                 `SHELL=${cmd}`,
