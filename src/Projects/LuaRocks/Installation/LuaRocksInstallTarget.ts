@@ -5,7 +5,7 @@ import { ITarget } from "../../Targets/ITarget";
 import { LuaRocksProject } from "../LuaRocksProject";
 import { LuaRocksUnixBuildInfo, LuaRocksWindowsBuildInfo } from "../Building/LuaRocksBuildInfo";
 import { executeProcess } from "../../../Util/ExecuteProcess";
-import { LuaRocksWindowsSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
+import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksWindowsSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
 import { LuaRocksPostInstallTarget } from "./LuaRocksPostInstallTarget";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { Console } from "../../../Console";
@@ -40,23 +40,37 @@ export class LuaRocksInstallTarget implements ITarget {
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const info = this.buildInfo;
+            const sourcesInfo = info.getSourcesInfo();
+            const infoDetails = sourcesInfo.getDetails();
             if (info instanceof LuaRocksUnixBuildInfo) {
                 const makeArgs = info.getMakeArguments().createCopy();
                 makeArgs.push("install");
-                executeProcess(
-                    info.getMake(), {
-                        args: makeArgs,
-                        verbose: true,
-                        stdout: defaultStdOutHandler
-                })
-                    .then(code => {
-                        resolve();
+                if (infoDetails instanceof LuaRocksCygwinUnixSourcesInfoDetails) {
+                    executeProcess(
+                        infoDetails.getBash(), {
+                            args: ["-lc", `${info.getMake()} ${makeArgs.join(" ")}`],
+                            verbose: true,
+                            stdout: defaultStdOutHandler
                     })
-                    .catch(reject);
+                        .then(code => {
+                            resolve();
+                        })
+                        .catch(reject);
+                }
+                else {
+                    executeProcess(
+                        info.getMake(), {
+                            args: makeArgs,
+                            verbose: true,
+                            stdout: defaultStdOutHandler
+                    })
+                        .then(code => {
+                            resolve();
+                        })
+                        .catch(reject);
+                }
             }
             else {
-                const sourcesInfo = info.getSourcesInfo();
-                const infoDetails = sourcesInfo.getDetails();
                 if (infoDetails instanceof LuaRocksWindowsSourcesInfoDetails) {
                     const binDir = this.project.getInstallBinDir();
                     const filesToCopy: string[] = [

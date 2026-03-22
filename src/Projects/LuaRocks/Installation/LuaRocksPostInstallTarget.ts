@@ -6,25 +6,27 @@ import { LuaRocksProject } from "../LuaRocksProject";
 import { executeProcess, getFirstLineFromProcessExecution } from "../../../Util/ExecuteProcess";
 import { checkFiles } from "../../../Util/CheckFiles";
 import { LuaRocksInstallTarget } from "./LuaRocksInstallTarget";
-import { LuaRocksWindowsSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
+import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksWindowsSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
 import { appendToGitHubEnvironmentVariables, appendToGitHubPath } from "../../../Util/GitHub";
 import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
 import { sequentialPromises } from "../../../Util/SequentialPromises";
-import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
-import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
 import { LuaRocksFinishInstallationTarget } from "./LuaRocksFinishInstallationTarget";
 import { Console } from "../../../Console";
-
-const LUA_INTERPRETER_CANDIDATES: IReadOnlyArray<string> = new ReadOnlyArray<string>([
-    "lua.exe",
-    "luajit.exe"
-]);
+import { isCygwinOnGitHubAction } from "../../../Util/CygwinDetection";
+import { exportLuaRocksEnvVarsOnCygwinProfile } from "../../../Util/CygwinEnvVars";
+import { replaceAllInFile } from "../../../Util/ReplaceInFile";
+import { LuaRocksInstallation } from "../../ILuaRocksInstallation";
 
 interface EnvVar {
     key: string;
     value: string;
+}
+
+interface ReplacementInFile {
+    filepath: string;
+    linesToSkip: number;
 }
 
 export class LuaRocksPostInstallTarget implements ITarget {
@@ -49,6 +51,39 @@ export class LuaRocksPostInstallTarget implements ITarget {
     getNext(): ITarget | null {
         return new LuaRocksFinishInstallationTarget(this.project, this);
     }
+    private setCygwinEnvironmentVariablesOnGitHub(bash: string, luaRocksUnix: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            sequentialPromises<string>([
+                () => getFirstLineFromProcessExecution(bash, [ "-lc", `'${luaRocksUnix}' path --lr-bin` ], true),
+                () => getFirstLineFromProcessExecution(bash, [ "-lc", `'${luaRocksUnix}' path --lr-cpath` ], true),
+                () => getFirstLineFromProcessExecution(bash, [ "-lc", `'${luaRocksUnix}' path --lr-path` ], true)
+            ])
+                .then(values => {
+                    const lrBin = values[0];
+                    const lrCPath = values[1];
+                    const lrPath = values[2];
+
+                    sequentialPromises<void>([
+                        () => appendToGitHubEnvironmentVariables("LUA_PATH", lrPath),
+                        () => appendToGitHubEnvironmentVariables("LUA_CPATH", lrCPath),
+                        () => appendToGitHubPath(lrBin)
+                    ])
+                        .then(_values => {
+                            if (isCygwinOnGitHubAction()) {
+                                /* we are on a GitHub action inside MSYS2 */
+                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBin)
+                                    .then(resolve)
+                                    .catch(reject);
+                            }
+                            else {
+                                resolve();
+                            }
+                        })
+                        .catch(reject);
+                })
+                .catch(reject);
+        });
+    }
     private setEnvironmentVariablesOnGitHub(luarocks: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             sequentialPromises<string>([
@@ -67,9 +102,32 @@ export class LuaRocksPostInstallTarget implements ITarget {
                         () => appendToGitHubPath(lrBin)
                     ])
                         .then(_values => {
-                            resolve();
+                            if (isCygwinOnGitHubAction()) {
+                                /* we are on a GitHub action inside MSYS2 */
+                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBin)
+                                    .then(resolve)
+                                    .catch(reject);
+                            }
+                            else {
+                                resolve();
+                            }
                         })
                         .catch(reject);
+                })
+                .catch(reject);
+        });
+    }
+    private setCygwinLuaRocksConfig(bash: string, luaRocksUnix: string, key: string, value: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            executeProcess(bash, {
+                args: [
+                    "-lc", `'${luaRocksUnix}' config '${key}' '${value}'`
+                ],
+                verbose: true,
+                stdout: defaultStdOutHandler
+            })
+                .then(_configSetEnvVar => {
+                    resolve();
                 })
                 .catch(reject);
         });
@@ -91,8 +149,29 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 .catch(reject);
         });
     }
+    private setCygwinLuaRocksConfigVariable(bash: string, luaRocksUnix: string, key: string, value: string): Promise<void> {
+        return this.setCygwinLuaRocksConfig(bash, luaRocksUnix, `variables.${key}`, value);
+    }
     private setLuaRocksConfigVariable(luarocks: string, key: string, value: string): Promise<void> {
         return this.setLuaRocksConfig(luarocks, `variables.${key}`, value);
+    }
+    private setCygwinLuaRocksToolchainEnvVars(bash: string, luaRocksUnix: string, toolchainEnvVars: EnvVar[]): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const iter = (i: number) => {
+                if (i < toolchainEnvVars.length) {
+                    const envVar = toolchainEnvVars[i];
+                    this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, envVar.key, envVar.value)
+                        .then(() => {
+                            iter(i + 1);
+                        })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+            iter(0);
+        });
     }
     private setLuaRocksToolchainEnvVars(luarocks: string, toolchainEnvVars: EnvVar[]): Promise<void> {
         return new Promise<void>((resolve, reject) => {
@@ -225,131 +304,271 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 });
         });
     }
+    private setInstallationResult(installDir: string, luaRocksTool: string, luaRocksAdminTool: string): void {
+        this.project.installationResult().setValue(
+            new LuaRocksInstallation(installDir, luaRocksTool, luaRocksAdminTool)
+        );
+    }
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const isGccLike = isGccLikeToolchain(this.project.getToolchain());
             const buildInfo = this.parent.getLuaRocksBuildInfo();
             const srcInfo = buildInfo.getSourcesInfo();
             const infoDetails = srcInfo.getDetails();
+            const installDir = this.project.getInstallDir();
             const binDir = this.project.getInstallBinDir();
+            const luaInstallation = this.project.getLuaInstallation();
             if (infoDetails instanceof LuaRocksWindowsSourcesInfoDetails) {
-                const installDir = this.project.getInstallDir();
                 const luarocks = join(binDir, basename(infoDetails.getLuaRocks()));
-                checkFiles([luarocks])
+                const luarocksAdmin = join(binDir, basename(infoDetails.getLuaRocksAdmin()));
+                checkFiles([luarocks, luarocksAdmin])
                     .then(() => {
-                        const candidateInterpreter_iter = (idx: number) => {
-                            if (idx < LUA_INTERPRETER_CANDIDATES.getLenght()) {
-                                const advanceCandidate = (err?: any) => {
-                                    candidateInterpreter_iter(idx + 1);
-                                };
-                                const candidateInterpreterBasename = LUA_INTERPRETER_CANDIDATES.getItem(idx);
-                                const interpreter = join(binDir, candidateInterpreterBasename);
-                                stat(interpreter)
-                                    .then(candidateInterpreterBasenameStat => {
-                                        if (candidateInterpreterBasenameStat.isFile()) {
-                                            getFirstLineFromProcessExecution(interpreter, ["-e", "print(_VERSION:sub(5))"], true)
-                                                .then(luaVersion => {
-                                                    if (isGccLike) {
-                                                        this.getWindowsGccExternalDepsDirs()
-                                                            .then(externalDepsDirs => {
+                        if (isGccLike) {
+                            this.getWindowsGccExternalDepsDirs()
+                                .then(externalDepsDirs => {
+                                    const toolchainEnvVars: EnvVar[] = [
+                                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
+                                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
+                                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
+                                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
+                                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
+                                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
+                                        { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                    ];
+                                    const configChanges = [
+                                        () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                        () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                                        () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                                    ];
+                                    const externalDepsDirsPromisesGen = (k: number) => {
+                                        return () => this.setLuaRocksConfig(luarocks, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
+                                    };
+                                    for (let idxExternalDepsDirs = 0; idxExternalDepsDirs < externalDepsDirs.length; idxExternalDepsDirs++) {
+                                        configChanges.push(externalDepsDirsPromisesGen(idxExternalDepsDirs));
+                                    }
+                                    sequentialPromises<void>(configChanges)
+                                        .then(_values => {
+                                            this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                            resolve();
+                                        })
+                                        .catch(reject);
+                                })
+                                .catch(reject);
+                        }
+                        else { /* MSVC */
+                            if (basename(luaInstallation.getLuaInterpreter()) === "luajit.exe") {
+                                /*
+                                ** For a LuaJIT build using MSVC,
+                                ** msvcbuild.bat only supports
+                                ** cl and link, not clang-cl.
+                                ** So, environment variables for
+                                ** different toolchains are not set.
+                                */
+                                sequentialPromises<void>([
+                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                                ])
+                                    .then(_values => {
+                                        this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                        resolve();
+                                    })
+                                    .catch(reject);
+                            }
+                            else {
+                                const toolchainEnvVars: EnvVar[] = [
+                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
+                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
+                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
+                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                ];
+                                sequentialPromises<void>([
+                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
+                                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                                ])
+                                    .then(_values => {
+                                        this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                        resolve();
+                                    })
+                                    .catch(reject);
+                            }
+                        }
+                    })
+                    .catch(reject);
+            }
+            else if (infoDetails instanceof LuaRocksCygwinUnixSourcesInfoDetails) {
+                const luarocks = join(binDir, "luarocks");
+                const luarocksAdmin = join(binDir, "luarocks-admin");
+                checkFiles([luarocks, luarocksAdmin])
+                    .then(() => {
+                        const luarocksConfig = join(
+                            this.project.getInstallDir(),
+                            "etc",
+                            "luarocks",
+                            `config-${luaInstallation.getLuaShortVersion()}.lua`
+                        );
+                        checkFiles([luarocksConfig])
+                            .then(() => {
+                                const installDirUnix = infoDetails.getInstallDirPath().getUnixPath();
+                                getFirstLineFromProcessExecution(
+                                    infoDetails.getCygpath(),
+                                    [
+                                        "-m",
+                                        installDir
+                                    ],
+                                    true
+                                )
+                                    .then(installDirMixed => {
+                                        /*
+                                        ** for each file listed in the following
+                                        ** array, we are going to replace
+                                        ** Lua's install directory (which is written
+                                        ** as a Unix dir) by the corresponding
+                                        ** path formatted as Windows directory.
+                                        ** However, we are going to use
+                                        ** slash (/) as directory separator.
+                                        ** In short:
+                                        ** path/to/lua_dir -> $(cygpath -m "path/to/lua_dir")
+                                        */
+                                        const replacements: ReplacementInFile[] = [
+                                            {
+                                                filepath: luarocks,
+                                                linesToSkip: 1 /* skip shebang */
+                                            },
+                                            { 
+                                                filepath: luarocksAdmin,
+                                                linesToSkip: 1 /* skip shebang */
+                                            },
+                                            {
+                                                filepath: luarocksConfig,
+                                                linesToSkip: 0
+                                            }
+                                        ];
+                                        const replacement_iter = (i: number) => {
+                                            if (i < replacements.length) {
+                                                const replacement = replacements[i];
+                                                replaceAllInFile(
+                                                    replacement.filepath,
+                                                    replacement.linesToSkip,
+                                                    installDirUnix,
+                                                    installDirMixed
+                                                )
+                                                    .then(() => {
+                                                        replacement_iter(i + 1);
+                                                    })
+                                                    .catch(reject);
+                                            }
+                                            else {
+                                                getFirstLineFromProcessExecution(
+                                                    infoDetails.getCygpath(),
+                                                    [ "-u", luarocks ],
+                                                    true
+                                                )
+                                                    .then(luaRocksUnix => {
+                                                        const bash = infoDetails.getBash();
+                                                        if (isGccLike) {
+                                                            this.getWindowsGccExternalDepsDirs()
+                                                                .then(externalDepsDirs => {
+                                                                    const toolchainEnvVars: EnvVar[] = [
+                                                                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
+                                                                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
+                                                                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
+                                                                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
+                                                                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
+                                                                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
+                                                                        { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                                                    ];
+                                                                    const configChanges = [
+                                                                        () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, "cmake_generator", "MinGW Makefiles"),
+                                                                        () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
+                                                                        () => this.setCygwinLuaRocksToolchainEnvVars(bash, luaRocksUnix, toolchainEnvVars),
+                                                                        () => this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
+                                                                    ];
+                                                                    const externalDepsDirsPromisesGen = (k: number) => {
+                                                                        return () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
+                                                                    };
+                                                                    for (let idxExternalDepsDirs = 0; idxExternalDepsDirs < externalDepsDirs.length; idxExternalDepsDirs++) {
+                                                                        configChanges.push(externalDepsDirsPromisesGen(idxExternalDepsDirs));
+                                                                    }
+                                                                    sequentialPromises<void>(configChanges)
+                                                                        .then(_values => {
+                                                                            this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                                                            resolve();
+                                                                        })
+                                                                        .catch(reject);
+                                                                })
+                                                                .catch(reject);
+                                                        }
+                                                        else { /* MSVC */
+                                                            if (basename(luaInstallation.getLuaInterpreter()) === "luajit.exe") {
+                                                                /*
+                                                                ** For a LuaJIT build using MSVC,
+                                                                ** msvcbuild.bat only supports
+                                                                ** cl and link, not clang-cl.
+                                                                ** So, environment variables for
+                                                                ** different toolchains are not set.
+                                                                */
+                                                                this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
+                                                                    .then(() => {
+                                                                        this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                                                        resolve();
+                                                                    })
+                                                                    .catch(reject);
+                                                            }
+                                                            else {
                                                                 const toolchainEnvVars: EnvVar[] = [
                                                                     { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
                                                                     { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
                                                                     { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                                                    { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                                                    { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                                                    { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
                                                                 ];
-                                                                const configChanges = [
-                                                                    () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                                                                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                                                                ];
-                                                                const externalDepsDirsPromisesGen = (k: number) => {
-                                                                    return () => this.setLuaRocksConfig(luarocks, `external_deps_dirs[${k + 1}]`, externalDepsDirs[k]);
-                                                                };
-                                                                for (let idxExternalDepsDirs = 0; idxExternalDepsDirs < externalDepsDirs.length; idxExternalDepsDirs++) {
-                                                                    configChanges.push(externalDepsDirsPromisesGen(idxExternalDepsDirs));
-                                                                }
-                                                                sequentialPromises<void>(configChanges)
+                                                                sequentialPromises<void>([
+                                                                    () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
+                                                                    () => this.setCygwinLuaRocksToolchainEnvVars(bash, luaRocksUnix, toolchainEnvVars),
+                                                                    () => this.setCygwinEnvironmentVariablesOnGitHub(bash, luaRocksUnix)
+                                                                ])
                                                                     .then(_values => {
+                                                                        this.setInstallationResult(installDir, luarocks, luarocksAdmin);
                                                                         resolve();
                                                                     })
-                                                                    .catch(advanceCandidate);
-                                                            })
-                                                            .catch(advanceCandidate);
-                                                    }
-                                                    else { /* MSVC */
-                                                        if (candidateInterpreterBasename === "luajit.exe") {
-                                                            /*
-                                                            ** For a LuaJIT build using MSVC,
-                                                            ** msvcbuild.bat only supports
-                                                            ** cl and link, not clang-cl.
-                                                            ** So, environment variables for
-                                                            ** different toolchains are not set.
-                                                            */
-                                                            sequentialPromises<void>([
-                                                                () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                                () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                                                            ])
-                                                                .then(_values => {
-                                                                    resolve();
-                                                                })
-                                                                .catch(advanceCandidate);
+                                                                    .catch(reject);
+                                                            }
                                                         }
-                                                        else {
-                                                            const toolchainEnvVars: EnvVar[] = [
-                                                                { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                                { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                                { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                                { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
-                                                            ];
-                                                            sequentialPromises<void>([
-                                                                () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaVersion, installDir),
-                                                                () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                                                                () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                                                            ])
-                                                                .then(_values => {
-                                                                    resolve();
-                                                                })
-                                                                .catch(advanceCandidate);
-                                                        }
-                                                    }
-                                                })
-                                                .catch(advanceCandidate);
-                                        }
-                                        else {
-                                            advanceCandidate();
-                                        }
-                                    })
-                                    .catch(advanceCandidate);
-                            }
-                            else {
-                                reject(new Error("Unable to find a working Lua interpreter to setup LuaRocks"));
-                            }
-                        };
+                                                    })
+                                                    .catch(reject);
+                                            }
+                                        };
 
-                        candidateInterpreter_iter(0);
+                                        replacement_iter(0);
+                                    })
+                                    .catch(reject);
+                            })
+                            .catch(reject);
                     })
                     .catch(reject);
             }
             else {
                 const luarocks = join(binDir, "luarocks");
-                const toolchainEnvVars: EnvVar[] = [
-                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                    { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                    { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() }
-                ];
-                sequentialPromises<void>([
-                    () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
-                    () => this.setEnvironmentVariablesOnGitHub(luarocks)
-                ])
-                    .then(_values => {
-                        resolve();
+                const luarocksAdmin = join(binDir, "luarocks-admin");
+                checkFiles([luarocks, luarocksAdmin])
+                    .then(() => {
+                        const toolchainEnvVars: EnvVar[] = [
+                            { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
+                            { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
+                            { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
+                            { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
+                            { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
+                            { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() }
+                        ];
+                        sequentialPromises<void>([
+                            () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
+                            () => this.setEnvironmentVariablesOnGitHub(luarocks)
+                        ])
+                            .then(_values => {
+                                this.setInstallationResult(installDir, luarocks, luarocksAdmin);
+                                resolve();
+                            })
+                            .catch(reject);
                     })
                     .catch(reject);
             }
