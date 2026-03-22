@@ -25,19 +25,19 @@ jobs:
           - 5.5
           - luajit
           - openresty
-        is-msvc:
-          - true
-          - false
+        toolchain:
+          - msvc
+          - cc
         exclude:
           - os: ubuntu-latest
-            is-msvc: true
+            toolchain: msvc
           - os: macos-latest
-            is-msvc: true
+            toolchain: msvc
     steps:
       - uses: actions/checkout@v5
       - name: Setup MSVC developer prompt
         uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ runner.os == 'Windows' && matrix.is-msvc }}
+        if: ${{ runner.os == 'Windows' && matrix.toolchain == 'msvc' }}
       - name: Install Lua
         uses: luau-project/setup-lua@v1
         with:
@@ -115,6 +115,70 @@ Use the syntax `openresty@ref` with `ref` meaning a branch name, a tag or the `s
           lua-version: openresty@v2.1-20250826
           luarocks-version: 3.12.2
 ```
+
+### Install on MSYS2
+
+Since `setup-lua` version 1.1.0, through the CLI interface (see [the parameters](./docs/CLI.md#inputs-as-environment-variables)), there is builtin support to install Lua / LuaJIT / OpenResty `+` LuaRocks on MSYS2 MinGW-w64 environments.
+
+```yaml
+name: Setup Lua on MSYS2
+on: push
+jobs:
+  msys2-install-lua:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        lua-version:
+          - 5.1
+          - 5.2
+          - 5.3
+          - 5.4
+          - 5.5
+          - luajit
+          - openresty
+        sys:
+          - MINGW64
+          - UCRT64
+          - CLANG64
+    steps:
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: ${{ matrix.sys }}
+          install: |
+            base-devel
+            unzip
+          pacboy: |
+            cc:p
+            make:p
+      - name: Download `setup-lua`
+        run: curl -LO "https://github.com/luau-project/setup-lua/archive/refs/tags/v1.tar.gz"
+      - name: Extract `setup-lua`
+        run: tar -xf v1.tar.gz
+      - name: Setup Lua
+        run: |
+          env \
+            LUA_VERSION=${{ matrix.lua-version }} \
+            "/c/Program Files/nodejs/node.exe" \
+            ./setup-lua-1/dist/cli/index.js
+      - name: Display the Lua version
+        run: lua.exe -v
+      - name: Display LuaRocks version
+        run: luarocks --version
+```
+
+> [!NOTE]
+> 
+> * Without any changes, at the moment, LuaRocks does need a few patches to work nicely on MSYS2. See [here](src/Projects/LuaRocks/Configuration/LuaRocksApplyPatchesTarget.ts) for the list of patches we apply by default to make it work;
+> * When using Lua 5.1, Lua 5.2 and LuaJIT / OpenResty, it is required to use `lua.exe` and not only `lua`. The reason for this is the presence of a `lua` directory inside the `bin` folder. Thus, `bash` tries to execute such `lua` directory as an executable and fails.
+
+> [!TIP]
+> 
+> By default, MSYS2 does not update environment variables according to changes on `${{ github.env }}` or `${{ github.path }}`. In order to set environment variables on MSYS2, we store Lua and LuaRocks environment variables at `/etc/profile.d/setup-lua.sh`.
 
 ### Install work versions of Lua
 
