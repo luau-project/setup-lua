@@ -1,13 +1,17 @@
 import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
-import { executeProcess } from "../../../Util/ExecuteProcess";
+import { executeProcess, getFirstLineFromProcessExecution } from "../../../Util/ExecuteProcess";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { IProject } from "../../IProject";
 import { ITarget } from "../../Targets/ITarget";
-import { LuaRocksSourcesInfo, LuaRocksUnixSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
+import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksSourcesInfo, LuaRocksUnixSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
 import { LuaRocksProject } from "../LuaRocksProject";
 import { LuaRocksUnixBuildInfo, LuaRocksWindowsBuildInfo } from "./LuaRocksBuildInfo";
 import { LuaRocksFinishBuildingTarget } from "./LuaRocksFinishBuildingTarget";
 import { Console } from "../../../Console";
+import { isCygwin } from "../../../Util/CygwinDetection";
+import { getCygpathFromCygwin } from "../../../Util/CygwinPath";
+import { sequentialPromises } from "../../../Util/SequentialPromises";
+import { checkFiles } from "../../../Util/CheckFiles";
 
 export class LuaRocksBuildTarget implements ITarget {
     private parent: ITarget | null;
@@ -49,7 +53,21 @@ export class LuaRocksBuildTarget implements ITarget {
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const details = this.srcInfo.getDetails();
-            if (details instanceof LuaRocksUnixSourcesInfoDetails) {
+            if (details instanceof LuaRocksCygwinUnixSourcesInfoDetails) {
+                const make = "make";
+                const makeArgs: string[] = ["-C", `'${details.getDirPath().getUnixPath()}'`];
+                executeProcess(details.getBash(), {
+                    args: ["-lc", `${make} ${makeArgs.join(" ")}`],
+                    verbose: true,
+                    stdout: defaultStdOutHandler
+                })
+                    .then(code => {
+                        this.setUnixBuildResult(make, makeArgs);
+                        resolve();
+                    })
+                    .catch(reject);
+            }
+            else if (details instanceof LuaRocksUnixSourcesInfoDetails) {
                 const make = ToolchainEnvironmentVariables.instance().getMake();
                 const makeArgs: string[] = ["-C", this.srcInfo.getDir()];
                 executeProcess(make, {
