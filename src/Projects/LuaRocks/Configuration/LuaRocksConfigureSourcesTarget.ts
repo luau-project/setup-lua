@@ -1,12 +1,14 @@
+import { basename } from "node:path";
 import { IProject } from "../../IProject";
 import { ITarget } from "../../Targets/ITarget";
 import { LuaRocksProject } from "../LuaRocksProject";
 import { executeProcess } from "../../../Util/ExecuteProcess";
 import { LuaRocksApplyPatchesTarget } from "./LuaRocksApplyPatchesTarget";
 import { LuaRocksFinishConfigurationTarget } from "./LuaRocksFinishConfigurationTarget";
-import { LuaRocksUnixSourcesInfoDetails } from "./LuaRocksSourcesInfo";
+import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksUnixSourcesInfoDetails } from "./LuaRocksSourcesInfo";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { Console } from "../../../Console";
+import { isCygwin } from "../../../Util/CygwinDetection";
 
 export class LuaRocksConfigureSourcesTarget implements ITarget {
     private parent: LuaRocksApplyPatchesTarget;
@@ -36,20 +38,44 @@ export class LuaRocksConfigureSourcesTarget implements ITarget {
     }
     execute(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            if (process.platform === 'win32') {
+            const luaInstallation = this.project.getLuaInstallation();
+            const interpreter = basename(luaInstallation.getLuaInterpreter());
+            const luaShortVersion = luaInstallation.getLuaShortVersion();
+            const cygwin = isCygwin();
+            if (process.platform === 'win32' && !cygwin) {
                 this.setConfigurationResult();
                 resolve();
             }
             else {
                 const sourcesInfo = this.parent.getLuaRocksSourcesInfo();
                 const details = sourcesInfo.getDetails();
-                if (details instanceof LuaRocksUnixSourcesInfoDetails) {
+                if (details instanceof LuaRocksCygwinUnixSourcesInfoDetails) {
+                    const dirUnix = details.getDirPath().getUnixPath();
+                    const configureScriptUnix = details.getConfigureScriptPath().getUnixPath();
+                    const installDirUnix = details.getInstallDirPath().getUnixPath();
+                    executeProcess(details.getBash(), {
+                        args: [
+                            "-lc",
+                            `cd '${dirUnix}' && '${configureScriptUnix}' '--prefix=${installDirUnix}' '--lua-version=${luaShortVersion}' '--with-lua=${installDirUnix}' '--with-lua-interpreter=${interpreter}'`,
+                        ],
+                        verbose: true,
+                        stdout: defaultStdOutHandler
+                    })
+                        .then(code => {
+                            this.setConfigurationResult();
+                            resolve();
+                        })
+                        .catch(reject);
+                }
+                else if (details instanceof LuaRocksUnixSourcesInfoDetails) {
                     const installDir = this.project.getInstallDir();
                     executeProcess(details.getConfigureScript(), {
                         cwd: sourcesInfo.getDir(),
                         args: [
                             `--prefix=${installDir}`,
-                            `--with-lua=${installDir}`
+                            `--lua-version=${luaShortVersion}`,
+                            `--with-lua=${installDir}`,
+                            `--with-lua-interpreter=${interpreter}`
                         ],
                         verbose: true,
                         stdout: defaultStdOutHandler
