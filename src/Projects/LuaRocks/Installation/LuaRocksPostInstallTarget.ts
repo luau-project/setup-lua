@@ -60,8 +60,21 @@ export class LuaRocksPostInstallTarget implements ITarget {
             ])
                 .then(values => {
                     const lrBinPath = values[0];
-                    const lrCPath = values[1];
-                    const lrPath = values[2];
+                    /*
+                    ** Quoted from Roberto's PIL, second edition, page 140:
+                    **   https://www.inf.puc-rio.br/~roberto/pil2/chapter15.pdf
+                    **
+                    ** > When Lua starts, it initializes this variable with
+                    ** > the value of the environment variable LUA_PATH or with
+                    ** > a compiled-defined default path, if this environment
+                    ** > variable is not defined. When using LUA_PATH, Lua
+                    ** > substitutes the default path for any substring ";;".
+                    ** > For instance, if you set LUA_PATH to "mydir/?.lua;;",
+                    ** > the final path will be the component "mydir/?.lua"
+                    ** > followed by the default path.
+                    */
+                    const lrCPath = values[1] + ";;";
+                    const lrPath = values[2] + ";;";
 
                     sequentialPromises<void>([
                         () => appendToGitHubEnvironmentVariables("LUA_PATH", lrPath),
@@ -93,8 +106,21 @@ export class LuaRocksPostInstallTarget implements ITarget {
             ])
                 .then(values => {
                     const lrBinPath = values[0];
-                    const lrCPath = values[1];
-                    const lrPath = values[2];
+                    /*
+                    ** Quoted from Roberto's PIL, second edition, page 140:
+                    **   https://www.inf.puc-rio.br/~roberto/pil2/chapter15.pdf
+                    **
+                    ** > When Lua starts, it initializes this variable with
+                    ** > the value of the environment variable LUA_PATH or with
+                    ** > a compiled-defined default path, if this environment
+                    ** > variable is not defined. When using LUA_PATH, Lua
+                    ** > substitutes the default path for any substring ";;".
+                    ** > For instance, if you set LUA_PATH to "mydir/?.lua;;",
+                    ** > the final path will be the component "mydir/?.lua"
+                    ** > followed by the default path.
+                    */
+                    const lrCPath = values[1] + ";;";
+                    const lrPath = values[2] + ";;";
 
                     sequentialPromises<void>([
                         () => appendToGitHubEnvironmentVariables("LUA_PATH", lrPath),
