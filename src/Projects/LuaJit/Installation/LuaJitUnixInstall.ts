@@ -7,6 +7,7 @@ import { LuaJitProject } from "../LuaJitProject";
 import { LuaJitPostInstallTarget } from "./LuaJitPostInstallTarget";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { Console } from "../../../Console";
+import { isRunningOnCi } from "../../../Util/CiDetection";
 
 export class LuaJitUnixInstall implements ITarget {
     private project: LuaJitProject;
@@ -45,7 +46,7 @@ export class LuaJitUnixInstall implements ITarget {
                 verbose: true
             })
                 .then(makeCode => {
-                    if (process.env["GITHUB_PATH"]) {
+                    if (isRunningOnCi() || process.env["GITHUB_PATH"]) {
                         const installBinDir = this.project.getInstallBinDir()
                         const luajitInterpreter = join(installBinDir, "luajit");
                         const luaSoftLink = join(installBinDir, "lua");

@@ -14,7 +14,7 @@ import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
 import { LuaRocksFinishInstallationTarget } from "./LuaRocksFinishInstallationTarget";
 import { Console } from "../../../Console";
-import { isCygwinOnGitHubAction } from "../../../Util/CygwinDetection";
+import { isCygwinOnCI } from "../../../Util/CygwinDetection";
 import { exportLuaRocksEnvVarsOnCygwinProfile } from "../../../Util/CygwinEnvVars";
 import { replaceAllInFile } from "../../../Util/ReplaceInFile";
 import { LuaRocksInstallation } from "../../ILuaRocksInstallation";
@@ -82,7 +82,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
                         () => appendToGitHubPath(lrBinPath)
                     ])
                         .then(_values => {
-                            if (isCygwinOnGitHubAction()) {
+                            if (isCygwinOnCI()) {
                                 /* we are on a GitHub action inside MSYS2 */
                                 exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBinPath)
                                     .then(resolve)
@@ -128,7 +128,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
                         () => appendToGitHubPath(lrBinPath)
                     ])
                         .then(_values => {
-                            if (isCygwinOnGitHubAction()) {
+                            if (isCygwinOnCI()) {
                                 /* we are on a GitHub action inside MSYS2 */
                                 exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBinPath)
                                     .then(resolve)

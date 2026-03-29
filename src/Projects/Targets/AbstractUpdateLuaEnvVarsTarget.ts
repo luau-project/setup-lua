@@ -3,7 +3,7 @@ import { appendToGitHubEnvironmentVariables, appendToGitHubPath } from "../../Ut
 import { IProject } from "../IProject";
 import { ITarget } from "./ITarget";
 import { PromiseCallback, sequentialPromises } from "../../Util/SequentialPromises";
-import { isCygwinOnGitHubAction } from "../../Util/CygwinDetection";
+import { isCygwinOnCI } from "../../Util/CygwinDetection";
 import { exportLuaEnvVarsOnCygwinProfile } from "../../Util/CygwinEnvVars";
 
 export abstract class AbstractUpdateLuaEnvVarsTarget implements ITarget {
@@ -53,7 +53,7 @@ export abstract class AbstractUpdateLuaEnvVarsTarget implements ITarget {
 
             sequentialPromises(changes)
                 .then(_ => {
-                    if (isCygwinOnGitHubAction()) {
+                    if (isCygwinOnCI()) {
                         /* we are on a GitHub action inside MSYS2 */
                         exportLuaEnvVarsOnCygwinProfile(pkgConfigPath, cmakePrefixPath, binDir)
                             .then(resolve)

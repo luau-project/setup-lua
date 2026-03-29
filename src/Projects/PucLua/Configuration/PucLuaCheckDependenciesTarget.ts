@@ -8,6 +8,7 @@ import { PucLuaFetchTarget } from "./PucLuaFetchTarget";
 import { executeProcess } from "../../../Util/ExecuteProcess";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { Console } from "../../../Console";
+import { isRunningOnCi } from "../../../Util/CiDetection";
 
 export class PucLuaCheckDependenciesTarget implements ITarget {
     private parent: ITarget | null;
@@ -36,6 +37,38 @@ export class PucLuaCheckDependenciesTarget implements ITarget {
             const githubTryInstallReadline = (errorMsg: string) => {
                 if (isRetest) {
                     reject(new Error(errorMsg));
+                }
+                else if (isRunningOnCi()) {
+                    if (process.platform === "darwin") {
+                        executeProcess("brew", {
+                            args: ["install", "readline"],
+                            verbose: true,
+                            stdout: defaultStdOutHandler
+                        })
+                            .then(code => {
+                                this.unixCheckReadline(true)
+                                    .then(resolve)
+                                    .catch(reject);
+                            })
+                            .catch(reject);
+                    }
+                    else if (process.platform === "linux") {
+                        /* assume Debian-based distro */
+                        executeProcess("sudo", {
+                            args: ["apt", "install", "-y", "libreadline-dev"],
+                            verbose: true,
+                            stdout: defaultStdOutHandler
+                        })
+                            .then(code => {
+                                this.unixCheckReadline(true)
+                                    .then(resolve)
+                                    .catch(reject);
+                            })
+                            .catch(reject);
+                    }
+                    else {
+                        reject(new Error(errorMsg));
+                    }
                 }
                 else if (process.env["RUNNER_OS"] === "macOS") {
                     executeProcess("brew", {

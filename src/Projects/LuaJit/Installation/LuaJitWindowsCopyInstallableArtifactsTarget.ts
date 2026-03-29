@@ -7,6 +7,7 @@ import { LuaJitWindowsCreateInstallationDirectoriesTarget } from "./LuaJitWindow
 import { sequentialPromises } from "../../../Util/SequentialPromises";
 import { LuaJitPostInstallTarget } from "./LuaJitPostInstallTarget";
 import { Console } from "../../../Console";
+import { isRunningOnCi } from "../../../Util/CiDetection";
 
 export class LuaJitWindowsCopyInstallableArtifactsTarget implements ITarget {
     private project: LuaJitProject;
@@ -38,7 +39,7 @@ export class LuaJitWindowsCopyInstallableArtifactsTarget implements ITarget {
             const filesToCopy: string[] = [
                 join(binDir, basename(builtInterpreter))
             ];
-            if (process.env["GITHUB_PATH"]) {
+            if (isRunningOnCi() || process.env["GITHUB_PATH"]) {
                 filesToCopy.push(join(binDir, "lua.exe"));
             }
             const file_iter = (i: number) => {
