@@ -1643,6 +1643,7 @@ const ExecuteProcess_1 = __nccwpck_require__(6522);
 const LuaJitPostInstallTarget_1 = __nccwpck_require__(1612);
 const DefaultStdOutHandler_1 = __nccwpck_require__(840);
 const Console_1 = __nccwpck_require__(946);
+const CiDetection_1 = __nccwpck_require__(3579);
 class LuaJitUnixInstall {
     constructor(project, parent, buildInfo) {
         this.project = project;
@@ -1677,7 +1678,7 @@ class LuaJitUnixInstall {
                 verbose: true
             })
                 .then(makeCode => {
-                if (process.env["GITHUB_PATH"]) {
+                if ((0, CiDetection_1.isRunningOnCi)() || process.env["GITHUB_PATH"]) {
                     const installBinDir = this.project.getInstallBinDir();
                     const luajitInterpreter = (0, node_path_1.join)(installBinDir, "luajit");
                     const luaSoftLink = (0, node_path_1.join)(installBinDir, "lua");
@@ -1722,6 +1723,7 @@ const node_path_1 = __nccwpck_require__(6760);
 const SequentialPromises_1 = __nccwpck_require__(923);
 const LuaJitPostInstallTarget_1 = __nccwpck_require__(1612);
 const Console_1 = __nccwpck_require__(946);
+const CiDetection_1 = __nccwpck_require__(3579);
 class LuaJitWindowsCopyInstallableArtifactsTarget {
     constructor(project, parent) {
         this.project = project;
@@ -1750,7 +1752,7 @@ class LuaJitWindowsCopyInstallableArtifactsTarget {
             const filesToCopy = [
                 (0, node_path_1.join)(binDir, (0, node_path_1.basename)(builtInterpreter))
             ];
-            if (process.env["GITHUB_PATH"]) {
+            if ((0, CiDetection_1.isRunningOnCi)() || process.env["GITHUB_PATH"]) {
                 filesToCopy.push((0, node_path_1.join)(binDir, "lua.exe"));
             }
             const file_iter = (i) => {
@@ -3441,18 +3443,31 @@ class LuaRocksPostInstallTarget {
                 () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(bash, ["-lc", `'${luaRocksUnix}' path --lr-path`], true)
             ])
                 .then(values => {
-                const lrBin = values[0];
-                const lrCPath = values[1];
-                const lrPath = values[2];
+                const lrBinPath = values[0];
+                /*
+                ** Quoted from Roberto's PIL, second edition, page 140:
+                **   https://www.inf.puc-rio.br/~roberto/pil2/chapter15.pdf
+                **
+                ** > When Lua starts, it initializes this variable with
+                ** > the value of the environment variable LUA_PATH or with
+                ** > a compiled-defined default path, if this environment
+                ** > variable is not defined. When using LUA_PATH, Lua
+                ** > substitutes the default path for any substring ";;".
+                ** > For instance, if you set LUA_PATH to "mydir/?.lua;;",
+                ** > the final path will be the component "mydir/?.lua"
+                ** > followed by the default path.
+                */
+                const lrCPath = values[1] + ";;";
+                const lrPath = values[2] + ";;";
                 (0, SequentialPromises_1.sequentialPromises)([
                     () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_PATH", lrPath),
                     () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_CPATH", lrCPath),
-                    () => (0, GitHub_1.appendToGitHubPath)(lrBin)
+                    () => (0, GitHub_1.appendToGitHubPath)(lrBinPath)
                 ])
                     .then(_values => {
-                    if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                    if ((0, CygwinDetection_1.isCygwinOnCI)()) {
                         /* we are on a GitHub action inside MSYS2 */
-                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBin)
+                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBinPath)
                             .then(resolve)
                             .catch(reject);
                     }
@@ -3473,18 +3488,31 @@ class LuaRocksPostInstallTarget {
                 () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(luarocks, ["path", "--lr-path"], true)
             ])
                 .then(values => {
-                const lrBin = values[0];
-                const lrCPath = values[1];
-                const lrPath = values[2];
+                const lrBinPath = values[0];
+                /*
+                ** Quoted from Roberto's PIL, second edition, page 140:
+                **   https://www.inf.puc-rio.br/~roberto/pil2/chapter15.pdf
+                **
+                ** > When Lua starts, it initializes this variable with
+                ** > the value of the environment variable LUA_PATH or with
+                ** > a compiled-defined default path, if this environment
+                ** > variable is not defined. When using LUA_PATH, Lua
+                ** > substitutes the default path for any substring ";;".
+                ** > For instance, if you set LUA_PATH to "mydir/?.lua;;",
+                ** > the final path will be the component "mydir/?.lua"
+                ** > followed by the default path.
+                */
+                const lrCPath = values[1] + ";;";
+                const lrPath = values[2] + ";;";
                 (0, SequentialPromises_1.sequentialPromises)([
                     () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_PATH", lrPath),
                     () => (0, GitHub_1.appendToGitHubEnvironmentVariables)("LUA_CPATH", lrCPath),
-                    () => (0, GitHub_1.appendToGitHubPath)(lrBin)
+                    () => (0, GitHub_1.appendToGitHubPath)(lrBinPath)
                 ])
                     .then(_values => {
-                    if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                    if ((0, CygwinDetection_1.isCygwinOnCI)()) {
                         /* we are on a GitHub action inside MSYS2 */
-                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBin)
+                        (0, CygwinEnvVars_1.exportLuaRocksEnvVarsOnCygwinProfile)(lrPath, lrCPath, lrBinPath)
                             .then(resolve)
                             .catch(reject);
                     }
@@ -5649,6 +5677,7 @@ const PucLuaFetchTarget_1 = __nccwpck_require__(6327);
 const ExecuteProcess_1 = __nccwpck_require__(6522);
 const DefaultStdOutHandler_1 = __nccwpck_require__(840);
 const Console_1 = __nccwpck_require__(946);
+const CiDetection_1 = __nccwpck_require__(3579);
 class PucLuaCheckDependenciesTarget {
     constructor(project, parent) {
         this.parent = parent;
@@ -5674,6 +5703,38 @@ class PucLuaCheckDependenciesTarget {
             const githubTryInstallReadline = (errorMsg) => {
                 if (isRetest) {
                     reject(new Error(errorMsg));
+                }
+                else if ((0, CiDetection_1.isRunningOnCi)()) {
+                    if (process.platform === "darwin") {
+                        (0, ExecuteProcess_1.executeProcess)("brew", {
+                            args: ["install", "readline"],
+                            verbose: true,
+                            stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                        })
+                            .then(code => {
+                            this.unixCheckReadline(true)
+                                .then(resolve)
+                                .catch(reject);
+                        })
+                            .catch(reject);
+                    }
+                    else if (process.platform === "linux") {
+                        /* assume Debian-based distro */
+                        (0, ExecuteProcess_1.executeProcess)("sudo", {
+                            args: ["apt", "install", "-y", "libreadline-dev"],
+                            verbose: true,
+                            stdout: DefaultStdOutHandler_1.defaultStdOutHandler
+                        })
+                            .then(code => {
+                            this.unixCheckReadline(true)
+                                .then(resolve)
+                                .catch(reject);
+                        })
+                            .catch(reject);
+                    }
+                    else {
+                        reject(new Error(errorMsg));
+                    }
                 }
                 else if (process.env["RUNNER_OS"] === "macOS") {
                     (0, ExecuteProcess_1.executeProcess)("brew", {
@@ -7278,7 +7339,7 @@ class AbstractUpdateLuaEnvVarsTarget {
             changes.push(() => (0, GitHub_1.appendToGitHubPath)(binDir));
             (0, SequentialPromises_1.sequentialPromises)(changes)
                 .then(_ => {
-                if ((0, CygwinDetection_1.isCygwinOnGitHubAction)()) {
+                if ((0, CygwinDetection_1.isCygwinOnCI)()) {
                     /* we are on a GitHub action inside MSYS2 */
                     (0, CygwinEnvVars_1.exportLuaEnvVarsOnCygwinProfile)(pkgConfigPath, cmakePrefixPath, binDir)
                         .then(resolve)
@@ -8558,6 +8619,21 @@ function checkFiles(files) {
 
 /***/ }),
 
+/***/ 3579:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isRunningOnCi = isRunningOnCi;
+function isRunningOnCi() {
+    return ((process.env["CI"] ||
+        process.env["GITHUB_ACTIONS"] ||
+        "").toLowerCase() === "true");
+}
+
+
+/***/ }),
+
 /***/ 7654:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -8588,17 +8664,18 @@ function compareVersions(v1, v2) {
 /***/ }),
 
 /***/ 7700:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.isCygwin = isCygwin;
-exports.isCygwinOnGitHubAction = isCygwinOnGitHubAction;
+exports.isCygwinOnCI = isCygwinOnCI;
+const CiDetection_1 = __nccwpck_require__(3579);
 function isCygwin() {
     return ((process.env["MSYSTEM"] || "").trim() !== "");
 }
-function isCygwinOnGitHubAction() {
-    return isCygwin() && (process.env["RUNNER_OS"] === "Windows");
+function isCygwinOnCI() {
+    return isCygwin() && (0, CiDetection_1.isRunningOnCi)();
 }
 
 
@@ -8656,13 +8733,13 @@ function exportLuaEnvVarsOnCygwinProfile(pkgConfigPath, cmakePrefixPath, binDir)
             .catch(reject);
     });
 }
-function exportLuaRocksEnvVarsOnCygwinProfile(luaPath, luaCPath, luaRocksBinDir) {
+function exportLuaRocksEnvVarsOnCygwinProfile(luaPath, luaCPath, luaRocksBinPath) {
     return new Promise((resolve, reject) => {
         (0, CygwinPath_1.getCygpathFromCygwin)()
             .then(cygPath => {
             (0, SequentialPromises_1.sequentialPromises)([
                 () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-w", "/"], true),
-                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-p", "-u", luaRocksBinDir], true)
+                () => (0, ExecuteProcess_1.getFirstLineFromProcessExecution)(cygPath, ["-p", "-u", luaRocksBinPath], true)
             ])
                 .then(paths => {
                 const profile = getCygwinProfilePath(paths[0]);
