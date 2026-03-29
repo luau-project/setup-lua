@@ -1,3 +1,9 @@
+## setup-lua v1.1.1
+
+* Upgraded dependencies to fix vulnerabilities according to `npm audit fix`;
+* Fixed a bug that didn't add the default Lua path defined at compile-time for both `LUA_PATH` and `LUA_CPATH` environment variables;
+* Refactored the logic to detect the usage inside a CI environment.
+
 ## setup-lua v1.1.0
 
 * Added basic support to install Lua / LuaJIT / OpenResty + LuaRocks on `setup-lua` running in a MSYS2 shell through the CLI interface;
