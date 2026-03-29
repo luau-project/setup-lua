@@ -59,19 +59,19 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 () => getFirstLineFromProcessExecution(bash, [ "-lc", `'${luaRocksUnix}' path --lr-path` ], true)
             ])
                 .then(values => {
-                    const lrBin = values[0];
+                    const lrBinPath = values[0];
                     const lrCPath = values[1];
                     const lrPath = values[2];
 
                     sequentialPromises<void>([
                         () => appendToGitHubEnvironmentVariables("LUA_PATH", lrPath),
                         () => appendToGitHubEnvironmentVariables("LUA_CPATH", lrCPath),
-                        () => appendToGitHubPath(lrBin)
+                        () => appendToGitHubPath(lrBinPath)
                     ])
                         .then(_values => {
                             if (isCygwinOnGitHubAction()) {
                                 /* we are on a GitHub action inside MSYS2 */
-                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBin)
+                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBinPath)
                                     .then(resolve)
                                     .catch(reject);
                             }
@@ -92,19 +92,19 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 () => getFirstLineFromProcessExecution(luarocks, [ "path", "--lr-path" ], true)
             ])
                 .then(values => {
-                    const lrBin = values[0];
+                    const lrBinPath = values[0];
                     const lrCPath = values[1];
                     const lrPath = values[2];
 
                     sequentialPromises<void>([
                         () => appendToGitHubEnvironmentVariables("LUA_PATH", lrPath),
                         () => appendToGitHubEnvironmentVariables("LUA_CPATH", lrCPath),
-                        () => appendToGitHubPath(lrBin)
+                        () => appendToGitHubPath(lrBinPath)
                     ])
                         .then(_values => {
                             if (isCygwinOnGitHubAction()) {
                                 /* we are on a GitHub action inside MSYS2 */
-                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBin)
+                                exportLuaRocksEnvVarsOnCygwinProfile(lrPath, lrCPath, lrBinPath)
                                     .then(resolve)
                                     .catch(reject);
                             }

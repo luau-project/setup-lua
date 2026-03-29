@@ -50,13 +50,13 @@ export function exportLuaEnvVarsOnCygwinProfile(pkgConfigPath: string, cmakePref
     });
 }
 
-export function exportLuaRocksEnvVarsOnCygwinProfile(luaPath: string, luaCPath: string, luaRocksBinDir: string): Promise<void> {
+export function exportLuaRocksEnvVarsOnCygwinProfile(luaPath: string, luaCPath: string, luaRocksBinPath: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
         getCygpathFromCygwin()
             .then(cygPath => {
                 sequentialPromises<string>([
                     () => getFirstLineFromProcessExecution(cygPath, [ "-w", "/" ], true),
-                    () => getFirstLineFromProcessExecution(cygPath, [ "-p", "-u", luaRocksBinDir ], true)
+                    () => getFirstLineFromProcessExecution(cygPath, [ "-p", "-u", luaRocksBinPath ], true)
                 ])
                     .then(paths => {
                         const profile = getCygwinProfilePath(paths[0]);
