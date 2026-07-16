@@ -3,12 +3,12 @@
   "version": "1.1.1",
   "type": "module",
   "devDependencies": {
-    "@actions/core": "2.0.3",
-    "@actions/cache": "5.0.5",
-    "@types/node": "25.5.0",
-    "@vercel/ncc": "0.38.4",
+    "@actions/core": "3.0.1",
+    "@actions/cache": "6.2.0",
+    "@types/node": "26.1.1",
+    "@vercel/ncc": "0.44.1",
     "typescript": "6.0.2",
-    "undici-types": "7.24.6"
+    "undici-types": "8.7.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
