@@ -36,7 +36,7 @@ body:
     attributes:
       label: Lua
       description: The version of Lua / LuaJIT / OpenResty
-      placeholder: "e.g.: 5.1, 5.2, 5.3, 5.4, luajit, openresty"
+      placeholder: "e.g.: 5.1, 5.2, 5.3, 5.4, 5.5, luajit, openresty"
     validations:
       required: false
   - type: input
