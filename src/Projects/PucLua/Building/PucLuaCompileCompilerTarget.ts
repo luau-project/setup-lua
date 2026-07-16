@@ -90,6 +90,12 @@ export class PucLuaCompileCompilerTarget implements ITarget {
                     }
                     else if (process.platform === 'linux') {
                         compiler.addDefine("LUA_USE_LINUX");
+                        if (
+                            (version.compareTo(LUA_54_VERSION) >= 0 && version.compareTo(LUA_55_VERSION) < 0) ||
+                            (version.compareTo(LUA_55_VERSION) > 0)
+                        ) {
+                            compiler.addDefine("LUA_USE_READLINE");
+                        }
                     }
                     else if (process.platform === 'darwin') {
                         compiler.addDefine("LUA_USE_MACOSX");
