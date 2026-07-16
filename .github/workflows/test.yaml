@@ -113,7 +113,7 @@ jobs:
 
       - name: Restore LuaFileSystem tarball
         id: restore-lfs-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v1_9_0.tar.gz
           key: luafilesystem-v1_9_0
@@ -134,7 +134,7 @@ jobs:
 
       - name: Restore LuaSocket tarball
         id: restore-luasocket-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v3.1.0.tar.gz
           key: luasocket-v3.1.0
@@ -156,7 +156,7 @@ jobs:
       - name: Restore zlib tarball
         if: ${{ runner.os == 'Windows' }}
         id: restore-zlib-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: zlib-1.3.1.tar.gz
           key: zlib-1.3.1
@@ -178,7 +178,7 @@ jobs:
 
       - name: Restore lua-zlib tarball
         id: restore-lua-zlib-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v1.4.tar.gz
           key: lua-zlib-v1.4
@@ -429,7 +429,7 @@ jobs:
 
       - name: Restore LuaFileSystem tarball
         id: restore-lfs-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v1_9_0.tar.gz
           key: luafilesystem-v1_9_0
@@ -450,7 +450,7 @@ jobs:
 
       - name: Restore LuaSocket tarball
         id: restore-luasocket-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v3.1.0.tar.gz
           key: luasocket-v3.1.0
@@ -471,7 +471,7 @@ jobs:
 
       - name: Restore lua-zlib tarball
         id: restore-lua-zlib-tarball
-        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: v1.4.tar.gz
           key: lua-zlib-v1.4
