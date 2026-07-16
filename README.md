@@ -189,11 +189,11 @@ jobs:
 >    * legacy work: [https://lua.org/work/old/](https://lua.org/work/old/)
 
 ```yaml
-      - name: Install Lua 5.4.7 (RC3)
+      - name: Install Lua 5.5.1 (RC1)
         uses: luau-project/setup-lua@v1
         with:
-          lua-version: 5.4.7-rc3
-          luarocks-version: 3.12.1
+          lua-version: 5.5.1-rc1
+          luarocks-version: 3.13.0
 ```
 
 ## Working modes
