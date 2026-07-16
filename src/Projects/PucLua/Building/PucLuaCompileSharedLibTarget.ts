@@ -7,7 +7,7 @@ import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
 import { PucLuaLinkSharedLibTarget } from "./PucLuaLinkSharedLibTarget";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
-import { LUA_52_VERSION, LUA_53_VERSION, LUA_54_VERSION } from "../PucLuaVersion";
+import { LUA_52_VERSION, LUA_53_VERSION, LUA_54_VERSION, LUA_55_VERSION } from "../PucLuaVersion";
 import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
 import { Console } from "../../../Console";
 
@@ -85,6 +85,9 @@ export class PucLuaCompileSharedLibTarget implements ITarget {
                     }
                     else if (process.platform === 'darwin') {
                         compiler.addDefine("LUA_USE_MACOSX");
+                        if (version.compareTo(LUA_54_VERSION) >= 0 && version.compareTo(LUA_55_VERSION) <= 0) {
+                            compiler.addDefine("LUA_USE_READLINE");
+                        }
                     }
                     else if (process.platform === 'sunos') {
                         compiler.addDefine("LUA_USE_POSIX");

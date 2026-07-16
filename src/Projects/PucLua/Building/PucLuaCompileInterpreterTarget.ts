@@ -4,7 +4,7 @@ import { ITarget } from "../../Targets/ITarget";
 import { PucLuaProject } from "../PucLuaProject";
 import { PucLuaSourcesInfo } from "../Configuration/PucLuaSourcesInfo";
 import { PucLuaArchiveStaticLibTarget } from "./PucLuaArchiveStaticLibTarget";
-import { IPucLuaVersion, LUA_53_VERSION, LUA_54_VERSION } from "../PucLuaVersion";
+import { LUA_53_VERSION, LUA_54_VERSION, LUA_55_VERSION } from "../PucLuaVersion";
 import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
 import { PucLuaLinkInterpreterTarget } from "./PucLuaLinkInterpreterTarget";
@@ -91,6 +91,9 @@ export class PucLuaCompileInterpreterTarget implements ITarget {
                     }
                     else if (process.platform === 'darwin') {
                         compiler.addDefine("LUA_USE_MACOSX");
+                        if (version.compareTo(LUA_54_VERSION) >= 0 && version.compareTo(LUA_55_VERSION) <= 0) {
+                            compiler.addDefine("LUA_USE_READLINE");
+                        }
                     }
                     else if (process.platform === 'sunos') {
                         compiler.addDefine("LUA_USE_POSIX");
