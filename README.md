@@ -39,7 +39,7 @@ jobs:
         uses: step-security/msvc-dev-cmd@v1
         if: ${{ runner.os == 'Windows' && matrix.toolchain == 'msvc' }}
       - name: Install Lua
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: ${{ matrix.lua-version }}
       - name: Display the Lua version
@@ -74,7 +74,7 @@ In `setup-lua`, the most important inputs are `lua-version` and `luarocks-versio
 
 ```yaml
       - name: Install Lua
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: 5.3.4
           luarocks-version: 3.12.0
@@ -86,7 +86,7 @@ In order to skip LuaRocks installation, use `none` as the value for the `luarock
 
 ```yaml
       - name: Install Lua
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: 5.4.7
           luarocks-version: none
@@ -98,7 +98,7 @@ Use the syntax `luajit@ref` with `ref` meaning a branch name, a tag or the `sha`
 
 ```yaml
       - name: Install LuaJIT
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: luajit@871db2c84ecefd70a850e03a6c340214a81739f0
           luarocks-version: 3.12.1
@@ -110,7 +110,7 @@ Use the syntax `openresty@ref` with `ref` meaning a branch name, a tag or the `s
 
 ```yaml
       - name: Install OpenResty
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: openresty@v2.1-20250826
           luarocks-version: 3.12.2
@@ -155,15 +155,15 @@ jobs:
             cc:p
             make:p
       - name: Download `setup-lua`
-        run: curl -LO "https://github.com/luau-project/setup-lua/archive/refs/tags/v1.tar.gz"
+        run: curl -LO "https://github.com/luau-project/setup-lua/archive/refs/tags/v2.tar.gz"
       - name: Extract `setup-lua`
-        run: tar -xf v1.tar.gz
+        run: tar -xf v2.tar.gz
       - name: Setup Lua
         run: |
           env \
             LUA_VERSION=${{ matrix.lua-version }} \
             "/c/Program Files/nodejs/node.exe" \
-            ./setup-lua-1/dist/cli/index.js
+            ./setup-lua-2/dist/cli/index.js
       - name: Display the Lua version
         run: lua.exe -v
       - name: Display LuaRocks version
@@ -189,7 +189,7 @@ jobs:
 
 ```yaml
       - name: Install Lua 5.5.1 (RC1)
-        uses: luau-project/setup-lua@v1
+        uses: luau-project/setup-lua@v2
         with:
           lua-version: 5.5.1-rc1
           luarocks-version: 3.13.0
