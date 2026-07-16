@@ -103,10 +103,12 @@ jobs:
           sed \
             -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" \
             -e "s/setup\-lua\-${old_major}/setup-lua-${new_major}/g" \
+            -e "s/v${old_major}\\.tar\\.gz/v${new_major}\\.tar\\.gz/g" \
             -i README.md
           sed \
             -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" \
             -e "s/setup\-lua\-${old_major}/setup-lua-${new_major}/g" \
+            -e "s/v${old_major}\\.tar\\.gz/v${new_major}\\.tar\\.gz/g" \
             -i docs/GitHub.md
 
       - name: Setup node 24
