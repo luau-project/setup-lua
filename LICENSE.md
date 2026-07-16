@@ -1,6 +1,7 @@
 The MIT License (MIT)
 
-Copyright (c) 2025 - 2026 luau-project [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
