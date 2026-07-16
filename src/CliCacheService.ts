@@ -56,7 +56,9 @@ export class CliCacheService implements ICacheService {
         return new Promise<string>((resolve, reject) => {
             const baseDirs: string[] = [
                 this.getConfigHomeDir(),
-                join(homedir(), ".cache")
+                (process.platform === "darwin") ?
+                    join(homedir(), "Library", "Caches") :
+                    join(homedir(), ".cache")
             ];
 
             const dir_iter = (i: number) => {
