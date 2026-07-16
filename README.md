@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Setup MSVC developer prompt
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: step-security/msvc-dev-cmd@v1
         if: ${{ runner.os == 'Windows' && matrix.toolchain == 'msvc' }}
       - name: Install Lua
         uses: luau-project/setup-lua@v1
@@ -56,7 +56,7 @@ jobs:
 > 
 > * On most operating systems, `setup-lua` uses `cc` as the default C compiler and linker to build Lua / LuaJIT / OpenResty, which is often `GCC` or `Clang`.
 > 
-> * On Windows, when you load Visual Studio developer prompt details (e.g.: [ilammy/msvc-dev-cmd](https://github.com/ilammy/msvc-dev-cmd)) for the Microsoft Visual Studio C/C++ compiler (MSVC), `setup-lua` adopts MSVC as the selected toolchain to build Lua / LuaJIT / OpenResty. Otherwise, if you don't load Visual Studio developer prompt, `setup-lua` examines environment variables to decide between the use of `gcc` or `cc` to build Lua / LuaJIT / OpenResty.
+> * On Windows, when you load Visual Studio developer prompt details (e.g.: [step-security/msvc-dev-cmd](https://github.com/step-security/msvc-dev-cmd)) for the Microsoft Visual Studio C/C++ compiler (MSVC), `setup-lua` adopts MSVC as the selected toolchain to build Lua / LuaJIT / OpenResty. Otherwise, if you don't load Visual Studio developer prompt, `setup-lua` examines environment variables to decide between the use of `gcc` or `cc` to build Lua / LuaJIT / OpenResty.
 
 ## Further usage
 
