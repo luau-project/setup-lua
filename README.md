@@ -146,7 +146,6 @@ jobs:
           - CLANG64
     steps:
       - uses: msys2/setup-msys2@v2
-        id: msys2
         with:
           msystem: ${{ matrix.sys }}
           install: |
