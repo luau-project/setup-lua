@@ -34,7 +34,7 @@ jobs:
           - os: macos-latest
             toolchain: msvc
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Setup MSVC developer prompt
         uses: step-security/msvc-dev-cmd@v1
         if: ${{ runner.os == 'Windows' && matrix.toolchain == 'msvc' }}
