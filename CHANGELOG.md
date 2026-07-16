@@ -1,3 +1,21 @@
+## setup-lua v2.0.0
+
+> [!IMPORTANT]
+> 
+> **BREAKING CHANGE**: This project was converted to be an ESM module.
+
+* All dependencies were upgraded to the latest release, except for `typescript`;
+* Due the upgrade of `@actions/core` and `@actions/cache` to ESM modules, `setup-lua` is now also an ESM module. This is a breaking change. Thus, we are bumping the major version;
+* Fixed an issue that didn't set PUC-Lua versions dependent on readline on `macOS` and `Linux`;
+* Added license to all important files;
+* Moved the recommended GitHub Action to setup MSVC from `ilammy/msvc-cmd-dev` to `step-security/msvc-cmd-dev` both on CI and docs. The user `ilammy` does not respond to issues / PRs, and the previous action was emitting warnings due the use of EOL nodejs versions;
+* Added support to install Lua 5.5.1 RC1 (see [https://groups.google.com/g/lua-l/c/e6Bp2KbFvPg](https://groups.google.com/g/lua-l/c/e6Bp2KbFvPg));
+* Added new issue templates to ease communication:
+  * [02-feature-request.yml](.github/ISSUE_TEMPLATE/02-feature-request.yml) to request features to be implemented in `setup-lua`;
+  * [03-update-dependencies.yml](.github/ISSUE_TEMPLATE/03-update-dependencies.yml) to request an update on dependencies in `setup-lua`;
+  * [04-update-lua.yml](.github/ISSUE_TEMPLATE/04-update-lua.yml) to request an update on PUC-Lua versions in `setup-lua`;
+  * [05-update-luarocks.yml](.github/ISSUE_TEMPLATE/05-update-luarocks.yml) to request an update on LuaRocks versions in `setup-lua`.
+
 ## setup-lua v1.1.1
 
 * Upgraded dependencies to fix vulnerabilities according to `npm audit fix`;
