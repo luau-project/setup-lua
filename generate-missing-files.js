@@ -23,13 +23,17 @@
 ** SOFTWARE.
 */
 
-const { writeFile } = require("node:fs/promises");
-const { EOL } = require("node:os");
-const { join } = require("node:path");
+import { writeFile } from "node:fs/promises";
+import { EOL } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function writeMissingFile(file, program, resolve, reject) {
     writeFile(file, program.join(EOL), { encoding: "utf-8" })
-        .then(() =>{
+        .then(() => {
             resolve(file);
         })
         .catch(reject);
