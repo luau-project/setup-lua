@@ -100,7 +100,7 @@ export class PucLuaCreatePkgConfigFilesTarget implements ITarget {
             lines.push(`bindir=${bindir}`);
             lines.push(`libdir=${libdir}`);
             lines.push(`V=${version.getMajor()}.${version.getMinor()}`);
-            lines.push(`R=${version.getString()}`);
+            lines.push(`R=${version.getMajor()}.${version.getMinor()}.${version.getBuild()}`);
             lines.push("");
             lines.push(`INSTALL_BIN=${bindir}`);
             lines.push(`INSTALL_INC=${incdir}`);
