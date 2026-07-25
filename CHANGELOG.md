@@ -1,3 +1,10 @@
+## setup-lua v2.0.1
+
+* Fixed an issue that didn't wrote the `R` variable in the installed `pkg-config` file in the format `X.Y.Z` for work versions of PUC-Lua (e.g.: it was writing `R=5.5.1-rc1` for Lua `5.5.1-rc1`);
+* From now on, following the direction of multiple Unix distributions (Debian, Arch Linux), multiple versioned files for `pkg-config` are being installed for PUC-Lua. For instance, `setup-lua` is installing the files `lua-5.5.pc`, `lua-5.5.pc`, `lua-5.5.pc` and `lua-5.5.pc`. Previously, a single file `lua5.5.pc` was installed;
+* Added PUC-Lua 5.5.1-rc2 (see [https://groups.google.com/g/lua-l/c/wxeL7VPNLYg](https://groups.google.com/g/lua-l/c/wxeL7VPNLYg)) to the list of available versions to install;
+* Added post-install instructions to CLI docs.
+
 ## setup-lua v2.0.0
 
 > [!IMPORTANT]
