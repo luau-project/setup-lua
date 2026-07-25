@@ -188,10 +188,10 @@ jobs:
 >    * legacy work: [https://lua.org/work/old/](https://lua.org/work/old/)
 
 ```yaml
-      - name: Install Lua 5.5.1 (RC1)
+      - name: Install Lua 5.5.1 (RC2)
         uses: luau-project/setup-lua@v2
         with:
-          lua-version: 5.5.1-rc1
+          lua-version: 5.5.1-rc2
           luarocks-version: 3.13.0
 ```
 
