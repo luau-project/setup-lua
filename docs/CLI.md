@@ -4,7 +4,8 @@ Installs Lua / LuaJIT / OpenResty + LuaRocks in a single step inside the `.lua` 
 
 > [!IMPORTANT]
 > 
-> `setup-lua` **DOES NOT** set environment variables.
+> * `setup-lua` **DOES NOT** set environment variables. Please, read the [post-install tips](#post-install-tips) to understand what to do in order to have a working setup;
+> * the CLI mode doesn't mask your secrets. Please, do not feed secrets to `setup-lua` to keep them secure.
 
 On the command line (or terminal), `setup-lua` is aware of predefined environment variables to build and install Lua / LuaJIT / OpenResty + LuaRocks.
 
@@ -34,6 +35,7 @@ On the command line (or terminal), `setup-lua` is aware of predefined environmen
   * [Install Lua linking to additional libraries](#install-lua-linking-to-additional-libraries)
   * [Install Lua applying patches](#install-lua-applying-patches)
   * [Install LuaRocks applying patches](#install-luarocks-applying-patches)
+* [Post-Install Tips](#post-install-tips)
 
 ## Introduction
 
@@ -529,3 +531,50 @@ In this example, we apply patches provided in the files `my-great-change.patch` 
 > When the patch starts with `http://` or `https://`, `setup-lua` treats it as a remote patch and downloads it automatically. Otherwise, `setup-lua` treats it as a path in the local disk (full path or relative to the current directory).
 
 [Back to home](../)
+
+## Post-Install Tips
+
+### Background Information
+
+At the moment, Lua aims to be C89-compliant without relying on any external dependency. For that to work as desired, Lua makes intensive use of environment variables. LuaRocks, the package manager for Lua, also follows this mechanism. Environment variables allows the user to supply configuration info for both Lua and LuaRocks.
+
+For instance, Windows or Unix systems can find executables and applications once their directories are added to `PATH` environment variable. Moreover, Lua is aware of paths stored at `LUA_PATH` to find `.lua` modules and `LUA_CPATH` to find shared libraries (`.dll` on Windows and `.so` on Unix).
+
+In CLI mode, `setup-lua` basically does the following sequence of steps:
+
+1. download, then build Lua (or LuaJIT / OpenResty) and install the artifacts to `.lua`;
+2. download and unpacks LuaRocks to `.lua`;
+3. at the end, no environment variables are set, and you are left with a partially configured Lua + LuaRocks setup.
+
+### Finish the Configuration
+
+In order to finish the Lua + LuaRocks setup, you have to set `PATH`, `LUA_PATH` and `LUA_CPATH` environment variables. Fortunately, LuaRocks provides a command to ease this step (`luarocks path`).
+
+* Windows: on `cmd`, the following sequence of commands can get the job done
+
+  ```cmd
+  .lua\bin\luarocks path> vars.bat
+  vars.bat
+  del vars.bat
+  ```
+
+* Unix: on your shell, the following command does the job:
+
+  ```bash
+  eval $(.lua/bin/luarocks path)
+  ```
+
+Run these commands above everytime the command prompt or terminal is opened. Alternatively, on Windows, open the file `vars.bat` generated above and edit your system environment variables to persist them. On Unix, the command `eval $(.lua/bin/luarocks path)` can be persisted in the profile of your shell (`.bashrc` for `bash`, `.zshrc` for `zsh` and so on) to turn on these changes automatically.
+
+### Cleaning the Room
+
+During the development of Lua modules integrated to LuaRocks, it makes sense to repeat the installation under different toolchains. To clean the environment, be sure to launch a new command prompt or terminal and perform the following steps:
+
+1. Remove the installation directory: `IF EXIST .lua\. RMDIR /S /Q .lua` on Windows or `rm -rf .lua` on Unix;
+2. **Caution**: Remove previously installed LuaRocks packages (Windows-only):
+
+  ```cmd
+  IF EXIST "%APPDATA%\luarocks\." RMDIR /S /Q "%APPDATA%\luarocks"
+  ```
+
+3. Edit and undo environment variables (`LUA_PATH` and `LUA_CPATH`) set earlier while finishing the configuration.
