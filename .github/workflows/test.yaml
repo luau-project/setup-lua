@@ -83,7 +83,6 @@ jobs:
           - 5.5.1-rc2
           - luajit
           - luajit@v2.0
-          - luajit@v2.0.5
           - luajit@871db2c84ecefd70a850e03a6c340214a81739f0
           - openresty
           - openresty@2.1-20231117.x
@@ -103,9 +102,6 @@ jobs:
 
           - os: macos-latest
             lua-version: luajit@v2.0
-
-          - os: macos-latest
-            lua-version: luajit@v2.0.5
 
     steps:
       - name: Checkout
