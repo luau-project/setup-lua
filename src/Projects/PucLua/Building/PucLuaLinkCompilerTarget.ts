@@ -30,7 +30,7 @@ import { PucLuaProject } from "../PucLuaProject";
 import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { PucLuaCompileCompilerTarget } from "./PucLuaCompileCompilerTarget";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
-import { PucLuaCreatePkgConfigTarget } from "./PucLuaCreatePkgConfigTarget";
+import { PucLuaCreatePkgConfigFilesTarget } from "./PucLuaCreatePkgConfigFilesTarget";
 import { PucLuaSourcesInfo } from "../Configuration/PucLuaSourcesInfo";
 import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
 import { Console } from "../../../Console";
@@ -58,7 +58,7 @@ export class PucLuaLinkCompilerTarget implements ITarget {
         return this.parent;
     }
     getNext(): ITarget | null {
-        return new PucLuaCreatePkgConfigTarget(this.project, this);
+        return new PucLuaCreatePkgConfigFilesTarget(this.project, this);
     }
     getStaticLibrary(): string {
         return this.parent.getStaticLibrary();

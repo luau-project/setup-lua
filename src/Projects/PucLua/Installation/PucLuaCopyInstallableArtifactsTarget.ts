@@ -167,15 +167,28 @@ export class PucLuaCopyInstallableArtifactsTarget implements ITarget {
             man_iter(0);
         });
     }
-    private copyPkgConfigFile(): Promise<void> {
+    private copyPkgConfigFiles(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const builtPkgConfigFile = this.parent.getBuildInfo().getPkgConfigFile();
+            const builtPkgConfigFiles = this.parent.getBuildInfo().getPkgConfigFiles();
             const pkgConfigDir = this.project.getInstallPkgConfigDir();
-            const pkgConfigFile = join(pkgConfigDir, basename(builtPkgConfigFile));
+            const pkgConfigIter = (i: number) => {
+                if (i < builtPkgConfigFiles.getLenght()) {
+                    const builtPkgConfigFile = builtPkgConfigFiles.getItem(i);
+                    const pkgConfigBaseName = basename(builtPkgConfigFile);
+                    const pkgConfigFile = join(pkgConfigDir, pkgConfigBaseName);
 
-            cp(builtPkgConfigFile, pkgConfigFile, { force: true })
-                    .then(resolve)
-                    .catch(reject);
+                    cp(builtPkgConfigFile, pkgConfigFile, { force: true })
+                        .then(() => {
+                            pkgConfigIter(i + 1);
+                        })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+
+            pkgConfigIter(0);
         });
     }
     execute(): Promise<void> {
@@ -188,7 +201,7 @@ export class PucLuaCopyInstallableArtifactsTarget implements ITarget {
                 () => this.copyImportLibrary(),
                 () => this.copyHeaders(),
                 () => this.copyManFiles(),
-                () => this.copyPkgConfigFile()
+                () => this.copyPkgConfigFiles()
             ])
                 .then(value => {
                     resolve();

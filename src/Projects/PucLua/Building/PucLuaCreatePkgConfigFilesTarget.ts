@@ -34,13 +34,14 @@ import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
 import { PucLuaFinishBuildingTarget } from "./PucLuaFinishBuildingTarget";
 import { Console } from "../../../Console";
 
-export class PucLuaCreatePkgConfigTarget implements ITarget {
+export class PucLuaCreatePkgConfigFilesTarget implements ITarget {
     private parent: PucLuaLinkCompilerTarget;
     private project: PucLuaProject;
-    private pkgConfig?: string;
+    private rawPkgConfigFiles: string[];
     constructor(project: PucLuaProject, parent: PucLuaLinkCompilerTarget) {
         this.project = project;
         this.parent = parent;
+        this.rawPkgConfigFiles = [];
     }
     init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
@@ -59,7 +60,7 @@ export class PucLuaCreatePkgConfigTarget implements ITarget {
                 this.parent.getStaticLibrary(),
                 this.parent.getInterpreter(),
                 this.parent.getCompiler(),
-                <string>this.pkgConfig,
+                this.rawPkgConfigFiles,
                 this.parent.getImportLibrary()
             )
         );
@@ -79,6 +80,8 @@ export class PucLuaCreatePkgConfigTarget implements ITarget {
             let lmod = this.project.getInstallLuaModulesDir();
             let cmod = this.project.getInstallCModulesDir();
             let mandir = this.project.getInstallManDir();
+
+            this.rawPkgConfigFiles.splice(0, this.rawPkgConfigFiles.length);
 
             if (process.platform === "win32") {
                 prefix = prefix.replace(/\\/g, "/");
@@ -137,14 +140,31 @@ export class PucLuaCreatePkgConfigTarget implements ITarget {
             else {
                 lines.push("Cflags: -I${includedir}");
             }
-            const pkgConfigFileName = join(this.project.getSharedLibBuildDir(), `${libname}.pc`);
-            writeFile(pkgConfigFileName, lines.join("\n"), { encoding: "utf8" })
-                .then(() => {
-                    this.pkgConfig = pkgConfigFileName;
+            const pkgConfigContent = lines.join("\n");
+            const pkgConfigBaseNames: string[] = [
+                `lua${version.getMajor()}.${version.getMinor()}.pc`,
+                `lua-${version.getMajor()}.${version.getMinor()}.pc`,
+                `lua${version.getMajor()}${version.getMinor()}.pc`,
+                `lua-${version.getMajor()}${version.getMinor()}.pc`
+            ];
+            const pkgConfigIter = (i: number) => {
+                if (i < pkgConfigBaseNames.length) {
+                    const pkgConfigBaseName = pkgConfigBaseNames[i];
+                    const pkgConfigFileName = join(this.project.getSharedLibBuildDir(), pkgConfigBaseName);
+                    writeFile(pkgConfigFileName, pkgConfigContent, { encoding: "utf8" })
+                        .then(() => {
+                            this.rawPkgConfigFiles.push(pkgConfigFileName);
+                            pkgConfigIter(i + 1);
+                        })
+                        .catch(reject);
+                }
+                else {
                     this.setBuildResult();
                     resolve();
-                })
-                .catch(reject);
+                }
+            };
+
+            pkgConfigIter(0);
         });
     }
     finalize(): Promise<void> {

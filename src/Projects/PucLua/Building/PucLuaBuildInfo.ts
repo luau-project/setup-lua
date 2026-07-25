@@ -23,6 +23,8 @@
 ** SOFTWARE.
 */
 
+import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
+import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
 import { PucLuaSourcesInfo } from "../Configuration/PucLuaSourcesInfo";
 
 export class PucLuaBuildInfo {
@@ -31,7 +33,7 @@ export class PucLuaBuildInfo {
     private staticLibrary: string;
     private interpreter: string;
     private compiler: string;
-    private pkgConfigFile: string;
+    private pkgConfigFiles: IReadOnlyArray<string>;
     private importLibrary: string | undefined;
     constructor(
         sourcesInfo: PucLuaSourcesInfo,
@@ -39,7 +41,7 @@ export class PucLuaBuildInfo {
         staticLibrary: string,
         interpreter: string,
         compiler: string,
-        pkgConfigFile: string,
+        pkgConfigFiles: string[],
         importLibrary: string | undefined
     ) {
         this.sourcesInfo = sourcesInfo;
@@ -47,7 +49,7 @@ export class PucLuaBuildInfo {
         this.staticLibrary = staticLibrary;
         this.interpreter = interpreter;
         this.compiler = compiler;
-        this.pkgConfigFile = pkgConfigFile;
+        this.pkgConfigFiles = new ReadOnlyArray<string>(pkgConfigFiles);
         this.importLibrary = importLibrary;
     }
     getSourcesInfo(): PucLuaSourcesInfo {
@@ -65,8 +67,8 @@ export class PucLuaBuildInfo {
     getCompiler(): string {
         return this.compiler;
     }
-    getPkgConfigFile(): string {
-        return this.pkgConfigFile;
+    getPkgConfigFiles(): IReadOnlyArray<string> {
+        return this.pkgConfigFiles;
     }
     getImportLibrary(): string | undefined {
         return this.importLibrary;
