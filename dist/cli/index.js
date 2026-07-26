@@ -123,6 +123,7 @@ const LUA_RELEASES = {
     "5.1.1": { "version": "5.1.1", "hash": { "algorithm": "sha256", "value": "c5daeed0a75d8e4dd2328b7c7a69888247868154acbda69110e97d4a6e17d1f0" } }
 };
 const LUA_WORKS = {
+    "5.5.1-rc2": { "version": "5.5.1-rc2", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
     "5.5.1-rc1": { "version": "5.5.1-rc1", "hash": { "algorithm": "sha256", "value": "c1dbdbb5be08bbd0589edd786b8878620a05cba09cbcc4275e65d1f384ef18e6" } },
     "5.5.0-rc4": { "version": "5.5.0-rc4", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
     "5.5.0-rc3": { "version": "5.5.0-rc3", "hash": { "algorithm": "sha256", "value": "f1a812cdcc3916f7441aec725014403177e0ef08ace097189548208f9605b2b3" } },
@@ -652,14 +653,15 @@ function isGccLikeToolchain(toolchain) {
 ** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ** SOFTWARE.
 */
+
 class PucLuaBuildInfo {
-    constructor(sourcesInfo, sharedLibrary, staticLibrary, interpreter, compiler, pkgConfigFile, importLibrary) {
+    constructor(sourcesInfo, sharedLibrary, staticLibrary, interpreter, compiler, pkgConfigFiles, importLibrary) {
         this.sourcesInfo = sourcesInfo;
         this.sharedLibrary = sharedLibrary;
         this.staticLibrary = staticLibrary;
         this.interpreter = interpreter;
         this.compiler = compiler;
-        this.pkgConfigFile = pkgConfigFile;
+        this.pkgConfigFiles = new ReadOnlyArray(pkgConfigFiles);
         this.importLibrary = importLibrary;
     }
     getSourcesInfo() {
@@ -677,8 +679,8 @@ class PucLuaBuildInfo {
     getCompiler() {
         return this.compiler;
     }
-    getPkgConfigFile() {
-        return this.pkgConfigFile;
+    getPkgConfigFiles() {
+        return this.pkgConfigFiles;
     }
     getImportLibrary() {
         return this.importLibrary;
@@ -778,7 +780,12 @@ class PucLuaFinishBuildingTarget {
             Console.instance().writeLine(`Static Library: ${buildInfo.getStaticLibrary()}`);
             Console.instance().writeLine(`Interpreter: ${buildInfo.getInterpreter()}`);
             Console.instance().writeLine(`Compiler: ${buildInfo.getCompiler()}`);
-            Console.instance().writeLine(`PkgConfig: ${buildInfo.getPkgConfigFile()}`);
+            Console.instance().writeLine(`pkg-config files:`);
+            const pkgConfigFiles = buildInfo.getPkgConfigFiles();
+            const len = pkgConfigFiles.getLenght();
+            for (let i = 0; i < len; i++) {
+                Console.instance().writeLine(`    ${pkgConfigFiles.getItem(i)}`);
+            }
             const impLib = buildInfo.getImportLibrary();
             if (impLib) {
                 Console.instance().writeLine(`Import Library: ${impLib}`);
@@ -800,7 +807,7 @@ class PucLuaFinishBuildingTarget {
     }
 }
 
-;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaCreatePkgConfigTarget.ts
+;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaCreatePkgConfigFilesTarget.ts
 /*
 ** The MIT License (MIT)
 **
@@ -831,10 +838,11 @@ class PucLuaFinishBuildingTarget {
 
 
 
-class PucLuaCreatePkgConfigTarget {
+class PucLuaCreatePkgConfigFilesTarget {
     constructor(project, parent) {
         this.project = project;
         this.parent = parent;
+        this.rawPkgConfigFiles = [];
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -846,7 +854,7 @@ class PucLuaCreatePkgConfigTarget {
         return new PucLuaFinishBuildingTarget(this.project, this);
     }
     setBuildResult() {
-        this.project.buildResult().setValue(new PucLuaBuildInfo(this.parent.getSourcesInfo(), this.parent.getSharedLibrary(), this.parent.getStaticLibrary(), this.parent.getInterpreter(), this.parent.getCompiler(), this.pkgConfig, this.parent.getImportLibrary()));
+        this.project.buildResult().setValue(new PucLuaBuildInfo(this.parent.getSourcesInfo(), this.parent.getSharedLibrary(), this.parent.getStaticLibrary(), this.parent.getInterpreter(), this.parent.getCompiler(), this.rawPkgConfigFiles, this.parent.getImportLibrary()));
     }
     execute() {
         return new Promise((resolve, reject) => {
@@ -861,6 +869,7 @@ class PucLuaCreatePkgConfigTarget {
             let lmod = this.project.getInstallLuaModulesDir();
             let cmod = this.project.getInstallCModulesDir();
             let mandir = this.project.getInstallManDir();
+            this.rawPkgConfigFiles.splice(0, this.rawPkgConfigFiles.length);
             if (process.platform === "win32") {
                 prefix = prefix.replace(/\\/g, "/");
                 incdir = incdir.replace(/\\/g, "/");
@@ -877,7 +886,7 @@ class PucLuaCreatePkgConfigTarget {
             lines.push(`bindir=${bindir}`);
             lines.push(`libdir=${libdir}`);
             lines.push(`V=${version.getMajor()}.${version.getMinor()}`);
-            lines.push(`R=${version.getString()}`);
+            lines.push(`R=${version.getMajor()}.${version.getMinor()}.${version.getBuild()}`);
             lines.push("");
             lines.push(`INSTALL_BIN=${bindir}`);
             lines.push(`INSTALL_INC=${incdir}`);
@@ -917,14 +926,30 @@ class PucLuaCreatePkgConfigTarget {
             else {
                 lines.push("Cflags: -I${includedir}");
             }
-            const pkgConfigFileName = (0,external_node_path_namespaceObject.join)(this.project.getSharedLibBuildDir(), `${libname}.pc`);
-            (0,promises_namespaceObject.writeFile)(pkgConfigFileName, lines.join("\n"), { encoding: "utf8" })
-                .then(() => {
-                this.pkgConfig = pkgConfigFileName;
-                this.setBuildResult();
-                resolve();
-            })
-                .catch(reject);
+            const pkgConfigContent = lines.join("\n");
+            const pkgConfigBaseNames = [
+                `lua${version.getMajor()}.${version.getMinor()}.pc`,
+                `lua-${version.getMajor()}.${version.getMinor()}.pc`,
+                `lua${version.getMajor()}${version.getMinor()}.pc`,
+                `lua-${version.getMajor()}${version.getMinor()}.pc`
+            ];
+            const pkgConfigIter = (i) => {
+                if (i < pkgConfigBaseNames.length) {
+                    const pkgConfigBaseName = pkgConfigBaseNames[i];
+                    const pkgConfigFileName = (0,external_node_path_namespaceObject.join)(this.project.getSharedLibBuildDir(), pkgConfigBaseName);
+                    (0,promises_namespaceObject.writeFile)(pkgConfigFileName, pkgConfigContent, { encoding: "utf8" })
+                        .then(() => {
+                        this.rawPkgConfigFiles.push(pkgConfigFileName);
+                        pkgConfigIter(i + 1);
+                    })
+                        .catch(reject);
+                }
+                else {
+                    this.setBuildResult();
+                    resolve();
+                }
+            };
+            pkgConfigIter(0);
         });
     }
     finalize() {
@@ -1395,7 +1420,7 @@ class PucLuaLinkCompilerTarget {
         return this.parent;
     }
     getNext() {
-        return new PucLuaCreatePkgConfigTarget(this.project, this);
+        return new PucLuaCreatePkgConfigFilesTarget(this.project, this);
     }
     getStaticLibrary() {
         return this.parent.getStaticLibrary();
@@ -5371,14 +5396,26 @@ class PucLuaCopyInstallableArtifactsTarget {
             man_iter(0);
         });
     }
-    copyPkgConfigFile() {
+    copyPkgConfigFiles() {
         return new Promise((resolve, reject) => {
-            const builtPkgConfigFile = this.parent.getBuildInfo().getPkgConfigFile();
+            const builtPkgConfigFiles = this.parent.getBuildInfo().getPkgConfigFiles();
             const pkgConfigDir = this.project.getInstallPkgConfigDir();
-            const pkgConfigFile = (0,external_node_path_namespaceObject.join)(pkgConfigDir, (0,external_node_path_namespaceObject.basename)(builtPkgConfigFile));
-            (0,promises_namespaceObject.cp)(builtPkgConfigFile, pkgConfigFile, { force: true })
-                .then(resolve)
-                .catch(reject);
+            const pkgConfigIter = (i) => {
+                if (i < builtPkgConfigFiles.getLenght()) {
+                    const builtPkgConfigFile = builtPkgConfigFiles.getItem(i);
+                    const pkgConfigBaseName = (0,external_node_path_namespaceObject.basename)(builtPkgConfigFile);
+                    const pkgConfigFile = (0,external_node_path_namespaceObject.join)(pkgConfigDir, pkgConfigBaseName);
+                    (0,promises_namespaceObject.cp)(builtPkgConfigFile, pkgConfigFile, { force: true })
+                        .then(() => {
+                        pkgConfigIter(i + 1);
+                    })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+            pkgConfigIter(0);
         });
     }
     execute() {
@@ -5391,7 +5428,7 @@ class PucLuaCopyInstallableArtifactsTarget {
                 () => this.copyImportLibrary(),
                 () => this.copyHeaders(),
                 () => this.copyManFiles(),
-                () => this.copyPkgConfigFile()
+                () => this.copyPkgConfigFiles()
             ])
                 .then(value => {
                 resolve();
