@@ -44,7 +44,7 @@ By default, LuaRocks ([https://luarocks.org/](https://luarocks.org/)) always get
 
 ## Features
 
-## Unique Features
+### Unique Features
 
 The features listed here are unique to `setup-lua` and are not present on other popular GitHub Actions / tools:
 
