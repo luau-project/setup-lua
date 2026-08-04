@@ -49,6 +49,15 @@ By default, LuaRocks ([https://luarocks.org/](https://luarocks.org/)) always get
 
 ## Features
 
+## Unique Features
+
+The features listed here are unique to `setup-lua` and are not present on other popular GitHub Actions / tools:
+
+* Installs both Lua (or LuaJIT / OpenResty) `+` LuaRocks in a single step;
+* Applies patches stored locally or remotely to Lua or LuaRocks source code on the fly;
+* Works on Windows inside MinGW-w64 shells on `MSYS2`;
+* Has the same set of features working well on all supported platform (Linux, Windows, macOS, BSDs), with exceptions documented;
+
 ### Supported operating systems
 
 * Windows

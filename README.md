@@ -58,6 +58,15 @@ jobs:
 > 
 > * On Windows, when you load Visual Studio developer prompt details (e.g.: [step-security/msvc-dev-cmd](https://github.com/step-security/msvc-dev-cmd)) for the Microsoft Visual Studio C/C++ compiler (MSVC), `setup-lua` adopts MSVC as the selected toolchain to build Lua / LuaJIT / OpenResty. Otherwise, if you don't load Visual Studio developer prompt, `setup-lua` examines environment variables to decide between the use of `gcc` or `cc` to build Lua / LuaJIT / OpenResty.
 
+## Unique Features
+
+The features listed here are unique to `setup-lua` and are not present on other popular GitHub Actions / tools:
+
+* Installs both Lua (or LuaJIT / OpenResty) `+` LuaRocks in a single step;
+* Applies patches stored locally or remotely to Lua or LuaRocks source code on the fly (see [here](https://github.com/luau-project/lnuminfo/blob/e778a685bc7be0062015bcc42df33ad7ee7a2763/.github/workflows/ci.yml#L296-L300));
+* Works on Windows inside MinGW-w64 shells on `MSYS2`;
+* Has the same set of features working well on all supported platform (Linux, Windows, macOS, BSDs), with exceptions documented;
+
 ## Further usage
 
 In `setup-lua`, the most important inputs are `lua-version` and `luarocks-version`, so that you can choose specific versions to install. There are many options to tweak `setup-lua`: see [GitHub Actions docs](./docs/GitHub.md#inputs) for an exhaustive list of inputs.
