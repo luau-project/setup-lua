@@ -1,3 +1,11 @@
+## setup-lua v2.0.2
+
+* Added support to install Lua 5.5.1. Now, the `5.5` alias resolves to Lua `5.5.1`;
+* Added source code comments explaining how to alter the source code to support release candidates;
+* Added a section (`Unique Features`) on docs detailing the functionalities not found on other actions / tools;
+* Fixed docs in old changelog entries regarding the installed files for `pkg-config`;
+* Fixed CLI docs to include an assignment to `PATH` environment variable on Windows in post-install instructions.
+
 ## setup-lua v2.0.1
 
 * Fixed an issue that didn't wrote the `R` variable in the installed `pkg-config` file in the format `X.Y.Z` for work versions of PUC-Lua (e.g.: it was writing `R=5.5.1-rc1` for Lua `5.5.1-rc1`);
