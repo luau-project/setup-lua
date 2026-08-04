@@ -562,9 +562,10 @@ In order to finish the Lua + LuaRocks setup, you have to set `PATH`, `LUA_PATH` 
 * Windows: on `cmd`, the following sequence of commands can get the job done
 
   ```cmd
+  SET "PATH=%CD%\.lua\bin;%PATH%"
   .lua\bin\luarocks path> vars.bat
   vars.bat
-  del vars.bat
+  DEL vars.bat
   ```
 
 * Unix: on your shell, the following command does the job:
