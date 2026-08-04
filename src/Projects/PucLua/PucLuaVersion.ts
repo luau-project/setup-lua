@@ -25,7 +25,7 @@
 
 import { compareVersions } from "../../Util/CompareVersions";
 
-const LATEST_LUA_RELEASE_VERSION = "5.5.0";
+const LATEST_LUA_RELEASE_VERSION = "5.5.1";
 
 const CONVERT_LUA_RELEASE_VERSION: {[key: string]: string} = {
     "5.1": "5.1.5",
@@ -46,6 +46,7 @@ interface LuaVersionInfo {
 }
 
 const LUA_RELEASES: {[key: string]: LuaVersionInfo} = {
+    "5.5.1": { "version": "5.5.1", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce"} },
     "5.5.0": { "version": "5.5.0", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d"} },
     "5.4.8": { "version": "5.4.8", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae"} },
     "5.4.7": { "version": "5.4.7", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30"} },
@@ -260,7 +261,12 @@ export function parsePucLuaVersion(version: string): Promise<IPucLuaVersion> {
                                 major, minor, build,
                                 v.hash.algorithm, v.hash.value,
                                 suffix,
-                                workMatch[0].startsWith("5.5.1-")
+                                /* Q: How to enable work versions for a future Lua 5.5.2
+                                **    release candidate (lua-5.5.2-rc1)?
+                                **
+                                ** A: replace the next line from `false' to
+                                **    workMatch[0].startsWith("5.5.2-") */
+                                false 
                             )
                         );
                     }
