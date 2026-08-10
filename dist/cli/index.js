@@ -131,6 +131,7 @@ const LUA_WORKS = {
     "5.5.0-rc2": { "version": "5.5.0-rc2", "hash": { "algorithm": "sha256", "value": "50b24b8fce4644a4590af0f23c65945836161515b9e87c45ee1f0e62b0255a1d" } },
     "5.5.0-rc1": { "version": "5.5.0-rc1", "hash": { "algorithm": "sha256", "value": "34a4dcca0c04877fbce4baff54054b9793b70bca5d8c676ca4d3504dd47c3772" } },
     "5.5.0-beta": { "version": "5.5.0-beta", "hash": { "algorithm": "sha256", "value": "30897f95fc72565cb6c1792f721ad44e1a42e7ac587f62f7587807b3cbff1645" } },
+    "5.4.9-rc1": { "version": "5.4.9-rc1", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
     "5.4.8-rc1": { "version": "5.4.8-rc1", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
     "5.4.7-rc4": { "version": "5.4.7-rc4", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
     "5.4.7-rc3": { "version": "5.4.7-rc3", "hash": { "algorithm": "sha256", "value": "9bfdb269aefaa8a8c671cb509943bb2bac0704ea3fce3e6c00d92908326cd144" } },
@@ -241,6 +242,20 @@ const LUA_WORKS = {
     "5.1.1-rc2": { "version": "5.1.1-rc2", "hash": { "algorithm": "sha256", "value": "b14642c7f5f211f8f899ae4e97891d025a72245a3c6938b4d37024513730d71e" } },
     "5.1.1-rc1": { "version": "5.1.1-rc1", "hash": { "algorithm": "sha256", "value": "84dda3f7a03999785488304e9561e4f6771366845d3488efbb8e077b20839c99" } }
 };
+/*
+** Q: How to enable work versions for a future Lua 5.5.2
+**    release candidate (lua-5.5.2-rc1)?
+**
+** A: replace the next function to return to
+**    workVersion.startsWith("5.5.2-")
+**
+** Q: How to disable the current work version?
+**
+** A: replace the next function to return `false'
+*/
+function isCurrentWorkVersion(workVersion) {
+    return workVersion.startsWith("5.4.9-");
+}
 function isKnownLuaShortVersion(version) {
     return version in CONVERT_LUA_RELEASE_VERSION;
 }
@@ -285,13 +300,7 @@ function parsePucLuaVersion(version) {
                         const build = Number(workMatch[3]);
                         const suffix = workMatch[4];
                         const v = LUA_WORKS[pucLuaVersion];
-                        resolve(new PucLuaWorkVersion(major, minor, build, v.hash.algorithm, v.hash.value, suffix, 
-                        /* Q: How to enable work versions for a future Lua 5.5.2
-                        **    release candidate (lua-5.5.2-rc1)?
-                        **
-                        ** A: replace the next line from `false' to
-                        **    workMatch[0].startsWith("5.5.2-") */
-                        false));
+                        resolve(new PucLuaWorkVersion(major, minor, build, v.hash.algorithm, v.hash.value, suffix, isCurrentWorkVersion(workMatch[0])));
                     }
                 }
                 else {
