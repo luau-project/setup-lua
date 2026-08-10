@@ -1,3 +1,10 @@
+## setup-lua v2.0.3
+
+* Added support to install Lua 5.4.9 RC1 (`5.4.9-rc1`);
+* Upgrade on dependencies:
+  * `@types/node`: from version `26.1.1` to `26.2.0`
+  * `undici-types`: from version `8.9.0` to `8.10.0`
+
 ## setup-lua v2.0.2
 
 * Added support to install Lua 5.5.1. Now, the `5.5` alias resolves to Lua `5.5.1`;
