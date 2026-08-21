@@ -1,3 +1,9 @@
+## setup-lua v2.0.4
+
+* Fixed a bug building PUC-Lua on BSD systems (tested with `FreeBSD 15`) that didn't set proper compilation flags. This caused the Lua interpreter to be built without `io.popen`, which `LuaRocks` requires to work properly. Now, BSD systems employ the `LUA_USE_LINUX` macro to build PUC-Lua;
+* Upgrade on dependencies:
+  * `@vercel/ncc`: from version `0.44.1` to `0.45.0`
+
 ## setup-lua v2.0.3
 
 * Added support to install Lua 5.4.9 RC1 (`5.4.9-rc1`);
