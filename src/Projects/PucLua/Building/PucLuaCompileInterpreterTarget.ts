@@ -137,9 +137,7 @@ export class PucLuaCompileInterpreterTarget implements ITarget {
                     }
                     else if (process.platform === 'freebsd' || process.platform === 'netbsd' || process.platform === 'openbsd')
                     {
-                        if (version.compareTo(LUA_53_VERSION) >= 0) {
-                            compiler.addDefine("LUA_USE_LINUX");
-                        }
+                        compiler.addDefine("LUA_USE_LINUX");
                         if (version.compareTo(LUA_54_VERSION) >= 0) {
                             compiler.addDefine("LUA_USE_READLINE");
                         }
