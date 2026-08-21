@@ -1,9 +1,4 @@
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
-/******/ /* webpack/runtime/compat */
-/******/ 
-/******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = new URL('.', import.meta.url).pathname.slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
-/******/ 
-/************************************************************************/
 var __webpack_exports__ = {};
 
 ;// CONCATENATED MODULE: external "node:os"
@@ -1657,9 +1652,7 @@ class PucLuaCompileCompilerTarget {
                         compiler.addDefine("LUA_USE_DLOPEN");
                     }
                     else if (process.platform === 'freebsd' || process.platform === 'netbsd' || process.platform === 'openbsd') {
-                        if (version.compareTo(LUA_53_VERSION) >= 0) {
-                            compiler.addDefine("LUA_USE_LINUX");
-                        }
+                        compiler.addDefine("LUA_USE_LINUX");
                         if (version.compareTo(LUA_54_VERSION) >= 0) {
                             compiler.addDefine("LUA_USE_READLINE");
                         }
@@ -1978,9 +1971,7 @@ class PucLuaCompileInterpreterTarget {
                         compiler.addDefine("LUA_USE_DLOPEN");
                     }
                     else if (process.platform === 'freebsd' || process.platform === 'netbsd' || process.platform === 'openbsd') {
-                        if (version.compareTo(LUA_53_VERSION) >= 0) {
-                            compiler.addDefine("LUA_USE_LINUX");
-                        }
+                        compiler.addDefine("LUA_USE_LINUX");
                         if (version.compareTo(LUA_54_VERSION) >= 0) {
                             compiler.addDefine("LUA_USE_READLINE");
                         }
@@ -2269,9 +2260,7 @@ class PucLuaCompileStaticLibTarget {
                         compiler.addDefine("LUA_USE_DLOPEN");
                     }
                     else if (process.platform === 'freebsd' || process.platform === 'netbsd' || process.platform === 'openbsd') {
-                        if (version.compareTo(LUA_53_VERSION) >= 0) {
-                            compiler.addDefine("LUA_USE_LINUX");
-                        }
+                        compiler.addDefine("LUA_USE_LINUX");
                         if (version.compareTo(LUA_54_VERSION) >= 0) {
                             compiler.addDefine("LUA_USE_READLINE");
                         }
@@ -2640,9 +2629,7 @@ class PucLuaCompileSharedLibTarget {
                         compiler.addDefine("LUA_USE_DLOPEN");
                     }
                     else if (process.platform === 'freebsd' || process.platform === 'netbsd' || process.platform === 'openbsd') {
-                        if (version.compareTo(LUA_53_VERSION) >= 0) {
-                            compiler.addDefine("LUA_USE_LINUX");
-                        }
+                        compiler.addDefine("LUA_USE_LINUX");
                         if (version.compareTo(LUA_54_VERSION) >= 0) {
                             compiler.addDefine("LUA_USE_READLINE");
                         }
