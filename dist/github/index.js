@@ -39540,12 +39540,13 @@ const CONVERT_LUA_RELEASE_VERSION = {
     "5.1": "5.1.5",
     "5.2": "5.2.4",
     "5.3": "5.3.6",
-    "5.4": "5.4.8",
+    "5.4": "5.4.9",
     "5.5": LATEST_LUA_RELEASE_VERSION
 };
 const LUA_RELEASES = {
     "5.5.1": { "version": "5.5.1", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
     "5.5.0": { "version": "5.5.0", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
+    "5.4.9": { "version": "5.4.9", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
     "5.4.8": { "version": "5.4.8", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
     "5.4.7": { "version": "5.4.7", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
     "5.4.6": { "version": "5.4.6", "hash": { "algorithm": "sha256", "value": "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88" } },
@@ -39696,15 +39697,15 @@ const LUA_WORKS = {
 ** Q: How to enable work versions for a future Lua 5.5.2
 **    release candidate (lua-5.5.2-rc1)?
 **
-** A: replace the next function to return to
+** A: modify the next function to return to
 **    workVersion.startsWith("5.5.2-")
 **
 ** Q: How to disable the current work version?
 **
-** A: replace the next function to return `false'
+** A: modify the next function to return `false'
 */
 function isCurrentWorkVersion(workVersion) {
-    return workVersion.startsWith("5.4.9-");
+    return false; /* workVersion.startsWith("5.4.9-") */
 }
 function isKnownLuaShortVersion(version) {
     return version in CONVERT_LUA_RELEASE_VERSION;
