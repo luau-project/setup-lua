@@ -1,3 +1,9 @@
+## setup-lua v2.0.5
+
+* Added support to install Lua 5.4.9;
+* Upgrade on dependencies:
+  * `@types/node`: from version `26.2.0` to `26.3.0`
+
 ## setup-lua v2.0.4
 
 * Fixed a bug building PUC-Lua on BSD systems (tested with `FreeBSD 15`) that didn't set proper compilation flags. This caused the Lua interpreter to be built without `io.popen`, which `LuaRocks` requires to work properly. Now, BSD systems employ the `LUA_USE_LINUX` macro to build PUC-Lua;
