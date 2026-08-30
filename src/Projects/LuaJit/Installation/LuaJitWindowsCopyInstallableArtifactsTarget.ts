@@ -140,6 +140,32 @@ export class LuaJitWindowsCopyInstallableArtifactsTarget implements ITarget {
             header_iter(0);
         });
     }
+    private copyJitFiles(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const srcInfo = this.parent.getBuildInfo().getSourcesInfo();
+            const jitFilesInstallDir = <string>this.project.getInstallLuaJitModuleDir();
+            const jitFiles = srcInfo.getJitFiles();
+            const len = jitFiles.getLenght();
+
+            const jitFile_iter = (i: number) => {
+                if (i < len) {
+                    const jitFile = jitFiles.getItem(i);
+                    const f = join(jitFilesInstallDir, basename(jitFile));
+
+                    cp(jitFile, f, { force: true })
+                        .then(() => {
+                            jitFile_iter(i + 1);
+                        })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+
+            jitFile_iter(0);
+        });
+    }
     private copyManFiles(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const manDir = this.project.getInstallManDir();
@@ -183,6 +209,7 @@ export class LuaJitWindowsCopyInstallableArtifactsTarget implements ITarget {
                 () => this.copySharedLibrary(),
                 () => this.copyImportLibrary(),
                 () => this.copyHeaders(),
+                () => this.copyJitFiles(),
                 () => this.copyManFiles(),
                 () => this.copyPkgConfigFile()
             ])

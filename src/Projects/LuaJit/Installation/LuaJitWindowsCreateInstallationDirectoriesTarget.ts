@@ -44,6 +44,7 @@ export class LuaJitWindowsCreateInstallationDirectoriesTarget extends AbstractCr
             project.getInstallManDir(),
             project.getInstallPkgConfigDir(),
             project.getInstallLuaModulesDir(),
+            <string>project.getInstallLuaJitModuleDir(),
             project.getInstallCModulesDir()
         ])
         this.project = project;
