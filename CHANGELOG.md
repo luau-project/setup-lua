@@ -1,3 +1,12 @@
+## setup-lua v2.0.6
+
+> [!IMPORTANT]
+> 
+> Fixed a serious bug during the LuaJIT installation process on Windows. In short, all `jit/*.lua` files were missing in the final installation. This bug is present since the initial release. If you are on a previous release, please, upgrade as soon as possible to have your LuaJIT installation working as designed.
+
+* Upgrade on dependencies:
+  * `@types/node`: from version `26.3.0` to `26.4.0`
+
 ## setup-lua v2.0.5
 
 * Added support to install Lua 5.4.9;
