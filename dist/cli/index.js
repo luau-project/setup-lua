@@ -8416,6 +8416,29 @@ class LuaJitWindowsCopyInstallableArtifactsTarget {
             header_iter(0);
         });
     }
+    copyJitFiles() {
+        return new Promise((resolve, reject) => {
+            const srcInfo = this.parent.getBuildInfo().getSourcesInfo();
+            const jitFilesInstallDir = this.project.getInstallLuaJitModuleDir();
+            const jitFiles = srcInfo.getJitFiles();
+            const len = jitFiles.getLenght();
+            const jitFile_iter = (i) => {
+                if (i < len) {
+                    const jitFile = jitFiles.getItem(i);
+                    const f = (0,external_node_path_namespaceObject.join)(jitFilesInstallDir, (0,external_node_path_namespaceObject.basename)(jitFile));
+                    (0,promises_namespaceObject.cp)(jitFile, f, { force: true })
+                        .then(() => {
+                        jitFile_iter(i + 1);
+                    })
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            };
+            jitFile_iter(0);
+        });
+    }
     copyManFiles() {
         return new Promise((resolve, reject) => {
             const manDir = this.project.getInstallManDir();
@@ -8455,6 +8478,7 @@ class LuaJitWindowsCopyInstallableArtifactsTarget {
                 () => this.copySharedLibrary(),
                 () => this.copyImportLibrary(),
                 () => this.copyHeaders(),
+                () => this.copyJitFiles(),
                 () => this.copyManFiles(),
                 () => this.copyPkgConfigFile()
             ])
@@ -8511,6 +8535,7 @@ class LuaJitWindowsCreateInstallationDirectoriesTarget extends AbstractCreateDir
             project.getInstallManDir(),
             project.getInstallPkgConfigDir(),
             project.getInstallLuaModulesDir(),
+            project.getInstallLuaJitModuleDir(),
             project.getInstallCModulesDir()
         ]);
         this.project = project;
