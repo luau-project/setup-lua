@@ -1,3 +1,7 @@
+## setup-lua v2.0.7
+
+* Fixed a bug that was unable find MinGW-w64 sysroot for compilers with many modules installed and a deep `include` directory. This issue was most likely caused by OOM (out of memory) error traversing a deep directory structure. For the fix, a `maxDepth` of 2 (legacy value was 10) was set to not search deeper than 2 or 3 directories in the compiler tree. The new setting (`maxDepth = 2`) was tested successfully with MinGW-w64 from different providers (`nuwen.net`, `winlibs`, `niXman` and `msys2`).
+
 ## setup-lua v2.0.6
 
 > [!IMPORTANT]
