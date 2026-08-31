@@ -256,7 +256,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
     }
     private getWindowsGccExternalDepsDirs(): Promise<string[]> {
         return new Promise<string[]>((resolve, reject) => {
-            const maxDepth: number = 10;
+            const maxDepth: number = 2;
             const matchFile = (dir: string, depth: number, predicate: (filename: string) => boolean) => {
                 return new Promise<string>((_resolve, _reject) => {
                     if (depth > maxDepth) {
