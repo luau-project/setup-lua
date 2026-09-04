@@ -1,3 +1,8 @@
+## setup-lua v2.0.8
+
+* Fixed internal methods that used `where` command on Windows;
+* Improved sysroot guessing for `MinGW-w64` toolchains on Windows. The previous method used to scan the directory tree of the compiler to find Windows-specific files (`windows.h`) to detect the compiler sysroot. Now, it assumes 2 predictable paths for the compiler sysroot: 1) `<compiler-dir>` or 2) `<compiler-dir>\<triplet>`. Thus, there's no chance to run out of memory scanning a huge directory tree anymore.
+
 ## setup-lua v2.0.7
 
 * Fixed a bug that was unable find MinGW-w64 sysroot for compilers with many modules installed and a deep `include` directory. This issue was most likely caused by OOM (out of memory) error traversing a deep directory structure. For the fix, a `maxDepth` of 2 (legacy value was 10) was set to not search deeper than 2 or 3 directories in the compiler tree. The new setting (`maxDepth = 2`) was tested successfully with MinGW-w64 from different providers (`nuwen.net`, `winlibs`, `niXman` and `msys2`).
