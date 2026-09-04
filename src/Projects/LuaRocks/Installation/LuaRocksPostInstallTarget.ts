@@ -24,7 +24,7 @@
 */
 
 import { basename, dirname, join } from "node:path";
-import { readdir, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { IProject } from "../../IProject";
 import { ITarget } from "../../Targets/ITarget";
 import { LuaRocksProject } from "../LuaRocksProject";
@@ -43,6 +43,7 @@ import { isCygwinOnCI } from "../../../Util/CygwinDetection";
 import { exportLuaRocksEnvVarsOnCygwinProfile } from "../../../Util/CygwinEnvVars";
 import { replaceAllInFile } from "../../../Util/ReplaceInFile";
 import { LuaRocksInstallation } from "../../ILuaRocksInstallation";
+import { findProgram } from "../../../Util/FindProgram";
 
 interface EnvVar {
     key: string;
@@ -256,50 +257,6 @@ export class LuaRocksPostInstallTarget implements ITarget {
     }
     private getWindowsGccExternalDepsDirs(): Promise<string[]> {
         return new Promise<string[]>((resolve, reject) => {
-            const maxDepth: number = 2;
-            const matchFile = (dir: string, depth: number, predicate: (filename: string) => boolean) => {
-                return new Promise<string>((_resolve, _reject) => {
-                    if (depth > maxDepth) {
-                        _reject(new Error(`Not searching further than ${maxDepth} directories deep`));
-                    }
-                    else {
-                        readdir(dir)
-                            .then(files => {
-                                const file_iter = (i: number) => {
-                                    if (i < files.length) {
-                                        const fileBasename = files[i];
-                                        const file = join(dir, fileBasename);
-                                        stat(file)
-                                            .then(fileStat => {
-                                                if (fileStat.isFile() && predicate(file)) {
-                                                    _resolve(file);
-                                                }
-                                                else if (fileStat.isDirectory()) {
-                                                    matchFile(file, depth + 1, predicate)
-                                                        .then(_resolve)
-                                                        .catch(matchErr => {
-                                                            file_iter(i + 1);
-                                                        });
-                                                }
-                                                else {
-                                                    file_iter(i + 1);
-                                                }
-                                            })
-                                            .catch(fileStatErr => {
-                                                file_iter(i + 1);
-                                            });
-                                    }
-                                    else {
-                                        _reject(new Error("Match not found"));
-                                    }
-                                };
-    
-                                file_iter(0);
-                            })
-                            .catch(_reject);
-                    }
-                });
-            };
             const externalDepsDirs: string[] = [];
             const systemDrive = process.env["SYSTEMDRIVE"];
             if (systemDrive) {
@@ -309,7 +266,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 }
             }
             externalDepsDirs.push(join("C:", "external"));
-            getFirstLineFromProcessExecution("where", [ToolchainEnvironmentVariables.instance().getCC()], true)
+            findProgram(ToolchainEnvironmentVariables.instance().getCC(), true)
                 .then(ccPath => {
                     const ccBinDir = dirname(ccPath);
                     if (basename(ccBinDir).toLowerCase() === 'bin') {
@@ -321,18 +278,18 @@ export class LuaRocksPostInstallTarget implements ITarget {
                                     externalDepsDirs.push(ccDir);
                                     getFirstLineFromProcessExecution(ToolchainEnvironmentVariables.instance().getCC(), ["-dumpmachine"])
                                         .then(dumpMachine => {
-                                            matchFile(ccDir, 0, file => basename(file).toLowerCase() === 'windows.h')
-                                                .then(windowsH => {
-                                                    const windowsHeadersDir = dirname(windowsH);
-                                                    if (basename(windowsHeadersDir).toLowerCase() === "include") {
-                                                        const windowsHeadersParentDir = dirname(windowsHeadersDir);
-                                                        externalDepsDirs.push(windowsHeadersParentDir);
+                                            const ccSysroot = join(ccDir, dumpMachine);
+                                            const ccSysrootInclude = join(ccSysroot, "include");
+                                            stat(ccSysrootInclude)
+                                                .then(ccSysrootIncludeStat => {
+                                                    if (ccSysrootIncludeStat.isDirectory()) {
+                                                        externalDepsDirs.push(ccSysroot);
                                                     }
                                                     resolve(externalDepsDirs);
                                                 })
-                                                .catch(matchErr => {
+                                                .catch(ccSysrootIncludeStatErr => {
                                                     resolve(externalDepsDirs);
-                                                });
+                                                })
                                         })
                                         .catch(dumpMachineErr => {
                                             resolve(externalDepsDirs);
