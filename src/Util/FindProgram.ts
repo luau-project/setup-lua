@@ -23,13 +23,26 @@
 ** SOFTWARE.
 */
 
+import { basename, dirname } from "node:path";
 import { getStdOutFromProcessExecution } from "./ExecuteProcess";
 
 export function findProgram(program: string, verbose?: boolean): Promise<string> {
     return new Promise<string>((resolve, reject) => {
         if (process.platform === 'win32') {
+            /*
+            ** the CMD command works in the following form:
+            ** (1) <where "path:pattern"> or
+            ** (2) <where "pattern">
+
+            ** examples:
+            ** (1) where "C:\Program Files\MinGW:gcc"
+            ** (2) where gcc
+            */
+            const programPathPattern = /[\\/]/.test(program) ?
+                `${dirname(program)}:${basename(program)}` :
+                program;
             getStdOutFromProcessExecution((process.env["COMSPEC"] || "cmd").trim(), {
-                args: ["/C", "where", program],
+                args: ["/C", "where", programPathPattern],
                 verbose: verbose
             })
                 .then(result => {
