@@ -552,7 +552,7 @@ jobs:
           EOF
 
       - name: Test LuaFileSystem
-        run: lua.exe "lfs-test.lua"
+        run: lua "lfs-test.lua"
 
       - name: Install LuaSocket
         working-directory: luasocket-3.1.0
@@ -560,7 +560,7 @@ jobs:
 
       - name: Test LuaSocket
         working-directory: luasocket-3.1.0/test
-        run: lua.exe hello.lua
+        run: lua hello.lua
 
       - name: Install lua-zlib
         working-directory: lua-zlib-1.4
@@ -568,4 +568,4 @@ jobs:
 
       - name: Test lua-zlib
         working-directory: lua-zlib-1.4
-        run: lua.exe test.lua
+        run: lua test.lua
