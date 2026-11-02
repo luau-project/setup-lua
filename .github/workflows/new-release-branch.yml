@@ -53,6 +53,8 @@ jobs:
       - name: Extract version from package.json
         id: version
         shell: pwsh
+        env:
+          KIND: ${{ inputs.kind }}
         run: |
           if (-not (Test-Path "package.json")) {
             Write-Host "package.json not found";
@@ -75,16 +77,16 @@ jobs:
           $minor = [int]::Parse($Matches[2]);
           $patch = [int]::Parse($Matches[3]);
 
-          if ("${{ inputs.kind }}" -eq "major") {
+          if ("$env:KIND" -eq "major") {
             $major++;
             $minor = 0;
             $patch = 0;
           }
-          elseif ("${{ inputs.kind }}" -eq "minor") {
+          elseif ("$env:KIND" -eq "minor") {
             $minor++;
             $patch = 0;
           }
-          elseif ("${{ inputs.kind }}" -eq "patch") {
+          elseif ("$env:KIND" -eq "patch") {
             $patch++;
           }
           else {
@@ -98,9 +100,14 @@ jobs:
   new-version-changes:
     runs-on: ubuntu-latest
     needs: version-info
-    if: ${{ github.actor == 'luau-project' && github.triggering_actor == 'luau-project' && github.repository == 'luau-project/setup-lua' }}
+    if: |
+      github.actor == 'luau-project' &&
+      github.triggering_actor == 'luau-project' &&
+      github.repository == 'luau-project/setup-lua'
 
     env:
+      OLD_VERSION: ${{ needs.version-info.outputs.version }}
+      NEW_VERSION: ${{ needs.version-info.outputs.new-version }}
       NEW_BRANCH: release-${{ needs.version-info.outputs.new-version }}
       RELEASE_COMMIT_MSG: 'Release v${{ needs.version-info.outputs.new-version }}'
 
@@ -112,17 +119,17 @@ jobs:
           token: ${{ secrets.SETUP_LUA_UPDATE_DIST_TOKEN }}
 
       - name: Create a new branch
-        run: git checkout -b ${{ env.NEW_BRANCH }}
+        run: git checkout -b ${NEW_BRANCH}
 
       - name: Change version on package.json
         run: |
-          sed -e "s/\"version\": \"${{ needs.version-info.outputs.version }}\"/\"version\": \"${{ needs.version-info.outputs.new-version }}\"/g" -i package.json
+          sed -e "s/\"version\": \"${OLD_VERSION}\"/\"version\": \"${NEW_VERSION}\"/g" -i package.json
 
       - name: Change version on docs
-        if: ${{ inputs.kind == 'major' }}
+        if: inputs.kind == 'major'
         run: |
-          old_major=$(echo "${{ needs.version-info.outputs.version }}" | cut -d. -f1)
-          new_major=$(echo "${{ needs.version-info.outputs.new-version }}" | cut -d. -f1)
+          old_major=$(echo "${OLD_VERSION}" | cut -d. -f1)
+          new_major=$(echo "${NEW_VERSION}" | cut -d. -f1)
           sed \
             -e "s/setup\-lua\@v${old_major}/setup-lua@v${new_major}/g" \
             -e "s/setup\-lua\-${old_major}/setup-lua-${new_major}/g" \
@@ -154,10 +161,10 @@ jobs:
         run: git add .
 
       - name: Commit changes
-        run: git commit "--message=${{ env.RELEASE_COMMIT_MSG }}"
+        run: git commit "--message=${RELEASE_COMMIT_MSG}"
 
       - name: Print diff
         run: git show
 
       - name: Push changes
-        run: git push --set-upstream origin ${{ env.NEW_BRANCH }}
+        run: git push --set-upstream origin ${NEW_BRANCH}
