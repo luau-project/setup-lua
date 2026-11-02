@@ -338,7 +338,6 @@ jobs:
           - luajit
           - openresty
         sys:
-          - MINGW64
           - UCRT64
           - CLANG64
     steps:
@@ -362,7 +361,7 @@ jobs:
             "/c/Program Files/nodejs/node.exe" \
             ./setup-lua-2/dist/cli/index.js
       - name: Display the Lua version
-        run: lua.exe -v
+        run: lua -v
       - name: Display LuaRocks version
         run: luarocks --version
 ```
@@ -370,7 +369,7 @@ jobs:
 > [!NOTE]
 > 
 > * Without any changes, at the moment, LuaRocks does need a few patches to work nicely on MSYS2. See [here](../src/Projects/LuaRocks/Configuration/LuaRocksApplyPatchesTarget.ts) for the list of patches we apply by default to make it work;
-> * When using Lua 5.1, Lua 5.2 and LuaJIT / OpenResty, it is required to use `lua.exe` and not only `lua`. The reason for this is the presence of a `lua` directory inside the `bin` folder. Thus, `bash` tries to execute such `lua` directory as an executable and fails.
+> * Since `setup-lua` version `3.0.0`, for PUC-Lua 5.1, PUC-Lua 5.2, LuaJIT and OpenResty interpreters to work in MSYS2 without `.exe` extension (allow the use of `lua` rather than `lua.exe`), we also patch `luaconf.h`. See the patches applied to `luaconf.h` in [LuaJIT / OpenResty](../src/Projects/LuaJit/Configuration/LuaJitApplyPatchesTarget.ts) and [PUC-Lua 5.1 / PUC-Lua 5.2](../src/Projects/PucLua/Configuration/PucLuaApplyPatchesTarget.ts).
 
 > [!TIP]
 > 
