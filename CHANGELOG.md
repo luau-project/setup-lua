@@ -1,3 +1,29 @@
+# Change Log
+
+## setup-lua v3.0.0
+
+> [!IMPORTANT]
+> 
+> **BREAKING CHANGE**: On MSYS2, for some versions of Lua (PUC-Lua 5.1, PUC-Lua 5.2, LuaJIT and OpenResty), we are patching the header `luaconf.h` to align with MSYS2 directories for modules written both in Lua and C:
+>   * Pros:
+>     * Uses the same directory layout as MSYS2 to store Lua modules written both in Lua and C, with direct impact to `LUA_PATH` and `LUA_CPATH` environment variables;
+>     * Allows to use the interpreter without `.exe` extension (e.g.: `lua` rather than `lua.exe`);
+>     * Modules written in Lua (`.lua`) are searched by the interpreter at `.lua/share/lua/5.1` for Lua 5.1, LuaJIT and OpenResty, and `.lua/share/lua/5.2` for Lua 5.2. In older releases (`setup-lua-1.0.0` to `setup-lua-2.0.8`), vanilla paths were used for Lua and LuaJIT at `.lua/lua`;
+>     * Modules written in C (`.c`) are searched by the interpreter at `.lua/lib/lua/5.1` for Lua 5.1, LuaJIT and OpenResty, and `.lua/lib/lua/5.2` for Lua 5.2.
+>   * Cons:
+>     * Breaks compatibility;
+>     * Follows different convensions established by upstream projects [https://lua.org/](https://lua.org/), [https://luajit.org/](https://luajit.org/) and [https://github.com/openresty/luajit2/](https://github.com/openresty/luajit2/).
+
+* This release brings the Lua installation created by `setup-lua` close to the packages `mingw-w64-*-lua51` and `mingw-w64-*-luajit` provided by MSYS2;
+* Update on documents to reflect this new behavior on MSYS2;
+* New CI workflow (`publish.yaml`) to be triggered by the maintainer to publish a new release on GitHub. From now on, versioned zip and tar.gz archives are delivered on each release (e.g.: `setup-lua-3.0.0.zip` and `setup-lua-3.0.0.tar.gz`);
+* Minor refactor on CI workflows to make them safer to string injection in sensible spots;
+* Upgrade on dependencies:
+  * `@actions/cache` from version `6.2.0` to `6.3.0`
+  * `@types/node` from version `26.4.0` to `26.6.6`
+  * `typescript` from version `6.0.2` to `6.0.3`
+  * `undici-types` from version `8.10.0` to `8.12.3`
+
 ## setup-lua v2.0.8
 
 * Fixed internal methods that used `where` command on Windows;
