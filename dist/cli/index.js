@@ -4312,6 +4312,191 @@ class PucLuaConfigureSourcesTarget {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Util/CiDetection.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function isRunningOnCi() {
+    return ((process.env["CI"] ||
+        process.env["GITHUB_ACTIONS"] ||
+        "").toLowerCase() === "true");
+}
+
+;// CONCATENATED MODULE: ./src/Util/CygwinDetection.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+function isCygwin() {
+    return ((process.env["MSYSTEM"] || "").trim() !== "");
+}
+function isCygwinOnCI() {
+    return isCygwin() && isRunningOnCi();
+}
+
+;// CONCATENATED MODULE: ./src/Util/StringReplaceAll.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function replaceAll(input, target, replacement) {
+    const l = input.length;
+    const tl = target.length;
+    const tokens = [];
+    if (l > 0) {
+        let i = 0;
+        let s = 0;
+        while (i < l) {
+            if (input.startsWith(target, i)) {
+                tokens.push(input.substring(s, i));
+                tokens.push(replacement);
+                i += tl;
+                s = i;
+            }
+            else {
+                i++;
+            }
+        }
+        tokens.push(input.substring(s));
+    }
+    return tokens.join("");
+}
+
+;// CONCATENATED MODULE: ./src/Util/ReplaceInFile.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+
+function replaceFirst(input, targetStr, replacementStr) {
+    return input.replace(targetStr, replacementStr);
+}
+function replacementInFile(callback, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return new Promise((resolve, reject) => {
+        (0,promises_namespaceObject.readFile)(filePath, { encoding: encoding })
+            .then(content => {
+            if (numberOfLinesToSkip === 0) {
+                const newContent = callback(content.toString(), targetStr, replacementStr);
+                (0,promises_namespaceObject.writeFile)(filePath, newContent, { encoding: encoding })
+                    .then(resolve)
+                    .catch(reject);
+            }
+            else {
+                const s = content.toString();
+                const rgx = /\r?\n/g;
+                let match;
+                let foundStart = false;
+                let i = 0;
+                let index = 0;
+                while (!foundStart && (match = rgx.exec(s)) != null) {
+                    index = match.index + match[0].length;
+                    i++;
+                    foundStart = i == numberOfLinesToSkip;
+                }
+                if (foundStart) {
+                    const newContent = s.substring(0, index) + callback(s.substring(index), targetStr, replacementStr);
+                    (0,promises_namespaceObject.writeFile)(filePath, newContent, { encoding: encoding })
+                        .then(resolve)
+                        .catch(reject);
+                }
+                else {
+                    resolve();
+                }
+            }
+        })
+            .catch(reject);
+    });
+}
+function replaceFirstInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return replacementInFile(replaceFirst, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
+}
+function replaceAllInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
+    return replacementInFile(replaceAll, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
+}
+
 ;// CONCATENATED MODULE: ./src/Projects/PucLua/Configuration/PucLuaApplyPatchesTarget.ts
 /*
 ** The MIT License (MIT)
@@ -4341,6 +4526,11 @@ class PucLuaConfigureSourcesTarget {
 
 
 
+
+
+
+
+
 class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
         super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
@@ -4353,6 +4543,44 @@ class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
     }
     getNext() {
         return new PucLuaConfigureSourcesTarget(this.getProject(), this);
+    }
+    patchLuaConf(luaConfPath, version) {
+        return new Promise((resolve, reject) => {
+            const luaABI = `${version.getMajor()}.${version.getMinor()}`;
+            const targetStr = [
+                "#define LUA_LDIR\t\"!\\\\lua\\\\\"",
+                "#define LUA_CDIR\t\"!\\\\\""
+            ].join("\n");
+            const replacementStr = [
+                `#define LUA_LDIR\t\"!\\\\..\\\\share\\\\lua\\\\${luaABI}\"`,
+                `#define LUA_CDIR\t\"!\\\\..\\\\lib\\\\lua\\\\${luaABI}\"`
+            ].join("\n");
+            replaceFirstInFile(luaConfPath, 0, targetStr, replacementStr)
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            const project = this.getProject();
+            const version = project.getVersion();
+            if (process.platform === "win32" && version.compareTo(LUA_53_VERSION) < 0 && isCygwin()) {
+                const parent = (this.getParent());
+                const luaconf = (0,external_node_path_namespaceObject.join)(parent.getExtractedDir(), "src", "luaconf.h");
+                checkFiles([luaconf])
+                    .then(() => {
+                    this.patchLuaConf(luaconf, version)
+                        .then(resolve)
+                        .catch(reject);
+                })
+                    .catch(reject);
+            }
+            else {
+                super.execute()
+                    .then(resolve)
+                    .catch(reject);
+            }
+        });
     }
     finalize() {
         return new Promise((resolve, reject) => {
@@ -4435,37 +4663,6 @@ class PucLuaFetchTarget extends AbstractFetchTarballTarget {
             resolve();
         });
     }
-}
-
-;// CONCATENATED MODULE: ./src/Util/CiDetection.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function isRunningOnCi() {
-    return ((process.env["CI"] ||
-        process.env["GITHUB_ACTIONS"] ||
-        "").toLowerCase() === "true");
 }
 
 ;// CONCATENATED MODULE: ./src/Projects/PucLua/Configuration/PucLuaCheckDependenciesTarget.ts
@@ -4807,39 +5004,6 @@ function appendToGitHubEnvironmentVariables(key, value) {
 }
 function appendToGitHubPath(value) {
     return GitHubCore.instance().appendToGitHubPath(value);
-}
-
-;// CONCATENATED MODULE: ./src/Util/CygwinDetection.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-function isCygwin() {
-    return ((process.env["MSYSTEM"] || "").trim() !== "");
-}
-function isCygwinOnCI() {
-    return isCygwin() && isRunningOnCi();
 }
 
 ;// CONCATENATED MODULE: ./src/Util/CygwinPath.ts
@@ -5563,6 +5727,7 @@ class PucLuaCreateInstallationDirectoriesTarget extends AbstractCreateDirectorie
 
 
 
+
 class PucLuaProject {
     getVersion() {
         return this.version;
@@ -5638,14 +5803,16 @@ class PucLuaProject {
         this.installIncludeDir = (0,external_node_path_namespaceObject.join)(installDir, "include");
         this.installBinDir = (0,external_node_path_namespaceObject.join)(installDir, "bin");
         this.installLibDir = (0,external_node_path_namespaceObject.join)(installDir, "lib");
-        this.installManDir = (0,external_node_path_namespaceObject.join)(installDir, "share", "man", "man1");
+        /* used on Unix, including on Cygwin / MSYS2. */
+        const installShareDir = (0,external_node_path_namespaceObject.join)(installDir, "share");
+        this.installManDir = (0,external_node_path_namespaceObject.join)(installShareDir, "man", "man1");
         this.installPkgConfigDir = (0,external_node_path_namespaceObject.join)(this.installLibDir, "pkgconfig");
-        if (process.platform === 'win32' && version.compareTo(LUA_53_VERSION) < 0) {
+        if (process.platform === 'win32' && version.compareTo(LUA_53_VERSION) < 0 && !isCygwin()) {
             this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(this.installBinDir, "lua");
             this.installCModulesDir = this.installBinDir;
         }
         else {
-            this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(installDir, "share", "lua", `${version.getMajor()}.${version.getMinor()}`);
+            this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(installShareDir, "lua", `${version.getMajor()}.${version.getMinor()}`);
             this.installCModulesDir = (0,external_node_path_namespaceObject.join)(this.installLibDir, "lua", `${version.getMajor()}.${version.getMinor()}`);
         }
         this._configurationResult = new GetSetProperty(null);
@@ -7293,6 +7460,10 @@ class LuaJitConfigureSourcesTarget {
 
 
 
+
+
+
+
 class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
         super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
@@ -7306,6 +7477,41 @@ class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     }
     getNext() {
         return new LuaJitConfigureSourcesTarget(this.getProject(), this);
+    }
+    patchLuaConf(luaConfPath) {
+        return new Promise((resolve, reject) => {
+            const targetStr = [
+                "#define LUA_LDIR\t\"!\\\\lua\\\\\"",
+                "#define LUA_CDIR\t\"!\\\\\""
+            ].join("\n");
+            const replacementStr = [
+                "#define LUA_LDIR\t\"!\\\\..\\\\share\\\\lua\\\\5.1\"",
+                "#define LUA_CDIR\t\"!\\\\..\\\\lib\\\\lua\\\\5.1\""
+            ].join("\n");
+            replaceFirstInFile(luaConfPath, 0, targetStr, replacementStr)
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            if (process.platform === "win32" && isCygwin()) {
+                const parent = (this.getParent());
+                const luaconf = (0,external_node_path_namespaceObject.join)(parent.getExtractedDir(), "src", "luaconf.h");
+                checkFiles([luaconf])
+                    .then(() => {
+                    this.patchLuaConf(luaconf)
+                        .then(resolve)
+                        .catch(reject);
+                })
+                    .catch(reject);
+            }
+            else {
+                super.execute()
+                    .then(resolve)
+                    .catch(reject);
+            }
+        });
     }
     finalize() {
         return new Promise((resolve, reject) => {
@@ -8710,6 +8916,7 @@ class LuaJitUnixInstall {
 
 
 
+
 class LuaJitProject {
     getVersion() {
         return this.version;
@@ -8771,15 +8978,23 @@ class LuaJitProject {
         this.installBaseIncludeDir = (0,external_node_path_namespaceObject.join)(installDir, "include");
         this.installBinDir = (0,external_node_path_namespaceObject.join)(installDir, "bin");
         this.installLibDir = (0,external_node_path_namespaceObject.join)(installDir, "lib");
-        this.installManDir = (0,external_node_path_namespaceObject.join)(installDir, "share", "man", "man1");
+        /* used on Unix, including on Cygwin / MSYS2. */
+        const installShareDir = (0,external_node_path_namespaceObject.join)(installDir, "share");
+        this.installManDir = (0,external_node_path_namespaceObject.join)(installShareDir, "man", "man1");
         this.installPkgConfigDir = (0,external_node_path_namespaceObject.join)(this.installLibDir, "pkgconfig");
         if (process.platform === 'win32') {
-            this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(this.installBinDir, "lua");
+            if (isCygwin()) {
+                this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(installShareDir, "lua", "5.1");
+                this.installCModulesDir = (0,external_node_path_namespaceObject.join)(this.installLibDir, "lua", "5.1");
+            }
+            else {
+                this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(this.installBinDir, "lua");
+                this.installCModulesDir = this.installBinDir;
+            }
             this.installLuaJitModuleDir = (0,external_node_path_namespaceObject.join)(this.installLuaModulesDir, "jit");
-            this.installCModulesDir = this.installBinDir;
         }
         else {
-            this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(installDir, "share", "lua", "5.1");
+            this.installLuaModulesDir = (0,external_node_path_namespaceObject.join)(installShareDir, "lua", "5.1");
             this.installCModulesDir = (0,external_node_path_namespaceObject.join)(this.installLibDir, "lua", "5.1");
         }
         this._configurationResult = new GetSetProperty(null);
@@ -9527,127 +9742,6 @@ class LuaRocksConfigureSourcesTarget {
             resolve();
         });
     }
-}
-
-;// CONCATENATED MODULE: ./src/Util/StringReplaceAll.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function replaceAll(input, target, replacement) {
-    const l = input.length;
-    const tl = target.length;
-    const tokens = [];
-    if (l > 0) {
-        let i = 0;
-        let s = 0;
-        while (i < l) {
-            if (input.startsWith(target, i)) {
-                tokens.push(input.substring(s, i));
-                tokens.push(replacement);
-                i += tl;
-                s = i;
-            }
-            else {
-                i++;
-            }
-        }
-        tokens.push(input.substring(s));
-    }
-    return tokens.join("");
-}
-
-;// CONCATENATED MODULE: ./src/Util/ReplaceInFile.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-
-function replaceFirst(input, targetStr, replacementStr) {
-    return input.replace(targetStr, replacementStr);
-}
-function replacementInFile(callback, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
-    return new Promise((resolve, reject) => {
-        (0,promises_namespaceObject.readFile)(filePath, { encoding: encoding })
-            .then(content => {
-            if (numberOfLinesToSkip === 0) {
-                const newContent = callback(content.toString(), targetStr, replacementStr);
-                (0,promises_namespaceObject.writeFile)(filePath, newContent, { encoding: encoding })
-                    .then(resolve)
-                    .catch(reject);
-            }
-            else {
-                const s = content.toString();
-                const rgx = /\r?\n/g;
-                let match;
-                let foundStart = false;
-                let i = 0;
-                let index = 0;
-                while (!foundStart && (match = rgx.exec(s)) != null) {
-                    index = match.index + match[0].length;
-                    i++;
-                    foundStart = i == numberOfLinesToSkip;
-                }
-                if (foundStart) {
-                    const newContent = s.substring(0, index) + callback(s.substring(index), targetStr, replacementStr);
-                    (0,promises_namespaceObject.writeFile)(filePath, newContent, { encoding: encoding })
-                        .then(resolve)
-                        .catch(reject);
-                }
-                else {
-                    resolve();
-                }
-            }
-        })
-            .catch(reject);
-    });
-}
-function replaceFirstInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
-    return replacementInFile(replaceFirst, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
-}
-function replaceAllInFile(filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding) {
-    return replacementInFile(replaceAll, filePath, numberOfLinesToSkip, targetStr, replacementStr, encoding);
 }
 
 ;// CONCATENATED MODULE: ./src/Projects/LuaRocks/Configuration/LuaRocksApplyPatchesTarget.ts
