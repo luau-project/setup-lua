@@ -35,6 +35,7 @@ import { LuaJitBuildTarget } from "./Building/LuaJitBuildTarget";
 import { ILuaJitVersion } from "./LuaJitVersion";
 import { LuaJitWindowsCreateInstallationDirectoriesTarget } from "./Installation/LuaJitWindowsCreateInstallationDirectoriesTarget";
 import { LuaJitUnixInstall } from "./Installation/LuaJitUnixInstall";
+import { isCygwin } from "../../Util/CygwinDetection";
 
 export class LuaJitProject implements IProject {
     private version: ILuaJitRepositoryVersion;
@@ -122,15 +123,25 @@ export class LuaJitProject implements IProject {
         this.installBaseIncludeDir = join(installDir, "include");
         this.installBinDir = join(installDir, "bin");
         this.installLibDir = join(installDir, "lib");
-        this.installManDir = join(installDir, "share", "man", "man1");
+
+        /* used on Unix, including on Cygwin / MSYS2. */
+        const installShareDir = join(installDir, "share");
+
+        this.installManDir = join(installShareDir, "man", "man1");
         this.installPkgConfigDir = join(this.installLibDir, "pkgconfig");
         if (process.platform === 'win32') {
-            this.installLuaModulesDir = join(this.installBinDir, "lua");
+            if (isCygwin()) {
+                this.installLuaModulesDir = join(installShareDir, "lua", "5.1");
+                this.installCModulesDir = join(this.installLibDir, "lua", "5.1");
+            }
+            else {
+                this.installLuaModulesDir = join(this.installBinDir, "lua");
+                this.installCModulesDir = this.installBinDir;
+            }
             this.installLuaJitModuleDir = join(this.installLuaModulesDir, "jit");
-            this.installCModulesDir = this.installBinDir;
         }
         else {
-            this.installLuaModulesDir = join(installDir, "share", "lua", "5.1");
+            this.installLuaModulesDir = join(installShareDir, "lua", "5.1");
             this.installCModulesDir = join(this.installLibDir, "lua", "5.1");
         }
         this._configurationResult = new GetSetProperty<any>(null);

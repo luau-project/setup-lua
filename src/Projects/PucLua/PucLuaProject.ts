@@ -33,6 +33,7 @@ import { GetSetProperty } from "../../Util/GetSetProperty";
 import { PucLuaCompileSharedLibTarget } from "./Building/PucLuaCompileSharedLibTarget";
 import { PucLuaCreateBuildDirectoriesTarget } from "./Configuration/PucLuaCreateBuildDirectoriesTarget";
 import { PucLuaCreateInstallationDirectoriesTarget } from "./Installation/PucLuaCreateInstallationDirectoriesTarget";
+import { isCygwin } from "../../Util/CygwinDetection";
 
 export class PucLuaProject implements IProject {
     private version: IPucLuaVersion;
@@ -138,14 +139,18 @@ export class PucLuaProject implements IProject {
         this.installIncludeDir = join(installDir, "include");
         this.installBinDir = join(installDir, "bin");
         this.installLibDir = join(installDir, "lib");
-        this.installManDir = join(installDir, "share", "man", "man1");
+
+        /* used on Unix, including on Cygwin / MSYS2. */
+        const installShareDir = join(installDir, "share");
+
+        this.installManDir = join(installShareDir, "man", "man1");
         this.installPkgConfigDir = join(this.installLibDir, "pkgconfig");
-        if (process.platform === 'win32' && version.compareTo(LUA_53_VERSION) < 0) {
+        if (process.platform === 'win32' && version.compareTo(LUA_53_VERSION) < 0 && !isCygwin()) {
             this.installLuaModulesDir = join(this.installBinDir, "lua");
             this.installCModulesDir = this.installBinDir;
         }
         else {
-            this.installLuaModulesDir = join(installDir, "share", "lua", `${version.getMajor()}.${version.getMinor()}`);
+            this.installLuaModulesDir = join(installShareDir, "lua", `${version.getMajor()}.${version.getMinor()}`);
             this.installCModulesDir = join(this.installLibDir, "lua", `${version.getMajor()}.${version.getMinor()}`);
         }
         this._configurationResult = new GetSetProperty<any>(null);

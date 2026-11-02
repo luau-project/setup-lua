@@ -23,6 +23,7 @@
 ** SOFTWARE.
 */
 
+import { join } from "node:path";
 import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
 import { AbstractApplyPatchesTarget } from "../../Targets/AbstractApplyPatchesTarget";
 import { ITarget } from "../../Targets/ITarget";
@@ -30,6 +31,9 @@ import { LuaJitProject } from "../LuaJitProject";
 import { LuaJitConfigureSourcesTarget } from "./LuaJitConfigureSourcesTarget";
 import { LuaJitFetchTarget } from "./LuaJitFetchTarget";
 import { Console } from "../../../Console";
+import { isCygwin } from "../../../Util/CygwinDetection";
+import { checkFiles } from "../../../Util/CheckFiles";
+import { replaceFirstInFile } from "../../../Util/ReplaceInFile";
 
 export class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project: LuaJitProject, parent: LuaJitFetchTarget) {
@@ -44,6 +48,41 @@ export class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     }
     getNext(): ITarget | null {
         return new LuaJitConfigureSourcesTarget((<LuaJitProject>this.getProject()), this);
+    }
+    private patchLuaConf(luaConfPath: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const targetStr = [
+                "#define LUA_LDIR\t\"!\\\\lua\\\\\"",
+                "#define LUA_CDIR\t\"!\\\\\""
+            ].join("\n");
+            const replacementStr = [
+                "#define LUA_LDIR\t\"!\\\\..\\\\share\\\\lua\\\\5.1\"",
+                "#define LUA_CDIR\t\"!\\\\..\\\\lib\\\\lua\\\\5.1\""
+            ].join("\n");
+            replaceFirstInFile(luaConfPath, 0, targetStr, replacementStr)
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+    override execute(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (process.platform === "win32" && isCygwin()) {
+                const parent = <LuaJitFetchTarget>(this.getParent());
+                const luaconf = join(parent.getExtractedDir(), "src", "luaconf.h");
+                checkFiles([luaconf])
+                    .then(() => {
+                        this.patchLuaConf(luaconf)
+                            .then(resolve)
+                            .catch(reject);
+                    })
+                    .catch(reject);
+            }
+            else {
+                super.execute()
+                    .then(resolve)
+                    .catch(reject);
+            }
+        });
     }
     finalize(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
