@@ -49,7 +49,7 @@ jobs:
       - name: Check whether the current branch is a release branch or not
         id: is-release
         run: |
-          pattern="[0-9]+\\.[0-9]+\\.[0-9]+"
+          pattern="release-[0-9]+\\.[0-9]+\\.[0-9]+"
 
           if [[ $GITHUB_REF_NAME =~ ^$pattern$ ]]; then
             echo "is-release=true" >> "${GITHUB_OUTPUT}"
