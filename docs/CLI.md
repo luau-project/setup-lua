@@ -35,6 +35,7 @@ On the command line (or terminal), `setup-lua` is aware of predefined environmen
   * [Install Lua linking to additional libraries](#install-lua-linking-to-additional-libraries)
   * [Install Lua applying patches](#install-lua-applying-patches)
   * [Install LuaRocks applying patches](#install-luarocks-applying-patches)
+  * [Install Lua using mirrors as fallback](#install-Lua-using-mirrors-as-fallback)
 * [Post-Install Tips](#post-install-tips)
 
 ## Introduction
@@ -102,7 +103,8 @@ Downloads of official released versions of Lua and LuaRocks are cached by defaul
 * Applies user-provided library directories during the linking of Lua;
 * Links to user-provided libraries during the linking of Lua;
 * Applies custom patches to Lua / LuaJIT / OpenResty after fetching source code;
-* Applies custom patches to LuaRocks after fetching source code.
+* Applies custom patches to LuaRocks after fetching source code;
+* Allows the download of Lua source code from configurable mirrors or local paths in the system as fallback.
 
 ## Inputs as Environment Variables
 
@@ -538,6 +540,60 @@ In this example, we apply patches provided in the files `my-great-change.patch` 
 > [!TIP]
 > 
 > When the patch starts with `http://` or `https://`, `setup-lua` treats it as a remote patch and downloads it automatically. Otherwise, `setup-lua` treats it as a path in the local disk (full path or relative to the current directory).
+
+### Install Lua using mirrors as fallback
+
+By default, `setup-lua` use the website [https://lua.org/](https://lua.org/) to download source code to build Lua. However, from time to time, the website faces network problems, turning the process to download the source code a challenge. Once it happens, Lua authors also provide a temporary mirror to help users to browse the website.
+
+Since version `v3.1.0`, in sequence, `setup-lua` tries to download the source code from
+
+1. [https://lua.org/](https://lua.org/)
+2. [https://www.tecgraf.puc-rio.br/lua/mirror/](https://www.tecgraf.puc-rio.br/lua/mirror/)
+
+You can also provide additional locations as fallback using the input `lua-mirrors` as follows:
+
+* Unix
+
+  ```bash
+  env \
+    LUA_VERSION=5.5.1 \
+    "LUA_MIRRORS=https://my-mirror-1.com;https://my-mirror-2.com" \
+    /opt/nodejs/bin/node dist/cli/index.js
+  ```
+
+* Windows
+
+  ```batch
+  SET "LUA_VERSION=5.5.1"
+  SET "LUA_MIRRORS=https://my-mirror-1.com;https://my-mirror-2.com"
+  node dist/cli/index.js
+  ```
+
+In case it was not possible to download source code from standard Lua URLs, in the example above, `setup-lua` appends the tarball for version to the URL provided:
+
+1. [https://my-mirror-1.com/lua-5.5.1.tar.gz](https://my-mirror-1.com/lua-5.5.1.tar.gz)
+2. [https://my-mirror-2.com/lua-5.5.1.tar.gz](https://my-mirror-2.com/lua-5.5.1.tar.gz)
+
+It also possible to provide a local path on your system as follows:
+
+* Unix
+
+  ```bash
+  env \
+    LUA_VERSION=5.5.1 \
+    "LUA_MIRRORS=path/to/directory/containing/lua/tarballs" \
+    /opt/nodejs/bin/node dist/cli/index.js
+  ```
+
+* Windows
+
+  ```batch
+  SET "LUA_VERSION=5.5.1"
+  SET "LUA_MIRRORS=path/to/directory/containing/lua/tarballs"
+  node dist/cli/index.js
+  ```
+
+This way, `setup-lua` tries to get the tarball from the path `path/to/directory/containing/lua/tarballs/lua-5.5.1.tar.gz` after unsuccessful attempts from Lua website.
 
 [Back to home](../)
 

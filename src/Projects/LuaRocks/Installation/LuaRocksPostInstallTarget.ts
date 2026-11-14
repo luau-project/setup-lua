@@ -33,7 +33,7 @@ import { checkFiles } from "../../../Util/CheckFiles";
 import { LuaRocksInstallTarget } from "./LuaRocksInstallTarget";
 import { LuaRocksCygwinUnixSourcesInfoDetails, LuaRocksWindowsSourcesInfoDetails } from "../Configuration/LuaRocksSourcesInfo";
 import { appendToGitHubEnvironmentVariables, appendToGitHubPath } from "../../../Util/GitHub";
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { sequentialPromises } from "../../../Util/SequentialPromises";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
@@ -266,7 +266,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 }
             }
             externalDepsDirs.push(join("C:", "external"));
-            findProgram(ToolchainEnvironmentVariables.instance().getCC(), true)
+            findProgram(UserInput.instance().getCC(), true)
                 .then(ccPath => {
                     const ccBinDir = dirname(ccPath);
                     if (basename(ccBinDir).toLowerCase() === 'bin') {
@@ -276,7 +276,7 @@ export class LuaRocksPostInstallTarget implements ITarget {
                             .then(ccIncludeStat => {
                                 if (ccIncludeStat.isDirectory()) {
                                     externalDepsDirs.push(ccDir);
-                                    getFirstLineFromProcessExecution(ToolchainEnvironmentVariables.instance().getCC(), ["-dumpmachine"])
+                                    getFirstLineFromProcessExecution(UserInput.instance().getCC(), ["-dumpmachine"])
                                         .then(dumpMachine => {
                                             const ccSysroot = join(ccDir, dumpMachine);
                                             const ccSysrootInclude = join(ccSysroot, "include");
@@ -335,13 +335,13 @@ export class LuaRocksPostInstallTarget implements ITarget {
                             this.getWindowsGccExternalDepsDirs()
                                 .then(externalDepsDirs => {
                                     const toolchainEnvVars: EnvVar[] = [
-                                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                        { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                        { key: "MAKE", value: UserInput.instance().getMake() },
+                                        { key: "CC", value: UserInput.instance().getCC() },
+                                        { key: "LD", value: UserInput.instance().getLD() },
+                                        { key: "AR", value: UserInput.instance().getAR() },
+                                        { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                        { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                        { key: "RC", value: UserInput.instance().getRC() }
                                     ];
                                     const configChanges = [
                                         () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -384,10 +384,10 @@ export class LuaRocksPostInstallTarget implements ITarget {
                             }
                             else {
                                 const toolchainEnvVars: EnvVar[] = [
-                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                    { key: "CC", value: UserInput.instance().getCC() },
+                                    { key: "LD", value: UserInput.instance().getLD() },
+                                    { key: "AR", value: UserInput.instance().getAR() }
                                 ];
                                 sequentialPromises<void>([
                                     () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -478,13 +478,13 @@ export class LuaRocksPostInstallTarget implements ITarget {
                                                             this.getWindowsGccExternalDepsDirs()
                                                                 .then(externalDepsDirs => {
                                                                     const toolchainEnvVars: EnvVar[] = [
-                                                                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                                                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                                                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                                                        { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                                                        { key: "MAKE", value: UserInput.instance().getMake() },
+                                                                        { key: "CC", value: UserInput.instance().getCC() },
+                                                                        { key: "LD", value: UserInput.instance().getLD() },
+                                                                        { key: "AR", value: UserInput.instance().getAR() },
+                                                                        { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                                                        { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                                                        { key: "RC", value: UserInput.instance().getRC() }
                                                                     ];
                                                                     const configChanges = [
                                                                         () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, "cmake_generator", "MinGW Makefiles"),
@@ -525,10 +525,10 @@ export class LuaRocksPostInstallTarget implements ITarget {
                                                             }
                                                             else {
                                                                 const toolchainEnvVars: EnvVar[] = [
-                                                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                                                    { key: "CC", value: UserInput.instance().getCC() },
+                                                                    { key: "LD", value: UserInput.instance().getLD() },
+                                                                    { key: "AR", value: UserInput.instance().getAR() }
                                                                 ];
                                                                 sequentialPromises<void>([
                                                                     () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
@@ -561,12 +561,12 @@ export class LuaRocksPostInstallTarget implements ITarget {
                 checkFiles([luarocks, luarocksAdmin])
                     .then(() => {
                         const toolchainEnvVars: EnvVar[] = [
-                            { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                            { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                            { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                            { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                            { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                            { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() }
+                            { key: "MAKE", value: UserInput.instance().getMake() },
+                            { key: "CC", value: UserInput.instance().getCC() },
+                            { key: "LD", value: UserInput.instance().getLD() },
+                            { key: "AR", value: UserInput.instance().getAR() },
+                            { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                            { key: "RANLIB", value: UserInput.instance().getRANLIB() }
                         ];
                         sequentialPromises<void>([
                             () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),

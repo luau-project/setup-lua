@@ -26,6 +26,8 @@
 import { Readable } from "node:stream";
 import { createWriteStream } from "node:fs";
 import { setTimeout } from "node:timers/promises";
+import { cp } from "node:fs/promises";
+import { IFileUriInfo } from "../FileUriInfo";
 
 const DEFAULT_MAX_TRIES = 5;
 const DOWNLOAD_MIN_BASE = 1.7;
@@ -35,24 +37,121 @@ function randomBetween(min: number, max: number): number {
     return min + Math.random() * (max - min);
 }
 
-function getWaitingTimeInMilliseconds(retries: number): number {
+/* B is the base number of exponential growth */
+function getWaitingTimeInMilliseconds(B: number, retries: number): number {
     let waitingTimeInMilliseconds: number = 0;
     if (retries > 0) {
-        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const waitingTimeInSeconds = Math.pow(B, retries);
         waitingTimeInMilliseconds = Math.floor(waitingTimeInSeconds * 1000);
     }
     return waitingTimeInMilliseconds;
 }
 
+export function downloadFileFromUriInfo(uriInfo: IFileUriInfo, outFile: string, maxTries?: number): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        const uriArray = uriInfo.getUriArray();
+        const nUrls = uriArray.getLenght();
+        if (nUrls <= 0) {
+            reject(new Error("internal error: empty URL list"));
+        }
+        else {
+            const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
+            const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
+            let succeed = false;
+            let execErr: any;
+            const downloadAttempt = (i: number) => {
+                if (!succeed && i < tries) {
+                    setTimeout(getWaitingTimeInMilliseconds(B, i))
+                        .then(() => {
+                            const downloadAttemptFromUrl = (j: number) => {
+                                if (!succeed && j < nUrls) {
+                                    const url = uriArray.getItem(j).toString();
+                                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                                        fetch(url).then(response => {
+                                            if (!response.ok) {
+                                                execErr = new Error("Response is not ok");
+                                                downloadAttemptFromUrl(j + 1);
+                                            }
+                                            else {
+                                                const body = response.body;
+                                                if (body === null) {
+                                                    execErr = new Error("Response body is null");
+                                                    downloadAttemptFromUrl(j + 1);
+                                                }
+                                                else {
+                                                    Readable.fromWeb(<any>body)
+                                                        .pipe(createWriteStream(outFile))
+                                                        .on("error", err => {
+                                                            execErr = err;
+                                                            downloadAttemptFromUrl(j + 1);
+                                                        })
+                                                        .on("finish", () => {
+                                                            succeed = true;
+                                                            downloadAttemptFromUrl(j + 1);
+                                                        });
+                                                }
+                                            }
+                                        })
+                                        .catch(err => {
+                                            execErr = err;
+                                            downloadAttemptFromUrl(j + 1);
+                                        });
+                                    }
+                                    else {
+                                        cp(url, outFile)
+                                            .then(() => {
+                                                succeed = true;
+                                                downloadAttemptFromUrl(j + 1);
+                                            })
+                                            .catch(cpErr => {
+                                                execErr = cpErr;
+                                                downloadAttemptFromUrl(j + 1);
+                                            });
+                                    }
+                                }
+                                else if (succeed) {
+                                    resolve(outFile);
+                                }
+                                else if (execErr) {
+                                    downloadAttempt(i + 1);
+                                }
+                                else {
+                                    reject(new Error("internal error: unknown download condition"));
+                                }
+                            };
+
+                            downloadAttemptFromUrl(0);
+                        })
+                        .catch(timeoutErr => {
+                            execErr = timeoutErr;
+                            downloadAttempt(i + 1);
+                        });
+                }
+                else if (succeed) {
+                    resolve(outFile);
+                }
+                else if (execErr) {
+                    reject(execErr);
+                }
+                else {
+                    reject(new Error("internal error: unknown download condition"));
+                }
+            };
+
+            downloadAttempt(0);
+        }
+    });
+}
+
 export function downloadFile(url: string | URL, outFile: string, maxTries?: number): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
         let succeed = false;
         let execErr: any;
         const iter = (i: number) => {
             if (!succeed && i < tries) {
-                setTimeout(getWaitingTimeInMilliseconds(i))
+                setTimeout(getWaitingTimeInMilliseconds(B, i))
                     .then(() => {
                         fetch(url).then(response => {
                             if (!response.ok) {

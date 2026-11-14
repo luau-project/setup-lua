@@ -64,6 +64,7 @@ The features listed here are unique to `setup-lua` and are not present on other 
 
 * Installs both Lua (or LuaJIT / OpenResty) `+` LuaRocks in a single step;
 * Applies patches stored locally or remotely to Lua or LuaRocks source code on the fly (see [here](https://github.com/luau-project/lnuminfo/blob/e778a685bc7be0062015bcc42df33ad7ee7a2763/.github/workflows/ci.yml#L296-L300));
+* Allows the download of Lua source code from configurable mirrors or local paths in the system as fallback;
 * Works on Windows inside MinGW-w64 shells on `MSYS2`;
 * Has the same set of features working well on all supported platform (Linux, Windows, macOS, BSDs), with exceptions documented;
 

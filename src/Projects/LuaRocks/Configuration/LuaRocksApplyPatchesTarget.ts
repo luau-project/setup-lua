@@ -26,7 +26,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { EOL } from "node:os";
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { AbstractApplyPatchesTarget } from "../../Targets/AbstractApplyPatchesTarget";
 import { ITarget } from "../../Targets/ITarget";
 import { LuaRocksProject } from "../LuaRocksProject";
@@ -40,7 +40,7 @@ import { replaceFirstInFile } from "../../../Util/ReplaceInFile";
 
 export class LuaRocksApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project: LuaRocksProject, parent: LuaRocksFetchTarget) {
-        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaRocksPatches());
+        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaRocksPatches());
     }
     init(): Promise<void> {
         return new Promise<void>((resolve, reject) => {

@@ -26,9 +26,10 @@
 import { basename, join } from "node:path";
 import { IProject } from "../../IProject";
 import { ITarget } from "../ITarget";
-import { downloadFile } from "../../../Util/DownloadFile";
+import { downloadFileFromUriInfo } from "../../../Util/DownloadFile";
 import { verifyFileHash } from "../../../Util/FileHash";
 import { CacheService } from "../../../CacheService";
+import { FileUriInfo, IFileUriInfo } from "../../../FileUriInfo";
 
 export interface CompressedExpectedHash {
     algorithm: string;
@@ -47,14 +48,14 @@ export interface ExtractOptions {
 }
 
 export abstract class AbstractFetchCompressedTarget implements ITarget {
-    private url: string | URL;
+    private uriInfo: IFileUriInfo;
     private workDir: string;
     private cacheKey: string | null;
     private handler: (filename: string, opts?: ExtractOptions) => Promise<number | null>;
     private opts: FetchCompressedTargetOptions;
 
-    getUrl(): string | URL {
-        return this.url;
+    getUriInfo(): IFileUriInfo {
+        return this.uriInfo;
     }
 
     getWorkDir(): string {
@@ -65,13 +66,18 @@ export abstract class AbstractFetchCompressedTarget implements ITarget {
         return this.cacheKey;
     }
 
-    constructor(url: string | URL, workDir: string, cacheKey: string | null, handler: (filename: string, opts?: ExtractOptions) => Promise<number | null>, opts?: FetchCompressedTargetOptions) {
-        this.url = url;
+    constructor(uriInfo: string | URL | IFileUriInfo, workDir: string, cacheKey: string | null, handler: (filename: string, opts?: ExtractOptions) => Promise<number | null>, opts?: FetchCompressedTargetOptions) {
+        if (typeof uriInfo === "string" || uriInfo instanceof URL) {
+            this.uriInfo = new FileUriInfo([uriInfo]);
+        }
+        else {
+            this.uriInfo = uriInfo;
+        }
         this.workDir = workDir;
         this.cacheKey = cacheKey;
         this.handler = handler;
         this.opts = {};
-        this.opts.filename = opts?.filename ?? basename(url.toString());
+        this.opts.filename = opts?.filename ?? basename(this.uriInfo.getMainUri().toString());
         this.opts.maxTries = opts?.maxTries;
         if (opts?.fileHash) {
             this.opts.fileHash = {
@@ -145,7 +151,7 @@ export abstract class AbstractFetchCompressedTarget implements ITarget {
             const filename = <string>this.opts.filename;
             const outFile = join(this.workDir, filename);
             const performDownload = (useCache: boolean) => {
-                downloadFile(this.url, outFile, this.opts.maxTries)
+                downloadFileFromUriInfo(this.uriInfo, outFile, this.opts.maxTries)
                     .then(file => {
                         this.saveOnCache(file, useCache)
                             .then(resolve)

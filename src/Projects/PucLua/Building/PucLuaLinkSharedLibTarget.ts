@@ -33,7 +33,7 @@ import { hasWin32ImportLibraryDecorator, IWin32ImportLibraryDecorator } from "..
 import { isGccLikeToolchain, IGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
 import { PucLuaCompileStaticLibTarget } from "./PucLuaCompileStaticLibTarget";
 import { PucLuaSourcesInfo } from "../Configuration/PucLuaSourcesInfo";
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { Console } from "../../../Console";
 
 export class PucLuaLinkSharedLibTarget implements ITarget {
@@ -167,15 +167,15 @@ export class PucLuaLinkSharedLibTarget implements ITarget {
                 else {
                     linker.addLinkLibrary("dl");
                 }
-                const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+                const libDirs = UserInput.instance().getLibDirsExtra();
                 for (const libDir of libDirs) {
                     linker.addLibDir(libDir);
                 }
-                const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+                const libs = UserInput.instance().getLibsExtra();
                 for (const lib of libs) {
                     linker.addLinkLibrary(lib);
                 }
-                const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+                const ldFlags = UserInput.instance().getLdFlagsExtra();
                 for (const flag of ldFlags) {
                     linker.addFlag(flag);
                 }

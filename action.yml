@@ -84,6 +84,9 @@ inputs:
   luarocks-patches:
     description: Patches (remote or local) to be applied to LuaRocks after fetching the source code.
     required: false
+  lua-mirrors:
+    description: In addition to standard PUC-Lua URLs to download source code, use mirrors as fallback.
+    required: false
 
 runs:
   using: 'node24'

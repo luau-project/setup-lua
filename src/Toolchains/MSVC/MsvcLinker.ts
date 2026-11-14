@@ -31,7 +31,7 @@ import { IToolchainCompositeArgument } from "../IToolchainCompositeArgument";
 import { ToolchainCompositeArgument } from "../ToolchainCompositeArgument";
 import { ToolchainRawArgument } from "../ToolchainRawArgument";
 import { IWin32ImportLibraryDecorator } from "../IWin32ImportLibraryDecorator";
-import { ToolchainEnvironmentVariables } from "../ToolchainEnvironmentVariables";
+import { UserInput } from "../../UserInput";
 
 export class MsvcLinker implements ILinker, IWin32ImportLibraryDecorator {
     private _path: IGetSetProperty<string>;
@@ -144,7 +144,7 @@ export class MsvcLinker implements ILinker, IWin32ImportLibraryDecorator {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getLD());
+        this._path.setValue(UserInput.instance().getLD());
     }
 
     constructor() {
@@ -156,7 +156,7 @@ export class MsvcLinker implements ILinker, IWin32ImportLibraryDecorator {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path = new GetSetProperty<string>(ToolchainEnvironmentVariables.instance().getLD());
+        this._path = new GetSetProperty<string>(UserInput.instance().getLD());
         this.reset();
     }
     path(): IGetSetProperty<string> {

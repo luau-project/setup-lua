@@ -23,7 +23,7 @@
 ** SOFTWARE.
 */
 
-import { ToolchainEnvironmentVariables } from "../ToolchainEnvironmentVariables";
+import { UserInput } from "../../UserInput";
 import { executeProcess } from "../../Util/ExecuteProcess";
 import { GetSetProperty } from "../../Util/GetSetProperty";
 import { IGetSetProperty } from "../../Util/IGetSetProperty";
@@ -81,13 +81,13 @@ export class GccRanlib implements IRandomizer {
     reset(): void {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path.setValue(UserInput.instance().getRANLIB());
     }
 
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty<string>(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path = new GetSetProperty<string>(UserInput.instance().getRANLIB());
         this.reset();
     }
     path(): IGetSetProperty<string> {

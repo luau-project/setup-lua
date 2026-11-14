@@ -37,7 +37,7 @@ export class PucLuaFetchTarget extends AbstractFetchTarballTarget {
     private project: PucLuaProject;
     constructor(project: PucLuaProject, parent: ITarget | null) {
         super(
-            project.getVersion().getDownloadUrl(),
+            project.getVersion().getDownloadUriInfo(),
             project.getBuildDir(),
             `lua-${project.getVersion().getString()}`, {
                 fileHash: {

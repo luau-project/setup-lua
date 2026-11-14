@@ -47,6 +47,8 @@ export interface IGitHubInput {
     getInputLibsExtra(): string | undefined;
     getInputLuaPatches(): string | undefined;
     getInputLuaRocksPatches(): string | undefined;
+
+    getInputLuaMirrors(): string | undefined;
 }
 
 export class GitHubInput implements IGitHubInput {
@@ -143,5 +145,9 @@ export class GitHubInput implements IGitHubInput {
     }
     getInputLuaRocksPatches(): string | undefined {
         return GitHubCore.instance().getInput("luarocks-patches");
+    }
+
+    getInputLuaMirrors(): string | undefined {
+        return GitHubCore.instance().getInput("lua-mirrors");
     }
 }

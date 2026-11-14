@@ -23,7 +23,7 @@
 ** SOFTWARE.
 */
 
-import { ToolchainEnvironmentVariables } from "../ToolchainEnvironmentVariables";
+import { UserInput } from "../../UserInput";
 import { executeProcess } from "../../Util/ExecuteProcess";
 import { GetSetProperty } from "../../Util/GetSetProperty";
 import { IGetSetProperty } from "../../Util/IGetSetProperty";
@@ -87,13 +87,13 @@ export class GccStrip implements IStrip {
     reset(): void {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path.setValue(UserInput.instance().getSTRIP());
     }
 
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty<string>(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path = new GetSetProperty<string>(UserInput.instance().getSTRIP());
         this.reset();
     }
     path(): IGetSetProperty<string> {

@@ -36,7 +36,7 @@ import { checkFiles } from "../../../Util/CheckFiles";
 import { LuaJitCreatePkgConfigTarget } from "./LuaJitCreatePkgConfigTarget";
 import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { compareVersions } from "../../../Util/CompareVersions";
 import { GitHubInput } from "../../../Util/GitHubInput";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
@@ -174,11 +174,11 @@ export class LuaJitBuildTarget implements ITarget {
                 ];
                 const cmd = (process.env["COMSPEC"] || "cmd").trim();
                 if (isGccLike) {
-                    const make = ToolchainEnvironmentVariables.instance().getMake();
-                    const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                    const envCC = ToolchainEnvironmentVariables.instance().getRawCC();
-                    const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                    const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const make = UserInput.instance().getMake();
+                    const cross = UserInput.instance().getToolchainPrefix();
+                    const envCC = UserInput.instance().getRawCC();
+                    const cflags = UserInput.instance().getCflagsExtra();
+                    const incDirs = UserInput.instance().getIncDirsExtra();
                     const combinedXcflags: string[] = [];
                     for (const flag of cflags) {
                         combinedXcflags.push(`"${flag}"`)
@@ -283,11 +283,11 @@ export class LuaJitBuildTarget implements ITarget {
                 }
             }
             else {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
-                const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                const envCC = ToolchainEnvironmentVariables.instance().getCC();
-                const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                const make = UserInput.instance().getMake();
+                const cross = UserInput.instance().getToolchainPrefix();
+                const envCC = UserInput.instance().getCC();
+                const cflags = UserInput.instance().getCflagsExtra();
+                const incDirs = UserInput.instance().getIncDirsExtra();
                 const combinedXcflags: string[] = [];
                 for (const flag of cflags) {
                     combinedXcflags.push(`"${flag}"`)

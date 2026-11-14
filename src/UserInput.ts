@@ -23,10 +23,10 @@
 ** SOFTWARE.
 */
 
-import { GitHubInput } from "../Util/GitHubInput";
-import { parseInputSemiColon } from "../Util/ParseInputSemiColon";
+import { GitHubInput } from "./Util/GitHubInput";
+import { parseInputSemiColon } from "./Util/ParseInputSemiColon";
 
-export interface IToolchainEnvironmentVariables {
+export interface IUserInput {
     getRawCC(): string;
     getRawLD(): string;
     getRawAR(): string;
@@ -49,15 +49,17 @@ export interface IToolchainEnvironmentVariables {
     getLibsExtra(): string[];
     getLuaPatches(): string[];
     getLuaRocksPatches(): string[];
+
+    getLuaMirrors(): string[];
 }
 
-export class ToolchainEnvironmentVariables implements IToolchainEnvironmentVariables {
-    private static _instance: IToolchainEnvironmentVariables;
-    static instance(): IToolchainEnvironmentVariables {
-        if (!ToolchainEnvironmentVariables._instance) {
-            ToolchainEnvironmentVariables._instance = new ToolchainEnvironmentVariables();
+export class UserInput implements IUserInput {
+    private static _instance: IUserInput;
+    static instance(): IUserInput {
+        if (!UserInput._instance) {
+            UserInput._instance = new UserInput();
         }
-        return ToolchainEnvironmentVariables._instance;
+        return UserInput._instance;
     }
     getRawCC(): string {
         let msystem = process.env["MSYSTEM"] || "";
@@ -167,6 +169,14 @@ export class ToolchainEnvironmentVariables implements IToolchainEnvironmentVaria
             "LUAROCKS_PATCHES"
         );
     }
+
+    getLuaMirrors(): string[] {
+        return this.getSemiColonSeparatedInput(
+            () => GitHubInput.instance().getInputLuaMirrors(),
+            "LUA_MIRRORS"
+        );
+    }
+
     private constructor() {
     }
 }

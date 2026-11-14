@@ -34,7 +34,7 @@ import { IReadOnlyArray } from "../../../Util/IReadOnlyArray";
 import { ReadOnlyArray } from "../../../Util/ReadOnlyArray";
 import { PucLuaLinkInterpreterTarget } from "./PucLuaLinkInterpreterTarget";
 import { isGccLikeToolchain } from "../../../Toolchains/GCC/IGccLikeToolchain";
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { Console } from "../../../Console";
 
 export class PucLuaCompileInterpreterTarget implements ITarget {
@@ -156,11 +156,11 @@ export class PucLuaCompileInterpreterTarget implements ITarget {
                     const outputFile = join(this.project.getInterpreterBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }

@@ -30,7 +30,7 @@ import { IGetSetProperty } from "../../Util/IGetSetProperty";
 import { IToolchainCompositeArgument } from "../IToolchainCompositeArgument";
 import { ToolchainCompositeArgument } from "../ToolchainCompositeArgument";
 import { ToolchainRawArgument } from "../ToolchainRawArgument";
-import { ToolchainEnvironmentVariables } from "../ToolchainEnvironmentVariables";
+import { UserInput } from "../../UserInput";
 
 export class GccCompiler implements ICompiler {
     private _path: IGetSetProperty<string>;
@@ -146,7 +146,7 @@ export class GccCompiler implements ICompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getCC());
+        this._path.setValue(UserInput.instance().getCC());
     }
 
     constructor() {
@@ -157,7 +157,7 @@ export class GccCompiler implements ICompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path = new GetSetProperty<string>(ToolchainEnvironmentVariables.instance().getCC());
+        this._path = new GetSetProperty<string>(UserInput.instance().getCC());
         this.reset();
     }
     path(): IGetSetProperty<string> {

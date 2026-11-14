@@ -23,7 +23,7 @@
 ** SOFTWARE.
 */
 
-import { ToolchainEnvironmentVariables } from "../../../Toolchains/ToolchainEnvironmentVariables";
+import { UserInput } from "../../../UserInput";
 import { executeProcess, getFirstLineFromProcessExecution } from "../../../Util/ExecuteProcess";
 import { defaultStdOutHandler } from "../../../Util/DefaultStdOutHandler";
 import { IProject } from "../../IProject";
@@ -93,7 +93,7 @@ export class LuaRocksBuildTarget implements ITarget {
                     .catch(reject);
             }
             else if (details instanceof LuaRocksUnixSourcesInfoDetails) {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
+                const make = UserInput.instance().getMake();
                 const makeArgs: string[] = ["-C", this.srcInfo.getDir()];
                 executeProcess(make, {
                     args: makeArgs,

@@ -23,6 +23,8 @@
 ** SOFTWARE.
 */
 
+import { FileUriInfo, IFileUriInfo } from "../../FileUriInfo";
+import { UserInput } from "../../UserInput";
 import { compareVersions } from "../../Util/CompareVersions";
 
 const LATEST_LUA_RELEASE_VERSION = "5.5.1";
@@ -219,7 +221,7 @@ export interface IPucLuaVersion {
     getHashAlgorithm(): string;
     getHashValue(): string;
     getString(): string;
-    getDownloadUrl(): string;
+    getDownloadUriInfo(): IFileUriInfo;
     compareTo(other: IPucLuaVersion): number;
 }
 
@@ -324,7 +326,7 @@ export abstract class AbstractPucLuaVersion implements IPucLuaVersion {
         return this.hashValue;
     }
 
-    abstract getDownloadUrl(): string;
+    abstract getDownloadUriInfo(): IFileUriInfo;
     abstract getString(): string;
 
     compareTo(other: IPucLuaVersion): number {
@@ -350,8 +352,24 @@ export class PucLuaReleaseVersion extends AbstractPucLuaVersion {
         const b = this.getBuild();
         return `${M}.${m}.${b}`;
     }
-    getDownloadUrl(): string {
-        return `https://lua.org/ftp/lua-${this.getString()}.tar.gz`;
+    getDownloadUriInfo(): IFileUriInfo {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList: string[] = process.env["DEBUG_LUA_MIRRORS"] ?
+            [] :
+            [
+                `https://lua.org/ftp/${tarball}`,
+                `https://www.tecgraf.puc-rio.br/lua/mirror/ftp/${tarball}`
+            ];
+        const luaMirrors: string[] = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
     }
     constructor(major: number, minor: number, build: number, hashAlgorithm: string, hashValue: string) {
         super(major, minor, build, hashAlgorithm, hashValue);
@@ -374,10 +392,29 @@ export class PucLuaWorkVersion extends AbstractPucLuaVersion {
         const b = this.getBuild();
         return `${M}.${m}.${b}-${this.suffix}`;
     }
-    getDownloadUrl(): string {
-        return this.current ?
-            `https://lua.org/work/lua-${this.getString()}.tar.gz` :
-            `https://lua.org/work/old/lua-${this.getString()}.tar.gz`;
+    getDownloadUriInfo(): IFileUriInfo {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList: string[] = process.env["DEBUG_LUA_MIRRORS"] ?
+            []:
+            (this.current ?
+                [
+                    `https://lua.org/work/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/${tarball}`
+                ] :
+                [
+                    `https://lua.org/work/old/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/old/${tarball}`
+                ]);
+        const luaMirrors: string[] = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
     }
     constructor(major: number, minor: number, build: number, hashAlgorithm: string, hashValue: string, suffix: string, current: boolean) {
         super(major, minor, build, hashAlgorithm, hashValue);

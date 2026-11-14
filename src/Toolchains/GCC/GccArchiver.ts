@@ -23,7 +23,7 @@
 ** SOFTWARE.
 */
 
-import { ToolchainEnvironmentVariables } from "../ToolchainEnvironmentVariables";
+import { UserInput } from "../../UserInput";
 import { executeProcess } from "../../Util/ExecuteProcess";
 import { GetSetProperty } from "../../Util/GetSetProperty";
 import { IGetSetProperty } from "../../Util/IGetSetProperty";
@@ -93,14 +93,14 @@ export class GccArchiver implements IArchiver {
         this.flags.splice(0, this.flags.length);
         this.inputs.splice(0, this.inputs.length);
         this.output = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getAR());
+        this._path.setValue(UserInput.instance().getAR());
     }
 
     constructor() {
         this.flags = [];
         this.inputs = [];
         this.output = undefined;
-        this._path = new GetSetProperty<string>(ToolchainEnvironmentVariables.instance().getAR());
+        this._path = new GetSetProperty<string>(UserInput.instance().getAR());
         this.reset();
     }
     path(): IGetSetProperty<string> {
