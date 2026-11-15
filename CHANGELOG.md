@@ -1,5 +1,35 @@
 # Change Log
 
+## setup-lua v3.1.0
+
+* This release adds the possibility to use mirrors as fallback to download Lua source code. By default, `setup-lua` use the website [https://lua.org/](https://lua.org/) and the mirror [https://www.tecgraf.puc-rio.br/lua/mirror/](https://www.tecgraf.puc-rio.br/lua/mirror/) to download source code to build Lua. However, from time to time, the website faces network problems, turning the process to download the source code a challenge. Once it happens, Lua authors also provide a temporary mirror to help users to browse the website. It is also possible to additional locations as fallback using the input `lua-mirrors` as follows:
+
+  ```yaml
+        - name: Install Lua
+          uses: luau-project/setup-lua@v3
+          with:
+            lua-version: 5.5.1
+            lua-mirrors: https://my-mirror-1.com;https://my-mirror-2.com
+  ```
+
+  In case it was not possible to download source code from standard Lua URLs, in the example above, `setup-lua` appends the tarball for version to the URL provided as in [https://my-mirror-1.com/lua-5.5.1.tar.gz](https://my-mirror-1.com/lua-5.5.1.tar.gz) and [https://my-mirror-2.com/lua-5.5.1.tar.gz](https://my-mirror-2.com/lua-5.5.1.tar.gz).
+
+  It also possible to provide a local path on your system as follows:
+
+  ```yaml
+        - name: Install Lua
+          uses: luau-project/setup-lua@v3
+          with:
+            lua-version: 5.5.1
+            lua-mirrors: path/to/directory/containing/lua/tarballs
+  ```
+
+  This way, `setup-lua` tries to get the tarball from the path `path/to/directory/containing/lua/tarballs/lua-5.5.1.tar.gz` after unsuccessful attempts from Lua website.
+
+* Upgrade on dependencies:
+
+  * `undici-types` from version `8.12.3` to `8.12.4`
+
 ## setup-lua v3.0.0
 
 > [!IMPORTANT]
