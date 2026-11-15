@@ -4898,262 +4898,6 @@ exports.ReflectionTypeCheck = ReflectionTypeCheck;
 
 /***/ }),
 
-/***/ 5183:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.req = exports.json = exports.toBuffer = void 0;
-const http = __importStar(__nccwpck_require__(8611));
-const https = __importStar(__nccwpck_require__(5692));
-async function toBuffer(stream) {
-    let length = 0;
-    const chunks = [];
-    for await (const chunk of stream) {
-        length += chunk.length;
-        chunks.push(chunk);
-    }
-    return Buffer.concat(chunks, length);
-}
-exports.toBuffer = toBuffer;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function json(stream) {
-    const buf = await toBuffer(stream);
-    const str = buf.toString('utf8');
-    try {
-        return JSON.parse(str);
-    }
-    catch (_err) {
-        const err = _err;
-        err.message += ` (input: ${str})`;
-        throw err;
-    }
-}
-exports.json = json;
-function req(url, opts = {}) {
-    const href = typeof url === 'string' ? url : url.href;
-    const req = (href.startsWith('https:') ? https : http).request(url, opts);
-    const promise = new Promise((resolve, reject) => {
-        req
-            .once('response', resolve)
-            .once('error', reject)
-            .end();
-    });
-    req.then = promise.then.bind(promise);
-    return req;
-}
-exports.req = req;
-//# sourceMappingURL=helpers.js.map
-
-/***/ }),
-
-/***/ 8894:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Agent = void 0;
-const net = __importStar(__nccwpck_require__(9278));
-const http = __importStar(__nccwpck_require__(8611));
-const https_1 = __nccwpck_require__(5692);
-__exportStar(__nccwpck_require__(5183), exports);
-const INTERNAL = Symbol('AgentBaseInternalState');
-class Agent extends http.Agent {
-    constructor(opts) {
-        super(opts);
-        this[INTERNAL] = {};
-    }
-    /**
-     * Determine whether this is an `http` or `https` request.
-     */
-    isSecureEndpoint(options) {
-        if (options) {
-            // First check the `secureEndpoint` property explicitly, since this
-            // means that a parent `Agent` is "passing through" to this instance.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (typeof options.secureEndpoint === 'boolean') {
-                return options.secureEndpoint;
-            }
-            // If no explicit `secure` endpoint, check if `protocol` property is
-            // set. This will usually be the case since using a full string URL
-            // or `URL` instance should be the most common usage.
-            if (typeof options.protocol === 'string') {
-                return options.protocol === 'https:';
-            }
-        }
-        // Finally, if no `protocol` property was set, then fall back to
-        // checking the stack trace of the current call stack, and try to
-        // detect the "https" module.
-        const { stack } = new Error();
-        if (typeof stack !== 'string')
-            return false;
-        return stack
-            .split('\n')
-            .some((l) => l.indexOf('(https.js:') !== -1 ||
-            l.indexOf('node:https:') !== -1);
-    }
-    // In order to support async signatures in `connect()` and Node's native
-    // connection pooling in `http.Agent`, the array of sockets for each origin
-    // has to be updated synchronously. This is so the length of the array is
-    // accurate when `addRequest()` is next called. We achieve this by creating a
-    // fake socket and adding it to `sockets[origin]` and incrementing
-    // `totalSocketCount`.
-    incrementSockets(name) {
-        // If `maxSockets` and `maxTotalSockets` are both Infinity then there is no
-        // need to create a fake socket because Node.js native connection pooling
-        // will never be invoked.
-        if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
-            return null;
-        }
-        // All instances of `sockets` are expected TypeScript errors. The
-        // alternative is to add it as a private property of this class but that
-        // will break TypeScript subclassing.
-        if (!this.sockets[name]) {
-            // @ts-expect-error `sockets` is readonly in `@types/node`
-            this.sockets[name] = [];
-        }
-        const fakeSocket = new net.Socket({ writable: false });
-        this.sockets[name].push(fakeSocket);
-        // @ts-expect-error `totalSocketCount` isn't defined in `@types/node`
-        this.totalSocketCount++;
-        return fakeSocket;
-    }
-    decrementSockets(name, socket) {
-        if (!this.sockets[name] || socket === null) {
-            return;
-        }
-        const sockets = this.sockets[name];
-        const index = sockets.indexOf(socket);
-        if (index !== -1) {
-            sockets.splice(index, 1);
-            // @ts-expect-error  `totalSocketCount` isn't defined in `@types/node`
-            this.totalSocketCount--;
-            if (sockets.length === 0) {
-                // @ts-expect-error `sockets` is readonly in `@types/node`
-                delete this.sockets[name];
-            }
-        }
-    }
-    // In order to properly update the socket pool, we need to call `getName()` on
-    // the core `https.Agent` if it is a secureEndpoint.
-    getName(options) {
-        const secureEndpoint = this.isSecureEndpoint(options);
-        if (secureEndpoint) {
-            // @ts-expect-error `getName()` isn't defined in `@types/node`
-            return https_1.Agent.prototype.getName.call(this, options);
-        }
-        // @ts-expect-error `getName()` isn't defined in `@types/node`
-        return super.getName(options);
-    }
-    createSocket(req, options, cb) {
-        const connectOpts = {
-            ...options,
-            secureEndpoint: this.isSecureEndpoint(options),
-        };
-        const name = this.getName(connectOpts);
-        const fakeSocket = this.incrementSockets(name);
-        Promise.resolve()
-            .then(() => this.connect(req, connectOpts))
-            .then((socket) => {
-            this.decrementSockets(name, fakeSocket);
-            if (socket instanceof http.Agent) {
-                try {
-                    // @ts-expect-error `addRequest()` isn't defined in `@types/node`
-                    return socket.addRequest(req, connectOpts);
-                }
-                catch (err) {
-                    return cb(err);
-                }
-            }
-            this[INTERNAL].currentSocket = socket;
-            // @ts-expect-error `createSocket()` isn't defined in `@types/node`
-            super.createSocket(req, options, cb);
-        }, (err) => {
-            this.decrementSockets(name, fakeSocket);
-            cb(err);
-        });
-    }
-    createConnection() {
-        const socket = this[INTERNAL].currentSocket;
-        this[INTERNAL].currentSocket = undefined;
-        if (!socket) {
-            throw new Error('No socket was returned in the `connect()` function');
-        }
-        return socket;
-    }
-    get defaultPort() {
-        return (this[INTERNAL].defaultPort ??
-            (this.protocol === 'https:' ? 443 : 80));
-    }
-    set defaultPort(v) {
-        if (this[INTERNAL]) {
-            this[INTERNAL].defaultPort = v;
-        }
-    }
-    get protocol() {
-        return (this[INTERNAL].protocol ??
-            (this.isSecureEndpoint() ? 'https:' : 'http:'));
-    }
-    set protocol(v) {
-        if (this[INTERNAL]) {
-            this[INTERNAL].protocol = v;
-        }
-    }
-}
-exports.Agent = Agent;
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-
 /***/ 6110:
 /***/ ((module, exports, __nccwpck_require__) => {
 
@@ -6016,453 +5760,6 @@ formatters.O = function (v) {
 	return util.inspect(v, this.inspectOpts);
 };
 
-
-/***/ }),
-
-/***/ 1970:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HttpProxyAgent = void 0;
-const net = __importStar(__nccwpck_require__(9278));
-const tls = __importStar(__nccwpck_require__(4756));
-const debug_1 = __importDefault(__nccwpck_require__(2830));
-const events_1 = __nccwpck_require__(4434);
-const agent_base_1 = __nccwpck_require__(8894);
-const url_1 = __nccwpck_require__(7016);
-const debug = (0, debug_1.default)('http-proxy-agent');
-/**
- * The `HttpProxyAgent` implements an HTTP Agent subclass that connects
- * to the specified "HTTP proxy server" in order to proxy HTTP requests.
- */
-class HttpProxyAgent extends agent_base_1.Agent {
-    constructor(proxy, opts) {
-        super(opts);
-        this.proxy = typeof proxy === 'string' ? new url_1.URL(proxy) : proxy;
-        this.proxyHeaders = opts?.headers ?? {};
-        debug('Creating new HttpProxyAgent instance: %o', this.proxy.href);
-        // Trim off the brackets from IPv6 addresses
-        const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, '');
-        const port = this.proxy.port
-            ? parseInt(this.proxy.port, 10)
-            : this.proxy.protocol === 'https:'
-                ? 443
-                : 80;
-        this.connectOpts = {
-            ...(opts ? omit(opts, 'headers') : null),
-            host,
-            port,
-        };
-    }
-    addRequest(req, opts) {
-        req._header = null;
-        this.setRequestProps(req, opts);
-        // @ts-expect-error `addRequest()` isn't defined in `@types/node`
-        super.addRequest(req, opts);
-    }
-    setRequestProps(req, opts) {
-        const { proxy } = this;
-        const protocol = opts.secureEndpoint ? 'https:' : 'http:';
-        const hostname = req.getHeader('host') || 'localhost';
-        const base = `${protocol}//${hostname}`;
-        const url = new url_1.URL(req.path, base);
-        if (opts.port !== 80) {
-            url.port = String(opts.port);
-        }
-        // Change the `http.ClientRequest` instance's "path" field
-        // to the absolute path of the URL that will be requested.
-        req.path = String(url);
-        // Inject the `Proxy-Authorization` header if necessary.
-        const headers = typeof this.proxyHeaders === 'function'
-            ? this.proxyHeaders()
-            : { ...this.proxyHeaders };
-        if (proxy.username || proxy.password) {
-            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
-            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
-        }
-        if (!headers['Proxy-Connection']) {
-            headers['Proxy-Connection'] = this.keepAlive
-                ? 'Keep-Alive'
-                : 'close';
-        }
-        for (const name of Object.keys(headers)) {
-            const value = headers[name];
-            if (value) {
-                req.setHeader(name, value);
-            }
-        }
-    }
-    async connect(req, opts) {
-        req._header = null;
-        if (!req.path.includes('://')) {
-            this.setRequestProps(req, opts);
-        }
-        // At this point, the http ClientRequest's internal `_header` field
-        // might have already been set. If this is the case then we'll need
-        // to re-generate the string since we just changed the `req.path`.
-        let first;
-        let endOfHeaders;
-        debug('Regenerating stored HTTP header string for request');
-        req._implicitHeader();
-        if (req.outputData && req.outputData.length > 0) {
-            debug('Patching connection write() output buffer with updated header');
-            first = req.outputData[0].data;
-            endOfHeaders = first.indexOf('\r\n\r\n') + 4;
-            req.outputData[0].data =
-                req._header + first.substring(endOfHeaders);
-            debug('Output buffer: %o', req.outputData[0].data);
-        }
-        // Create a socket connection to the proxy server.
-        let socket;
-        if (this.proxy.protocol === 'https:') {
-            debug('Creating `tls.Socket`: %o', this.connectOpts);
-            socket = tls.connect(this.connectOpts);
-        }
-        else {
-            debug('Creating `net.Socket`: %o', this.connectOpts);
-            socket = net.connect(this.connectOpts);
-        }
-        // Wait for the socket's `connect` event, so that this `callback()`
-        // function throws instead of the `http` request machinery. This is
-        // important for i.e. `PacProxyAgent` which determines a failed proxy
-        // connection via the `callback()` function throwing.
-        await (0, events_1.once)(socket, 'connect');
-        return socket;
-    }
-}
-HttpProxyAgent.protocols = ['http', 'https'];
-exports.HttpProxyAgent = HttpProxyAgent;
-function omit(obj, ...keys) {
-    const ret = {};
-    let key;
-    for (key in obj) {
-        if (!keys.includes(key)) {
-            ret[key] = obj[key];
-        }
-    }
-    return ret;
-}
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ 3669:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.HttpsProxyAgent = void 0;
-const net = __importStar(__nccwpck_require__(9278));
-const tls = __importStar(__nccwpck_require__(4756));
-const assert_1 = __importDefault(__nccwpck_require__(2613));
-const debug_1 = __importDefault(__nccwpck_require__(2830));
-const agent_base_1 = __nccwpck_require__(8894);
-const url_1 = __nccwpck_require__(7016);
-const parse_proxy_response_1 = __nccwpck_require__(7943);
-const debug = (0, debug_1.default)('https-proxy-agent');
-const setServernameFromNonIpHost = (options) => {
-    if (options.servername === undefined &&
-        options.host &&
-        !net.isIP(options.host)) {
-        return {
-            ...options,
-            servername: options.host,
-        };
-    }
-    return options;
-};
-/**
- * The `HttpsProxyAgent` implements an HTTP Agent subclass that connects to
- * the specified "HTTP(s) proxy server" in order to proxy HTTPS requests.
- *
- * Outgoing HTTP requests are first tunneled through the proxy server using the
- * `CONNECT` HTTP request method to establish a connection to the proxy server,
- * and then the proxy server connects to the destination target and issues the
- * HTTP request from the proxy server.
- *
- * `https:` requests have their socket connection upgraded to TLS once
- * the connection to the proxy server has been established.
- */
-class HttpsProxyAgent extends agent_base_1.Agent {
-    constructor(proxy, opts) {
-        super(opts);
-        this.options = { path: undefined };
-        this.proxy = typeof proxy === 'string' ? new url_1.URL(proxy) : proxy;
-        this.proxyHeaders = opts?.headers ?? {};
-        debug('Creating new HttpsProxyAgent instance: %o', this.proxy.href);
-        // Trim off the brackets from IPv6 addresses
-        const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, '');
-        const port = this.proxy.port
-            ? parseInt(this.proxy.port, 10)
-            : this.proxy.protocol === 'https:'
-                ? 443
-                : 80;
-        this.connectOpts = {
-            // Attempt to negotiate http/1.1 for proxy servers that support http/2
-            ALPNProtocols: ['http/1.1'],
-            ...(opts ? omit(opts, 'headers') : null),
-            host,
-            port,
-        };
-    }
-    /**
-     * Called when the node-core HTTP client library is creating a
-     * new HTTP request.
-     */
-    async connect(req, opts) {
-        const { proxy } = this;
-        if (!opts.host) {
-            throw new TypeError('No "host" provided');
-        }
-        // Create a socket connection to the proxy server.
-        let socket;
-        if (proxy.protocol === 'https:') {
-            debug('Creating `tls.Socket`: %o', this.connectOpts);
-            socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
-        }
-        else {
-            debug('Creating `net.Socket`: %o', this.connectOpts);
-            socket = net.connect(this.connectOpts);
-        }
-        const headers = typeof this.proxyHeaders === 'function'
-            ? this.proxyHeaders()
-            : { ...this.proxyHeaders };
-        const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
-        let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`;
-        // Inject the `Proxy-Authorization` header if necessary.
-        if (proxy.username || proxy.password) {
-            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
-            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
-        }
-        headers.Host = `${host}:${opts.port}`;
-        if (!headers['Proxy-Connection']) {
-            headers['Proxy-Connection'] = this.keepAlive
-                ? 'Keep-Alive'
-                : 'close';
-        }
-        for (const name of Object.keys(headers)) {
-            payload += `${name}: ${headers[name]}\r\n`;
-        }
-        const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
-        socket.write(`${payload}\r\n`);
-        const { connect, buffered } = await proxyResponsePromise;
-        req.emit('proxyConnect', connect);
-        this.emit('proxyConnect', connect, req);
-        if (connect.statusCode === 200) {
-            req.once('socket', resume);
-            if (opts.secureEndpoint) {
-                // The proxy is connecting to a TLS server, so upgrade
-                // this socket connection to a TLS connection.
-                debug('Upgrading socket connection to TLS');
-                return tls.connect({
-                    ...omit(setServernameFromNonIpHost(opts), 'host', 'path', 'port'),
-                    socket,
-                });
-            }
-            return socket;
-        }
-        // Some other status code that's not 200... need to re-play the HTTP
-        // header "data" events onto the socket once the HTTP machinery is
-        // attached so that the node core `http` can parse and handle the
-        // error status code.
-        // Close the original socket, and a new "fake" socket is returned
-        // instead, so that the proxy doesn't get the HTTP request
-        // written to it (which may contain `Authorization` headers or other
-        // sensitive data).
-        //
-        // See: https://hackerone.com/reports/541502
-        socket.destroy();
-        const fakeSocket = new net.Socket({ writable: false });
-        fakeSocket.readable = true;
-        // Need to wait for the "socket" event to re-play the "data" events.
-        req.once('socket', (s) => {
-            debug('Replaying proxy buffer for failed request');
-            (0, assert_1.default)(s.listenerCount('data') > 0);
-            // Replay the "buffered" Buffer onto the fake `socket`, since at
-            // this point the HTTP module machinery has been hooked up for
-            // the user.
-            s.push(buffered);
-            s.push(null);
-        });
-        return fakeSocket;
-    }
-}
-HttpsProxyAgent.protocols = ['http', 'https'];
-exports.HttpsProxyAgent = HttpsProxyAgent;
-function resume(socket) {
-    socket.resume();
-}
-function omit(obj, ...keys) {
-    const ret = {};
-    let key;
-    for (key in obj) {
-        if (!keys.includes(key)) {
-            ret[key] = obj[key];
-        }
-    }
-    return ret;
-}
-//# sourceMappingURL=index.js.map
-
-/***/ }),
-
-/***/ 7943:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseProxyResponse = void 0;
-const debug_1 = __importDefault(__nccwpck_require__(2830));
-const debug = (0, debug_1.default)('https-proxy-agent:parse-proxy-response');
-function parseProxyResponse(socket) {
-    return new Promise((resolve, reject) => {
-        // we need to buffer any HTTP traffic that happens with the proxy before we get
-        // the CONNECT response, so that if the response is anything other than an "200"
-        // response code, then we can re-play the "data" events on the socket once the
-        // HTTP parser is hooked up...
-        let buffersLength = 0;
-        const buffers = [];
-        function read() {
-            const b = socket.read();
-            if (b)
-                ondata(b);
-            else
-                socket.once('readable', read);
-        }
-        function cleanup() {
-            socket.removeListener('end', onend);
-            socket.removeListener('error', onerror);
-            socket.removeListener('readable', read);
-        }
-        function onend() {
-            cleanup();
-            debug('onend');
-            reject(new Error('Proxy connection ended before receiving CONNECT response'));
-        }
-        function onerror(err) {
-            cleanup();
-            debug('onerror %o', err);
-            reject(err);
-        }
-        function ondata(b) {
-            buffers.push(b);
-            buffersLength += b.length;
-            const buffered = Buffer.concat(buffers, buffersLength);
-            const endOfHeaders = buffered.indexOf('\r\n\r\n');
-            if (endOfHeaders === -1) {
-                // keep buffering
-                debug('have not received end of HTTP headers yet...');
-                read();
-                return;
-            }
-            const headerParts = buffered
-                .slice(0, endOfHeaders)
-                .toString('ascii')
-                .split('\r\n');
-            const firstLine = headerParts.shift();
-            if (!firstLine) {
-                socket.destroy();
-                return reject(new Error('No header received from proxy CONNECT response'));
-            }
-            const firstLineParts = firstLine.split(' ');
-            const statusCode = +firstLineParts[1];
-            const statusText = firstLineParts.slice(2).join(' ');
-            const headers = {};
-            for (const header of headerParts) {
-                if (!header)
-                    continue;
-                const firstColon = header.indexOf(':');
-                if (firstColon === -1) {
-                    socket.destroy();
-                    return reject(new Error(`Invalid header from proxy CONNECT response: "${header}"`));
-                }
-                const key = header.slice(0, firstColon).toLowerCase();
-                const value = header.slice(firstColon + 1).trimStart();
-                const current = headers[key];
-                if (typeof current === 'string') {
-                    headers[key] = [current, value];
-                }
-                else if (Array.isArray(current)) {
-                    current.push(value);
-                }
-                else {
-                    headers[key] = value;
-                }
-            }
-            debug('got proxy server response: %o %o', firstLine, headers);
-            cleanup();
-            resolve({
-                connect: {
-                    statusCode,
-                    statusText,
-                    headers,
-                },
-                buffered,
-            });
-        }
-        socket.on('error', onerror);
-        socket.on('end', onend);
-        read();
-    });
-}
-exports.parseProxyResponse = parseProxyResponse;
-//# sourceMappingURL=parse-proxy-response.js.map
 
 /***/ }),
 
@@ -38447,13 +37744,6 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("tty");
 
 /***/ }),
 
-/***/ 7016:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("url");
-
-/***/ }),
-
 /***/ 9023:
 /***/ ((module) => {
 
@@ -38554,6 +37844,9 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"6.
 /******/ 	return module.exports;
 /******/ }
 /******/ 
+/******/ // expose the modules object (__webpack_modules__)
+/******/ __nccwpck_require__.m = __webpack_modules__;
+/******/ 
 /************************************************************************/
 /******/ /* webpack/runtime/asset-relocator-loader */
 /******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = decodeURIComponent(new URL('.', import.meta.url).pathname).slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
@@ -38600,6 +37893,28 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"6.
 /******/ 	};
 /******/ })();
 /******/ 
+/******/ /* webpack/runtime/ensure chunk */
+/******/ (() => {
+/******/ 	__nccwpck_require__.f = {};
+/******/ 	// This file contains only the entry chunk.
+/******/ 	// The chunk loading function for additional chunks
+/******/ 	__nccwpck_require__.e = (chunkId) => {
+/******/ 		return Promise.all(Object.keys(__nccwpck_require__.f).reduce((promises, key) => {
+/******/ 			__nccwpck_require__.f[key](chunkId, promises);
+/******/ 			return promises;
+/******/ 		}, []));
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/get javascript chunk filename */
+/******/ (() => {
+/******/ 	// This function allow to reference async chunks
+/******/ 	__nccwpck_require__.u = (chunkId) => {
+/******/ 		// return url for filenames based on template
+/******/ 		return "" + chunkId + ".index.js";
+/******/ 	};
+/******/ })();
+/******/ 
 /******/ /* webpack/runtime/hasOwnProperty shorthand */
 /******/ (() => {
 /******/ 	__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
@@ -38614,6 +37929,69 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"6.
 /******/ 		}
 /******/ 		Object.defineProperty(exports, '__esModule', { value: true });
 /******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/import chunk loading */
+/******/ (() => {
+/******/ 	// no baseURI
+/******/ 	
+/******/ 	// object to store loaded and loading chunks
+/******/ 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
+/******/ 	// [resolve, Promise] = chunk loading, 0 = chunk loaded
+/******/ 	var installedChunks = {
+/******/ 		792: 0
+/******/ 	};
+/******/ 	
+/******/ 	var installChunk = (data) => {
+/******/ 		var {ids, modules, runtime} = data;
+/******/ 		// add "modules" to the modules object,
+/******/ 		// then flag all "ids" as loaded and fire callback
+/******/ 		var moduleId, chunkId, i = 0;
+/******/ 		for(moduleId in modules) {
+/******/ 			if(__nccwpck_require__.o(modules, moduleId)) {
+/******/ 				__nccwpck_require__.m[moduleId] = modules[moduleId];
+/******/ 			}
+/******/ 		}
+/******/ 		if(runtime) runtime(__nccwpck_require__);
+/******/ 		for(;i < ids.length; i++) {
+/******/ 			chunkId = ids[i];
+/******/ 			if(__nccwpck_require__.o(installedChunks, chunkId) && installedChunks[chunkId]) {
+/******/ 				installedChunks[chunkId][0]();
+/******/ 			}
+/******/ 			installedChunks[ids[i]] = 0;
+/******/ 		}
+/******/ 	
+/******/ 	}
+/******/ 	
+/******/ 	__nccwpck_require__.f.j = (chunkId, promises) => {
+/******/ 			// import() chunk loading for javascript
+/******/ 			var installedChunkData = __nccwpck_require__.o(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;
+/******/ 			if(installedChunkData !== 0) { // 0 means "already installed".
+/******/ 	
+/******/ 				// a Promise means "currently loading".
+/******/ 				if(installedChunkData) {
+/******/ 					promises.push(installedChunkData[1]);
+/******/ 				} else {
+/******/ 					if(true) { // all chunks have JS
+/******/ 						// setup Promise in chunk cache
+/******/ 						var promise = import("./" + __nccwpck_require__.u(chunkId)).then(installChunk, (e) => {
+/******/ 							if(installedChunks[chunkId] !== 0) installedChunks[chunkId] = undefined;
+/******/ 							throw e;
+/******/ 						});
+/******/ 						var promise = Promise.race([promise, new Promise((resolve) => (installedChunkData = installedChunks[chunkId] = [resolve]))])
+/******/ 						promises.push(installedChunkData[1] = promise);
+/******/ 					}
+/******/ 				}
+/******/ 			}
+/******/ 	};
+/******/ 	
+/******/ 	// no prefetching
+/******/ 	
+/******/ 	// no preloaded
+/******/ 	
+/******/ 	// no external install chunk
+/******/ 	
+/******/ 	// no on chunks loaded
 /******/ })();
 /******/ 
 /************************************************************************/
@@ -38812,528 +38190,6 @@ const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(impo
 var external_node_crypto_ = __nccwpck_require__(7598);
 ;// CONCATENATED MODULE: external "node:fs/promises"
 const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs/promises");
-;// CONCATENATED MODULE: ./src/Util/CompareVersions.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function compareVersions(v1, v2) {
-    let result = 0;
-    const l1 = v1.length;
-    const l2 = v2.length;
-    let i = 0;
-    if (l1 <= l2) {
-        while (result === 0 && i < l2) {
-            result = (i < l1 ? v1[i] : 0) - v2[i];
-            i++;
-        }
-    }
-    else {
-        while (result === 0 && i < l1) {
-            result = v1[i] - (i < l2 ? v2[i] : 0);
-            i++;
-        }
-    }
-    return result;
-}
-
-;// CONCATENATED MODULE: ./src/Projects/PucLua/PucLuaVersion.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-const LATEST_LUA_RELEASE_VERSION = "5.5.1";
-const CONVERT_LUA_RELEASE_VERSION = {
-    "5.1": "5.1.5",
-    "5.2": "5.2.4",
-    "5.3": "5.3.6",
-    "5.4": "5.4.9",
-    "5.5": LATEST_LUA_RELEASE_VERSION
-};
-const LUA_RELEASES = {
-    "5.5.1": { "version": "5.5.1", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
-    "5.5.0": { "version": "5.5.0", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
-    "5.4.9": { "version": "5.4.9", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
-    "5.4.8": { "version": "5.4.8", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
-    "5.4.7": { "version": "5.4.7", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
-    "5.4.6": { "version": "5.4.6", "hash": { "algorithm": "sha256", "value": "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88" } },
-    "5.4.5": { "version": "5.4.5", "hash": { "algorithm": "sha256", "value": "59df426a3d50ea535a460a452315c4c0d4e1121ba72ff0bdde58c2ef31d6f444" } },
-    "5.4.4": { "version": "5.4.4", "hash": { "algorithm": "sha256", "value": "164c7849653b80ae67bec4b7473b884bf5cc8d2dca05653475ec2ed27b9ebf61" } },
-    "5.4.3": { "version": "5.4.3", "hash": { "algorithm": "sha256", "value": "f8612276169e3bfcbcfb8f226195bfc6e466fe13042f1076cbde92b7ec96bbfb" } },
-    "5.4.2": { "version": "5.4.2", "hash": { "algorithm": "sha256", "value": "11570d97e9d7303c0a59567ed1ac7c648340cd0db10d5fd594c09223ef2f524f" } },
-    "5.4.1": { "version": "5.4.1", "hash": { "algorithm": "sha256", "value": "4ba786c3705eb9db6567af29c91a01b81f1c0ac3124fdbf6cd94bdd9e53cca7d" } },
-    "5.4.0": { "version": "5.4.0", "hash": { "algorithm": "sha256", "value": "eac0836eb7219e421a96b7ee3692b93f0629e4cdb0c788432e3d10ce9ed47e28" } },
-    "5.3.6": { "version": "5.3.6", "hash": { "algorithm": "sha256", "value": "fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60" } },
-    "5.3.5": { "version": "5.3.5", "hash": { "algorithm": "sha256", "value": "0c2eed3f960446e1a3e4b9a1ca2f3ff893b6ce41942cf54d5dd59ab4b3b058ac" } },
-    "5.3.4": { "version": "5.3.4", "hash": { "algorithm": "sha256", "value": "f681aa518233bc407e23acf0f5887c884f17436f000d453b2491a9f11a52400c" } },
-    "5.3.3": { "version": "5.3.3", "hash": { "algorithm": "sha256", "value": "5113c06884f7de453ce57702abaac1d618307f33f6789fa870e87a59d772aca2" } },
-    "5.3.2": { "version": "5.3.2", "hash": { "algorithm": "sha256", "value": "c740c7bb23a936944e1cc63b7c3c5351a8976d7867c5252c8854f7b2af9da68f" } },
-    "5.3.1": { "version": "5.3.1", "hash": { "algorithm": "sha256", "value": "072767aad6cc2e62044a66e8562f51770d941e972dc1e4068ba719cd8bffac17" } },
-    "5.3.0": { "version": "5.3.0", "hash": { "algorithm": "sha256", "value": "ae4a5eb2d660515eb191bfe3e061f2b8ffe94dce73d32cfd0de090ddcc0ddb01" } },
-    "5.2.4": { "version": "5.2.4", "hash": { "algorithm": "sha256", "value": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b" } },
-    "5.2.3": { "version": "5.2.3", "hash": { "algorithm": "sha256", "value": "13c2fb97961381f7d06d5b5cea55b743c163800896fd5c5e2356201d3619002d" } },
-    "5.2.2": { "version": "5.2.2", "hash": { "algorithm": "sha256", "value": "3fd67de3f5ed133bf312906082fa524545c6b9e1b952e8215ffbd27113f49f00" } },
-    "5.2.1": { "version": "5.2.1", "hash": { "algorithm": "sha256", "value": "64304da87976133196f9e4c15250b70f444467b6ed80d7cfd7b3b982b5177be5" } },
-    "5.2.0": { "version": "5.2.0", "hash": { "algorithm": "sha256", "value": "cabe379465aa8e388988073d59b69e76ba0025429d2c1da80821a252cdf6be0d" } },
-    "5.1.5": { "version": "5.1.5", "hash": { "algorithm": "sha256", "value": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" } },
-    "5.1.4": { "version": "5.1.4", "hash": { "algorithm": "sha256", "value": "b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a" } },
-    "5.1.3": { "version": "5.1.3", "hash": { "algorithm": "sha256", "value": "6b5df2edaa5e02bf1a2d85e1442b2e329493b30b0c0780f77199d24f087d296d" } },
-    "5.1.2": { "version": "5.1.2", "hash": { "algorithm": "sha256", "value": "5cf098c6fe68d3d2d9221904f1017ff0286e4a9cc166a1452a456df9b88b3d9e" } },
-    "5.1.1": { "version": "5.1.1", "hash": { "algorithm": "sha256", "value": "c5daeed0a75d8e4dd2328b7c7a69888247868154acbda69110e97d4a6e17d1f0" } }
-};
-const LUA_WORKS = {
-    "5.5.1-rc2": { "version": "5.5.1-rc2", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
-    "5.5.1-rc1": { "version": "5.5.1-rc1", "hash": { "algorithm": "sha256", "value": "c1dbdbb5be08bbd0589edd786b8878620a05cba09cbcc4275e65d1f384ef18e6" } },
-    "5.5.0-rc4": { "version": "5.5.0-rc4", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
-    "5.5.0-rc3": { "version": "5.5.0-rc3", "hash": { "algorithm": "sha256", "value": "f1a812cdcc3916f7441aec725014403177e0ef08ace097189548208f9605b2b3" } },
-    "5.5.0-rc2": { "version": "5.5.0-rc2", "hash": { "algorithm": "sha256", "value": "50b24b8fce4644a4590af0f23c65945836161515b9e87c45ee1f0e62b0255a1d" } },
-    "5.5.0-rc1": { "version": "5.5.0-rc1", "hash": { "algorithm": "sha256", "value": "34a4dcca0c04877fbce4baff54054b9793b70bca5d8c676ca4d3504dd47c3772" } },
-    "5.5.0-beta": { "version": "5.5.0-beta", "hash": { "algorithm": "sha256", "value": "30897f95fc72565cb6c1792f721ad44e1a42e7ac587f62f7587807b3cbff1645" } },
-    "5.4.9-rc1": { "version": "5.4.9-rc1", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
-    "5.4.8-rc1": { "version": "5.4.8-rc1", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
-    "5.4.7-rc4": { "version": "5.4.7-rc4", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
-    "5.4.7-rc3": { "version": "5.4.7-rc3", "hash": { "algorithm": "sha256", "value": "9bfdb269aefaa8a8c671cb509943bb2bac0704ea3fce3e6c00d92908326cd144" } },
-    "5.4.7-rc2": { "version": "5.4.7-rc2", "hash": { "algorithm": "sha256", "value": "047417676188278ee86a15c2136f400f9f2a0c21ff2b0d30ab8e2c9e217853ac" } },
-    "5.4.7-rc1": { "version": "5.4.7-rc1", "hash": { "algorithm": "sha256", "value": "9f51aeeaba66df34df7b63dfb8f94cb33000aad4d8788f66ac913a9efb5a64f7" } },
-    "5.4.6-rc1": { "version": "5.4.6-rc1", "hash": { "algorithm": "sha256", "value": "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88" } },
-    "5.4.5-rc2": { "version": "5.4.5-rc2", "hash": { "algorithm": "sha256", "value": "59df426a3d50ea535a460a452315c4c0d4e1121ba72ff0bdde58c2ef31d6f444" } },
-    "5.4.5-rc1": { "version": "5.4.5-rc1", "hash": { "algorithm": "sha256", "value": "6fedab336aeae90ea4eed1f0b86ac3e0367d58176153a97323c9098a6fe9daad" } },
-    "5.4.4-rc3": { "version": "5.4.4-rc3", "hash": { "algorithm": "sha256", "value": "164c7849653b80ae67bec4b7473b884bf5cc8d2dca05653475ec2ed27b9ebf61" } },
-    "5.4.4-rc2": { "version": "5.4.4-rc2", "hash": { "algorithm": "sha256", "value": "2c4460fa5ef62c54111323a59b510dffe8a76148da3d48cbc2b32234019ad105" } },
-    "5.4.4-rc1": { "version": "5.4.4-rc1", "hash": { "algorithm": "sha256", "value": "9f93b571e287c76541b0ed4ec54a815ecb5d5bf481285ca8170ac6c8294efaa5" } },
-    "5.4.3-rc2": { "version": "5.4.3-rc2", "hash": { "algorithm": "sha256", "value": "f8612276169e3bfcbcfb8f226195bfc6e466fe13042f1076cbde92b7ec96bbfb" } },
-    "5.4.3-rc1": { "version": "5.4.3-rc1", "hash": { "algorithm": "sha256", "value": "989c98e30452d60adc6820f5323205e77ee22f6f88403fedb21a69d262107a92" } },
-    "5.4.2-rc1": { "version": "5.4.2-rc1", "hash": { "algorithm": "sha256", "value": "11570d97e9d7303c0a59567ed1ac7c648340cd0db10d5fd594c09223ef2f524f" } },
-    "5.4.1-rc1": { "version": "5.4.1-rc1", "hash": { "algorithm": "sha256", "value": "4ba786c3705eb9db6567af29c91a01b81f1c0ac3124fdbf6cd94bdd9e53cca7d" } },
-    "5.3.6-rc3": { "version": "5.3.6-rc3", "hash": { "algorithm": "sha256", "value": "fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60" } },
-    "5.3.6-rc2": { "version": "5.3.6-rc2", "hash": { "algorithm": "sha256", "value": "e2047dc90cc654671f615c04cffbfe4a281648ab9474a82a27d68d45d6442302" } },
-    "5.3.6-rc1": { "version": "5.3.6-rc1", "hash": { "algorithm": "sha256", "value": "94e86efb1141b57b270f7e75d5b76ddf12089bf570153e1d1189442cdb9487f4" } },
-    "5.4.0-rc6": { "version": "5.4.0-rc6", "hash": { "algorithm": "sha256", "value": "eac0836eb7219e421a96b7ee3692b93f0629e4cdb0c788432e3d10ce9ed47e28" } },
-    "5.4.0-rc5": { "version": "5.4.0-rc5", "hash": { "algorithm": "sha256", "value": "a8c31d95d1eaea2acc14472fdf917bec1fd39a333c0bf03bc2a4124f7844a4e5" } },
-    "5.4.0-rc4": { "version": "5.4.0-rc4", "hash": { "algorithm": "sha256", "value": "51321a019b27e09d3f00cda2c52d185ecb0fb453c904a3e4aab1d118f9c77992" } },
-    "5.4.0-rc3": { "version": "5.4.0-rc3", "hash": { "algorithm": "sha256", "value": "092087dbf519f31ff9bc74ae7560edd8ee934b6f16e37f63fc6236e1bf9a853c" } },
-    "5.4.0-rc2": { "version": "5.4.0-rc2", "hash": { "algorithm": "sha256", "value": "632855309ed55e3fdd8236869b40b11ca6010e70115dd85fb2c6ab146be8677a" } },
-    "5.4.0-rc1": { "version": "5.4.0-rc1", "hash": { "algorithm": "sha256", "value": "0a4fb4cb9281d924799650a768e61723fac3f0329bca39e51b90d1acc4228e71" } },
-    "5.4.0-beta": { "version": "5.4.0-beta", "hash": { "algorithm": "sha256", "value": "5eb2824bc08469be9d9282c7298f001830ea013179ad0ae8a50600332568ebb9" } },
-    "5.4.0-beta-rc1": { "version": "5.4.0-beta-rc1", "hash": { "algorithm": "sha256", "value": "ecd1deedca3ab604b746e42466b43e1cefbfafb1556e1ac95a92664368d5a6ec" } },
-    "5.4.0-alpha-rc2": { "version": "5.4.0-alpha-rc2", "hash": { "algorithm": "sha256", "value": "d8504506ede2dbac73c5a74235feaabb2101caff59c7f87efe774b24a10e8407" } },
-    "5.4.0-alpha": { "version": "5.4.0-alpha", "hash": { "algorithm": "sha256", "value": "d8504506ede2dbac73c5a74235feaabb2101caff59c7f87efe774b24a10e8407" } },
-    "5.4.0-alpha-rc1": { "version": "5.4.0-alpha-rc1", "hash": { "algorithm": "sha256", "value": "6dce98f6a5b19eef9e5090db09a82e1653425fd9886671c3041ab356491f2ef8" } },
-    "5.3.5-rc2": { "version": "5.3.5-rc2", "hash": { "algorithm": "sha256", "value": "0c2eed3f960446e1a3e4b9a1ca2f3ff893b6ce41942cf54d5dd59ab4b3b058ac" } },
-    "5.3.5-rc1": { "version": "5.3.5-rc1", "hash": { "algorithm": "sha256", "value": "23372e52138419459460ce576449b901086222e2c1f68812a89400391eb575f2" } },
-    "5.4.0-work2": { "version": "5.4.0-work2", "hash": { "algorithm": "sha256", "value": "68b7e8f1ff561b9a7e1c29de26ff99ac2a704773c0965a4fe1800b7657d5a057" } },
-    "5.4.0-work1": { "version": "5.4.0-work1", "hash": { "algorithm": "sha256", "value": "ada03980481110bfde44b3bd44bde4b03d72c84318b34d657b5b5a91ddb3912c" } },
-    "5.3.4-rc3": { "version": "5.3.4-rc3", "hash": { "algorithm": "sha256", "value": "f681aa518233bc407e23acf0f5887c884f17436f000d453b2491a9f11a52400c" } },
-    "5.3.4-rc2": { "version": "5.3.4-rc2", "hash": { "algorithm": "sha256", "value": "9c034489170cb0b4d0899f6cb833630ed4deeaea04f5ccb384d4c9125a43b2e9" } },
-    "5.3.4-rc1": { "version": "5.3.4-rc1", "hash": { "algorithm": "sha256", "value": "84818084e005e874b701f4aa6791659f5b39f23ac4a5eaa7b9a99d0734c6564d" } },
-    "5.3.3-rc3": { "version": "5.3.3-rc3", "hash": { "algorithm": "sha256", "value": "5113c06884f7de453ce57702abaac1d618307f33f6789fa870e87a59d772aca2" } },
-    "5.3.3-rc2": { "version": "5.3.3-rc2", "hash": { "algorithm": "sha256", "value": "0701c6e9063adce208c22313f5a516d5ed46a1b227581b3e905117504a7ecf2d" } },
-    "5.3.3-rc1": { "version": "5.3.3-rc1", "hash": { "algorithm": "sha256", "value": "247a09870ee5a8027f3848fd06fb9ce98821a6f2b443fdb863daf1bf38d23334" } },
-    "5.3.2-rc2": { "version": "5.3.2-rc2", "hash": { "algorithm": "sha256", "value": "c740c7bb23a936944e1cc63b7c3c5351a8976d7867c5252c8854f7b2af9da68f" } },
-    "5.3.2-rc1": { "version": "5.3.2-rc1", "hash": { "algorithm": "sha256", "value": "edcd5dc637824e71a98392be9ebc67e806fc93d84b89877086428a6b0be08c42" } },
-    "5.3.1-rc2": { "version": "5.3.1-rc2", "hash": { "algorithm": "sha256", "value": "072767aad6cc2e62044a66e8562f51770d941e972dc1e4068ba719cd8bffac17" } },
-    "5.3.1-rc1": { "version": "5.3.1-rc1", "hash": { "algorithm": "sha256", "value": "57cb83791cae679f5b04abfe43f9c85d2ad8e8ae47864484b511fd455adae50d" } },
-    "5.2.4-rc1": { "version": "5.2.4-rc1", "hash": { "algorithm": "sha256", "value": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b" } },
-    "5.3.0-rc4": { "version": "5.3.0-rc4", "hash": { "algorithm": "sha256", "value": "ae4a5eb2d660515eb191bfe3e061f2b8ffe94dce73d32cfd0de090ddcc0ddb01" } },
-    "5.3.0-rc3": { "version": "5.3.0-rc3", "hash": { "algorithm": "sha256", "value": "f03d91872689d818888ab6cde4c15f5fd319a7fa483ccdb2797796a86063a0a5" } },
-    "5.3.0-rc2": { "version": "5.3.0-rc2", "hash": { "algorithm": "sha256", "value": "a6a30ea6548089821e4ddd7586624f9ef0da0186312951c00d7e300c1ca8e314" } },
-    "5.3.0-rc1": { "version": "5.3.0-rc1", "hash": { "algorithm": "sha256", "value": "25c2123c9bd58e658145bad31732a0b12f218d6e56e0fd9b53ed32d3cf181062" } },
-    "5.3.0-rc0": { "version": "5.3.0-rc0", "hash": { "algorithm": "sha256", "value": "1c5788211d4b1a7147e1f7bcc4dae752910cd1a62af1c74e6686a1f2ce13b144" } },
-    "5.3.0-beta": { "version": "5.3.0-beta", "hash": { "algorithm": "sha256", "value": "a1137c07e58bcc3e9b270a6b8dc42623ae8addba1a5c0da2239e7e65645bce90" } },
-    "5.3.0-alpha": { "version": "5.3.0-alpha", "hash": { "algorithm": "sha256", "value": "23ef23ef74da2cc057b68078e2085f6c12a2f8160229449d4cf2c30b22537846" } },
-    "5.3.0-work3": { "version": "5.3.0-work3", "hash": { "algorithm": "sha256", "value": "c42d633c237e9a3a237496559fbb28627fc72c3298480ac05b4210b1dee0f32c" } },
-    "5.3.0-work2": { "version": "5.3.0-work2", "hash": { "algorithm": "sha256", "value": "a33d42f327e875b85b4d6d84cb62161a246af860fef1ce29d8d2fea825876423" } },
-    "5.2.3-rc1": { "version": "5.2.3-rc1", "hash": { "algorithm": "sha256", "value": "13c2fb97961381f7d06d5b5cea55b743c163800896fd5c5e2356201d3619002d" } },
-    "5.3.0-work1": { "version": "5.3.0-work1", "hash": { "algorithm": "sha256", "value": "d1435aded81c313592c4cbbc6cc1ffa63706fdb19c6c353aed1fec142cd73cfd" } },
-    "5.2.2-rc4": { "version": "5.2.2-rc4", "hash": { "algorithm": "sha256", "value": "3fd67de3f5ed133bf312906082fa524545c6b9e1b952e8215ffbd27113f49f00" } },
-    "5.2.2-rc3": { "version": "5.2.2-rc3", "hash": { "algorithm": "sha256", "value": "8ca83f7daa52750d2b49a032619b2e992d8867c4f2232f7c6a740fd3e40bfd32" } },
-    "5.2.2-rc2": { "version": "5.2.2-rc2", "hash": { "algorithm": "sha256", "value": "433b1245b1689e59ca531ba66de2834c2d63a932d71b5decca307708645da8c6" } },
-    "5.2.2-rc1": { "version": "5.2.2-rc1", "hash": { "algorithm": "sha256", "value": "433e7ca1a7590a8ad132b7583748c8d3e329929cc97163cf2d4be79e53b66c16" } },
-    "5.2.1-rc4": { "version": "5.2.1-rc4", "hash": { "algorithm": "sha256", "value": "64304da87976133196f9e4c15250b70f444467b6ed80d7cfd7b3b982b5177be5" } },
-    "5.2.1-rc3": { "version": "5.2.1-rc3", "hash": { "algorithm": "sha256", "value": "849733c3e125395e8c94debb5130555e979be76fd2767f6fcf3b03a3d9a22b3d" } },
-    "5.2.1-rc2": { "version": "5.2.1-rc2", "hash": { "algorithm": "sha256", "value": "938c2da29e04651b0cb614b41417dcbd6679e7c400ce79f57938100430e7bc9a" } },
-    "5.2.1-rc1": { "version": "5.2.1-rc1", "hash": { "algorithm": "sha256", "value": "7a895c3341683075436e86fe3a44325ab8cd3f29731cf057d41155f5ec9ec72d" } },
-    "5.2.1-work1": { "version": "5.2.1-work1", "hash": { "algorithm": "sha256", "value": "acdfef8c61524e3c1c047418a6beaab33da166fa83fb4a2f07d5519ef6fa5922" } },
-    "5.1.5-rc2": { "version": "5.1.5-rc2", "hash": { "algorithm": "sha256", "value": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" } },
-    "5.1.5-rc1": { "version": "5.1.5-rc1", "hash": { "algorithm": "sha256", "value": "8a619dfd05c80a687f8fe9c01e66200577aa4f3962b2a4c71525fad78efb5ba5" } },
-    "5.2.0-rc8": { "version": "5.2.0-rc8", "hash": { "algorithm": "sha256", "value": "cabe379465aa8e388988073d59b69e76ba0025429d2c1da80821a252cdf6be0d" } },
-    "5.2.0-rc7": { "version": "5.2.0-rc7", "hash": { "algorithm": "sha256", "value": "c5ece090e005b9fbceb4b7dca0a191dac248590059ba3119ba6ac451883db5b3" } },
-    "5.2.0-rc6": { "version": "5.2.0-rc6", "hash": { "algorithm": "sha256", "value": "ad80dca436d983caeec6bac6cd22aeafc2cfda9ded22b902dd042b77b164d968" } },
-    "5.2.0-rc5": { "version": "5.2.0-rc5", "hash": { "algorithm": "sha256", "value": "4e4bfeeba3c7207fec825dd7971c76fe5825ec7663ea71ead11648f454325f72" } },
-    "5.2.0-rc4": { "version": "5.2.0-rc4", "hash": { "algorithm": "sha256", "value": "d0c8dcd5ce94d59ead8866a2d2481145789c8aab592ed99e1bb0890c898ee356" } },
-    "5.2.0-rc3": { "version": "5.2.0-rc3", "hash": { "algorithm": "sha256", "value": "fb2db80b5448601c8c6ccbd651d471be07d94465cd0c24f999d0e1a55ee2a31d" } },
-    "5.2.0-rc2": { "version": "5.2.0-rc2", "hash": { "algorithm": "sha256", "value": "fcf77ed357b154295471fc16ff64362a1170825441aeae62dcc185bc5eb87d28" } },
-    "5.2.0-rc1": { "version": "5.2.0-rc1", "hash": { "algorithm": "sha256", "value": "8f3835d6167101eff95a7f34df513337269f1a9934a5593e79e546427423e4b5" } },
-    "5.2.0-beta-rc7": { "version": "5.2.0-beta-rc7", "hash": { "algorithm": "sha256", "value": "e7e49a1cc1d03ca24caed0cd8d7b76b6fb88a96bf8814f609ddc821d9813cdc6" } },
-    "5.2.0-beta": { "version": "5.2.0-beta", "hash": { "algorithm": "sha256", "value": "e7e49a1cc1d03ca24caed0cd8d7b76b6fb88a96bf8814f609ddc821d9813cdc6" } },
-    "5.2.0-beta-rc6": { "version": "5.2.0-beta-rc6", "hash": { "algorithm": "sha256", "value": "30f0948723fd306ad344bf52e9e393a2a64b26900abad37aacafa45a547915ea" } },
-    "5.2.0-beta-rc5": { "version": "5.2.0-beta-rc5", "hash": { "algorithm": "sha256", "value": "9c1e5e240e36535d21d3dc53dd2b3f62b1fef737fdb4e9183ed0b71a77163963" } },
-    "5.2.0-beta-rc4": { "version": "5.2.0-beta-rc4", "hash": { "algorithm": "sha256", "value": "2983f5e2bccbb7ea23512d79e697d253f06509e9077a6663956f3ae71b33c658" } },
-    "5.2.0-beta-rc3": { "version": "5.2.0-beta-rc3", "hash": { "algorithm": "sha256", "value": "51edfebdc1f4a31c41c1a320ccf09ab35fa3f2921025ab1ad0a6b50140a05ed0" } },
-    "5.2.0-beta-rc2": { "version": "5.2.0-beta-rc2", "hash": { "algorithm": "sha256", "value": "a334806a8e785f19bfd6acc15e636a8d1d2184e9ccd31a96cfab6f22cf6e746d" } },
-    "5.2.0-beta-rc1": { "version": "5.2.0-beta-rc1", "hash": { "algorithm": "sha256", "value": "9370b606cfbf2e730ebc9669837bc1643ece222fd214bfbcc0a81075f5f556ee" } },
-    "5.2.0-alpha-rc4": { "version": "5.2.0-alpha-rc4", "hash": { "algorithm": "sha256", "value": "8d08193f8819db49827c1687e1cf73be45268478b0aa2c99b791576d68646aa0" } },
-    "5.2.0-alpha": { "version": "5.2.0-alpha", "hash": { "algorithm": "sha256", "value": "8d08193f8819db49827c1687e1cf73be45268478b0aa2c99b791576d68646aa0" } },
-    "5.2.0-alpha-rc3": { "version": "5.2.0-alpha-rc3", "hash": { "algorithm": "sha256", "value": "e1b466477945367f0fbb16ba0271f8a1609206f6352e909eddb9f5adbbc852c7" } },
-    "5.2.0-alpha-rc2": { "version": "5.2.0-alpha-rc2", "hash": { "algorithm": "sha256", "value": "9562008561caa63422a1369df03271b4a205de826aa0cf03b6a354b34854d344" } },
-    "5.2.0-alpha-rc1": { "version": "5.2.0-alpha-rc1", "hash": { "algorithm": "sha256", "value": "37ca7c4cb232c0954268446a234240e678de0f3691aeda2848dbd12bd4024a91" } },
-    "5.2.0-work5": { "version": "5.2.0-work5", "hash": { "algorithm": "sha256", "value": "fc6a2c730dc8fadf156fc3632a6a02713c4926f157ef34fa2f6bb4082f4e4a9b" } },
-    "5.2.0-work4": { "version": "5.2.0-work4", "hash": { "algorithm": "sha256", "value": "8b2539bc6d417dc85e76c956f7630e3629c8412605db047f38bbfe7b29030b0c" } },
-    "5.2.0-work3": { "version": "5.2.0-work3", "hash": { "algorithm": "sha256", "value": "c5c5e06b36fd0097ff8b65489a24391631009c816417798108f7103772977b4b" } },
-    "5.2.0-work2": { "version": "5.2.0-work2", "hash": { "algorithm": "sha256", "value": "5344b821acfe3d623b12a2c4c454837fd3b15e9c5a96a65781663053fd05cd0a" } },
-    "5.2.0-work1": { "version": "5.2.0-work1", "hash": { "algorithm": "sha256", "value": "c1af40891fa432af6bca1ed0d163c4f24f7997c4babbffa451f24f95bd54927a" } },
-    "5.1.4-rc3": { "version": "5.1.4-rc3", "hash": { "algorithm": "sha256", "value": "b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a" } },
-    "5.1.4-rc2": { "version": "5.1.4-rc2", "hash": { "algorithm": "sha256", "value": "64a8f099248064ebbd418e0efdc4de6aa10982ad3a4011acc9a58c8f37a4fce5" } },
-    "5.1.4-rc1": { "version": "5.1.4-rc1", "hash": { "algorithm": "sha256", "value": "8b903c7f64c2595cd7fad7a63c828dd184c29ef426ad4c3e850f8a2594549778" } },
-    "5.1.3-rc5": { "version": "5.1.3-rc5", "hash": { "algorithm": "sha256", "value": "6b5df2edaa5e02bf1a2d85e1442b2e329493b30b0c0780f77199d24f087d296d" } },
-    "5.1.3-rc4": { "version": "5.1.3-rc4", "hash": { "algorithm": "sha256", "value": "65a157f49993ad93016b2f7301543024d6939e29da5e9d081a3c8c93d0796224" } },
-    "5.1.3-rc3": { "version": "5.1.3-rc3", "hash": { "algorithm": "sha256", "value": "d26f27272d4064df9756ae3ba308edd00432f1558d99b757378ffc3f0b5da49f" } },
-    "5.1.3-rc2": { "version": "5.1.3-rc2", "hash": { "algorithm": "sha256", "value": "5da201797c131bca05072028f45d7168d1aceb3ea45d0195aa23874aa78059aa" } },
-    "5.1.3-rc1": { "version": "5.1.3-rc1", "hash": { "algorithm": "sha256", "value": "232219e6d26722047c52310fead85849b15480194fc47693c676670cd61bcc55" } },
-    "5.1.2-rc5": { "version": "5.1.2-rc5", "hash": { "algorithm": "sha256", "value": "5cf098c6fe68d3d2d9221904f1017ff0286e4a9cc166a1452a456df9b88b3d9e" } },
-    "5.1.2-rc4": { "version": "5.1.2-rc4", "hash": { "algorithm": "sha256", "value": "153911c46eb71e78c08eee39c8469e8e117a6fdf3ec656d4412c7c33841a0fd1" } },
-    "5.1.2-rc3": { "version": "5.1.2-rc3", "hash": { "algorithm": "sha256", "value": "ca5730f14e5daab90d7dbd457ebd556d38206f7d0c1b5d238b740355ac91dbde" } },
-    "5.1.2-rc2": { "version": "5.1.2-rc2", "hash": { "algorithm": "sha256", "value": "3f31cdfbc983c1aad7b439f2122cb15d168bce028b97992b66f9e4b1056a8d16" } },
-    "5.1.2-rc1": { "version": "5.1.2-rc1", "hash": { "algorithm": "sha256", "value": "27c4b24d4536689ddfe3f5fbc0e5db8f922cfcfb6b3e9a30dbfb9d40f8f4658d" } },
-    "5.1.1-rc4": { "version": "5.1.1-rc4", "hash": { "algorithm": "sha256", "value": "f9baa3c37915be2e7cb8fa205b042bd403fa0fe854fb92ede1861d9bc999ded9" } },
-    "5.1.1-rc3": { "version": "5.1.1-rc3", "hash": { "algorithm": "sha256", "value": "b5eb2b1382716d5755a57e2a19fd919748a8a191fc1a69030f9225b85e6fff6c" } },
-    "5.1.1-rc2": { "version": "5.1.1-rc2", "hash": { "algorithm": "sha256", "value": "b14642c7f5f211f8f899ae4e97891d025a72245a3c6938b4d37024513730d71e" } },
-    "5.1.1-rc1": { "version": "5.1.1-rc1", "hash": { "algorithm": "sha256", "value": "84dda3f7a03999785488304e9561e4f6771366845d3488efbb8e077b20839c99" } }
-};
-/*
-** Q: How to enable work versions for a future Lua 5.5.2
-**    release candidate (lua-5.5.2-rc1)?
-**
-** A: modify the next function to return to
-**    workVersion.startsWith("5.5.2-")
-**
-** Q: How to disable the current work version?
-**
-** A: modify the next function to return `false'
-*/
-function isCurrentWorkVersion(workVersion) {
-    return false; /* workVersion.startsWith("5.4.9-") */
-}
-function isKnownLuaShortVersion(version) {
-    return version in CONVERT_LUA_RELEASE_VERSION;
-}
-function parsePucLuaVersion(version) {
-    return new Promise((resolve, reject) => {
-        const pucLuaVersion = version in CONVERT_LUA_RELEASE_VERSION ?
-            (CONVERT_LUA_RELEASE_VERSION[version]) :
-            ((version || LATEST_LUA_RELEASE_VERSION).trim());
-        if (pucLuaVersion in LUA_RELEASES) {
-            const releaseMatch = /^([0-9]+)\.([0-9]+)\.([0-9]+)$/.exec(pucLuaVersion);
-            if (releaseMatch) {
-                const major = Number(releaseMatch[1]);
-                if (major >= 5) {
-                    const minor = Number(releaseMatch[2]);
-                    if (major == 5 && minor == 0) {
-                        reject(new Error("The minimum supported Lua version is 5.1"));
-                    }
-                    else {
-                        const build = Number(releaseMatch[3]);
-                        const v = LUA_RELEASES[pucLuaVersion];
-                        resolve(new PucLuaReleaseVersion(major, minor, build, v.hash.algorithm, v.hash.value));
-                    }
-                }
-                else {
-                    reject(new Error("Unsupported major version of Lua"));
-                }
-            }
-            else {
-                reject(new Error("Internal error: Unknown format for a Lua release version"));
-            }
-        }
-        else if (pucLuaVersion in LUA_WORKS) {
-            const workMatch = /^([0-9]+)\.([0-9]+)\.([0-9]+)\-([0-9a-zA-Z\-\.]+)$/.exec(pucLuaVersion);
-            if (workMatch) {
-                const major = Number(workMatch[1]);
-                if (major >= 5) {
-                    const minor = Number(workMatch[2]);
-                    if (major == 5 && minor == 0) {
-                        reject(new Error("The minimum supported Lua version is 5.1"));
-                    }
-                    else {
-                        const build = Number(workMatch[3]);
-                        const suffix = workMatch[4];
-                        const v = LUA_WORKS[pucLuaVersion];
-                        resolve(new PucLuaWorkVersion(major, minor, build, v.hash.algorithm, v.hash.value, suffix, isCurrentWorkVersion(workMatch[0])));
-                    }
-                }
-                else {
-                    reject(new Error("Unsupported major version of Lua"));
-                }
-            }
-            else {
-                reject(new Error("Internal error: Unknown format for a Lua work version"));
-            }
-        }
-        else {
-            reject(new Error("Unsupported version of Lua"));
-        }
-    });
-}
-class AbstractPucLuaVersion {
-    getMajor() {
-        return this.major;
-    }
-    getMinor() {
-        return this.minor;
-    }
-    getBuild() {
-        return this.build;
-    }
-    getHashAlgorithm() {
-        return this.hashAlgorithm;
-    }
-    getHashValue() {
-        return this.hashValue;
-    }
-    compareTo(other) {
-        return compareVersions([this.major, this.minor, this.build], [other.getMajor(), other.getMinor(), other.getBuild()]);
-    }
-    constructor(major, minor, build, hashAlgorithm, hashValue) {
-        this.major = major;
-        this.minor = minor;
-        this.build = build;
-        this.hashAlgorithm = hashAlgorithm;
-        this.hashValue = hashValue;
-    }
-}
-class PucLuaReleaseVersion extends AbstractPucLuaVersion {
-    getString() {
-        const M = this.getMajor();
-        const m = this.getMinor();
-        const b = this.getBuild();
-        return `${M}.${m}.${b}`;
-    }
-    getDownloadUrl() {
-        return `https://lua.org/ftp/lua-${this.getString()}.tar.gz`;
-    }
-    constructor(major, minor, build, hashAlgorithm, hashValue) {
-        super(major, minor, build, hashAlgorithm, hashValue);
-    }
-}
-class PucLuaWorkVersion extends AbstractPucLuaVersion {
-    getSuffix() {
-        return this.suffix;
-    }
-    getCurrent() {
-        return this.current;
-    }
-    getString() {
-        const M = this.getMajor();
-        const m = this.getMinor();
-        const b = this.getBuild();
-        return `${M}.${m}.${b}-${this.suffix}`;
-    }
-    getDownloadUrl() {
-        return this.current ?
-            `https://lua.org/work/lua-${this.getString()}.tar.gz` :
-            `https://lua.org/work/old/lua-${this.getString()}.tar.gz`;
-    }
-    constructor(major, minor, build, hashAlgorithm, hashValue, suffix, current) {
-        super(major, minor, build, hashAlgorithm, hashValue);
-        this.suffix = suffix;
-        this.current = current;
-    }
-}
-const LUA_5_1_1_VERSION = LUA_RELEASES["5.1.1"];
-const LUA_5_2_0_VERSION = LUA_RELEASES["5.2.0"];
-const LUA_5_3_0_VERSION = LUA_RELEASES["5.3.0"];
-const LUA_5_4_0_VERSION = LUA_RELEASES["5.4.0"];
-const LUA_5_5_0_VERSION = LUA_RELEASES["5.5.0"];
-const LUA_51_VERSION = new PucLuaReleaseVersion(5, 1, 1, LUA_5_1_1_VERSION.hash.algorithm, LUA_5_1_1_VERSION.hash.value);
-const LUA_52_VERSION = new PucLuaReleaseVersion(5, 2, 0, LUA_5_2_0_VERSION.hash.algorithm, LUA_5_2_0_VERSION.hash.value);
-const LUA_53_VERSION = new PucLuaReleaseVersion(5, 3, 0, LUA_5_3_0_VERSION.hash.algorithm, LUA_5_3_0_VERSION.hash.value);
-const LUA_54_VERSION = new PucLuaReleaseVersion(5, 4, 0, LUA_5_4_0_VERSION.hash.algorithm, LUA_5_4_0_VERSION.hash.value);
-const LUA_55_VERSION = new PucLuaReleaseVersion(5, 5, 0, LUA_5_5_0_VERSION.hash.algorithm, LUA_5_5_0_VERSION.hash.value);
-
-;// CONCATENATED MODULE: ./src/Projects/Targets/TargetPipeline.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-class TargetPipeline {
-    constructor(initialTarget) {
-        this.initialTarget = initialTarget;
-    }
-    init() {
-        return new Promise((resolve, reject) => {
-            resolve(this.initialTarget);
-        });
-    }
-    finalize() {
-        return new Promise((resolve, reject) => {
-            resolve();
-        });
-    }
-    execute() {
-        return new Promise((resolve, reject) => {
-            let failed = false;
-            let finished = false;
-            let err;
-            this.init()
-                .then(tgt => {
-                const iter = (target) => {
-                    if (!(failed || finished)) {
-                        target.init()
-                            .then(() => {
-                            target.execute()
-                                .then(() => {
-                                target.finalize()
-                                    .then(() => {
-                                    const nextTarget = target.getNext();
-                                    if (!nextTarget) {
-                                        finished = true;
-                                    }
-                                    iter(nextTarget);
-                                })
-                                    .catch(finalizeErr => {
-                                    failed = true;
-                                    err = finalizeErr;
-                                    iter(target);
-                                });
-                            })
-                                .catch(execErr => {
-                                target.finalize()
-                                    .then(() => {
-                                    failed = true;
-                                    err = execErr;
-                                    iter(target);
-                                })
-                                    .catch(finalizeErr => {
-                                    failed = true;
-                                    err = finalizeErr;
-                                    iter(target);
-                                });
-                            });
-                        })
-                            .catch(initErr => {
-                            failed = true;
-                            err = initErr;
-                            iter(target);
-                        });
-                    }
-                    else if (err) {
-                        this.finalize()
-                            .then(() => {
-                            reject(err);
-                        })
-                            .catch(reject);
-                    }
-                    else {
-                        this.finalize()
-                            .then(resolve)
-                            .catch(reject);
-                    }
-                };
-                iter(tgt);
-            })
-                .catch(reject);
-        });
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Util/GetSetProperty.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-class GetSetProperty {
-    getValue() {
-        return this.value;
-    }
-    setValue(value) {
-        this.value = value;
-    }
-    constructor(value) {
-        this.value = value;
-    }
-}
-
 ;// CONCATENATED MODULE: ./src/Util/ReadOnlyArray.ts
 /*
 ** The MIT License (MIT)
@@ -39385,120 +38241,20 @@ class ReadOnlyArray {
     }
 }
 
-;// CONCATENATED MODULE: ./src/Toolchains/IWin32ImportLibraryDecorator.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function hasWin32ImportLibraryDecorator(linker) {
-    return ('setImportLibrary' in linker && 'getImportLibraryExtension' in linker);
-}
+;// CONCATENATED MODULE: ./src/FileUriInfo.ts
 
-;// CONCATENATED MODULE: ./src/Toolchains/GCC/IGccLikeToolchain.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function isGccLikeToolchain(toolchain) {
-    return ('getRanlib' in toolchain && 'getStrip' in toolchain);
-}
-
-;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaBuildInfo.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-class PucLuaBuildInfo {
-    constructor(sourcesInfo, sharedLibrary, staticLibrary, interpreter, compiler, pkgConfigFiles, importLibrary) {
-        this.sourcesInfo = sourcesInfo;
-        this.sharedLibrary = sharedLibrary;
-        this.staticLibrary = staticLibrary;
-        this.interpreter = interpreter;
-        this.compiler = compiler;
-        this.pkgConfigFiles = new ReadOnlyArray(pkgConfigFiles);
-        this.importLibrary = importLibrary;
+class FileUriInfo {
+    constructor(uriList) {
+        if (uriList.length <= 0) {
+            throw new Error("empty array of URIs are not allowed");
+        }
+        this.uriList = new ReadOnlyArray(uriList);
     }
-    getSourcesInfo() {
-        return this.sourcesInfo;
+    getUriArray() {
+        return this.uriList;
     }
-    getSharedLibrary() {
-        return this.sharedLibrary;
-    }
-    getStaticLibrary() {
-        return this.staticLibrary;
-    }
-    getInterpreter() {
-        return this.interpreter;
-    }
-    getCompiler() {
-        return this.compiler;
-    }
-    getPkgConfigFiles() {
-        return this.pkgConfigFiles;
-    }
-    getImportLibrary() {
-        return this.importLibrary;
+    getMainUri() {
+        return this.uriList.getItem(0);
     }
 }
 
@@ -42449,6 +41205,1070 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
+;// CONCATENATED MODULE: ./src/NativeGitHubCore.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+class NativeGitHubCore {
+    static instance() {
+        if (!NativeGitHubCore._instance) {
+            NativeGitHubCore._instance = new NativeGitHubCore();
+        }
+        return NativeGitHubCore._instance;
+    }
+    getInput(variable) {
+        return getInput(variable);
+    }
+    appendToGitHubPath(value) {
+        return new Promise((resolve, reject) => {
+            let err = undefined;
+            try {
+                addPath(value);
+            }
+            catch (e) {
+                err = e;
+            }
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve();
+            }
+        });
+    }
+    appendToGitHubEnvironmentVariables(key, value) {
+        return new Promise((resolve, reject) => {
+            let err = undefined;
+            try {
+                exportVariable(key, value);
+            }
+            catch (e) {
+                err = e;
+            }
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve();
+            }
+        });
+    }
+    constructor() {
+    }
+}
+
+;// CONCATENATED MODULE: ./src/GitHubCore.ts
+
+const GitHubCore = NativeGitHubCore;
+
+;// CONCATENATED MODULE: ./src/Util/GitHubInput.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+class GitHubInput {
+    static instance() {
+        if (!GitHubInput._instance) {
+            GitHubInput._instance = new GitHubInput();
+        }
+        return GitHubInput._instance;
+    }
+    getInputDebugSetupLua() {
+        const debugMode = GitHubCore.instance().getInput("debug-setup-lua");
+        return debugMode === "true" ||
+            debugMode === "True" ||
+            debugMode === "TRUE" ||
+            debugMode === "1" ||
+            debugMode === "on" ||
+            debugMode === "On" ||
+            debugMode === "ON" ||
+            debugMode === "y" ||
+            debugMode === "Y" ||
+            debugMode === "yes" ||
+            debugMode === "Yes" ||
+            debugMode === "YES";
+    }
+    getInputCC() {
+        return GitHubCore.instance().getInput("cc");
+    }
+    getInputLD() {
+        return GitHubCore.instance().getInput("ld");
+    }
+    getInputAR() {
+        return GitHubCore.instance().getInput("ar");
+    }
+    getInputSTRIP() {
+        return GitHubCore.instance().getInput("strip");
+    }
+    getInputRANLIB() {
+        return GitHubCore.instance().getInput("ranlib");
+    }
+    getInputRC() {
+        return GitHubCore.instance().getInput("rc");
+    }
+    getInputMake() {
+        return GitHubCore.instance().getInput("make");
+    }
+    getInputToolchainPrefix() {
+        return GitHubCore.instance().getInput("toolchain-prefix");
+    }
+    getInputLuaVersion() {
+        return GitHubCore.instance().getInput("lua-version");
+    }
+    getInputLuaRocksVersion() {
+        return GitHubCore.instance().getInput("luarocks-version");
+    }
+    getInputMacOSXDeploymentTarget() {
+        return GitHubCore.instance().getInput("macosx-deployment-target");
+    }
+    getInputUseCache() {
+        const useCache = GitHubCore.instance().getInput("use-cache");
+        return useCache === undefined ||
+            useCache === '' ||
+            useCache === "true" ||
+            useCache === "True" ||
+            useCache === "TRUE" ||
+            useCache === "1" ||
+            useCache === "on" ||
+            useCache === "On" ||
+            useCache === "ON" ||
+            useCache === "y" ||
+            useCache === "Y" ||
+            useCache === "yes" ||
+            useCache === "Yes" ||
+            useCache === "YES";
+    }
+    getInputCflagsExtra() {
+        return GitHubCore.instance().getInput("cflags-extra");
+    }
+    getInputIncDirsExtra() {
+        return GitHubCore.instance().getInput("incdirs-extra");
+    }
+    getInputLdflagsExtra() {
+        return GitHubCore.instance().getInput("ldflags-extra");
+    }
+    getInputLibDirsExtra() {
+        return GitHubCore.instance().getInput("libdirs-extra");
+    }
+    getInputLibsExtra() {
+        return GitHubCore.instance().getInput("libs-extra");
+    }
+    getInputLuaPatches() {
+        return GitHubCore.instance().getInput("lua-patches");
+    }
+    getInputLuaRocksPatches() {
+        return GitHubCore.instance().getInput("luarocks-patches");
+    }
+    getInputLuaMirrors() {
+        return GitHubCore.instance().getInput("lua-mirrors");
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Util/ParseInputSemiColon.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function coreParseInputSemiColon(input) {
+    const l = input.length;
+    const tokens = [];
+    if (l > 0) {
+        let i = 0;
+        let s = 0;
+        while (i < l) {
+            if (input[i] === ";") {
+                if (i + 1 < l) {
+                    if (input[i + 1] === ";") {
+                        i += 2;
+                    }
+                    else {
+                        tokens.push(input.substring(s, i).replace(";;", ";"));
+                        i++;
+                        s = i;
+                    }
+                }
+                else {
+                    tokens.push(input.substring(s, i).replace(";;", ";"));
+                    i++;
+                    s = i;
+                }
+            }
+            else {
+                i++;
+            }
+        }
+        tokens.push(input.substring(s).replace(";;", ";"));
+    }
+    return tokens;
+}
+function parseInputSemiColon(input) {
+    return input ? coreParseInputSemiColon(input.trim()) : [];
+}
+
+;// CONCATENATED MODULE: ./src/UserInput.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+
+class UserInput {
+    static instance() {
+        if (!UserInput._instance) {
+            UserInput._instance = new UserInput();
+        }
+        return UserInput._instance;
+    }
+    getRawCC() {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
+        return (GitHubInput.instance().getInputCC() || process.env["CC"] ||
+            (process.env["VCINSTALLDIR"] ? "cl" :
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
+    }
+    getRawLD() {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
+        return (GitHubInput.instance().getInputLD() || process.env["LD"] ||
+            (process.env["VCINSTALLDIR"] ? "link" :
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
+    }
+    getRawAR() {
+        return (GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
+    }
+    getRawSTRIP() {
+        return (GitHubInput.instance().getInputSTRIP() || process.env["STRIP"] || "strip").trim();
+    }
+    getRawRANLIB() {
+        return (GitHubInput.instance().getInputRANLIB() || process.env["RANLIB"] || "ranlib").trim();
+    }
+    getRawRC() {
+        return (GitHubInput.instance().getInputRC() || process.env["RC"] || (process.env["VCINSTALLDIR"] ? "rc" : "windres")).trim();
+    }
+    getCC() {
+        return this.getToolchainPrefix() + this.getRawCC();
+    }
+    getLD() {
+        return this.getToolchainPrefix() + this.getRawLD();
+    }
+    getAR() {
+        return this.getToolchainPrefix() + this.getRawAR();
+    }
+    getSTRIP() {
+        return this.getToolchainPrefix() + this.getRawSTRIP();
+    }
+    getRANLIB() {
+        return this.getToolchainPrefix() + this.getRawRANLIB();
+    }
+    getRC() {
+        return this.getToolchainPrefix() + this.getRawRC();
+    }
+    getMake() {
+        return (GitHubInput.instance().getInputMake() || process.env["MAKE"] ||
+            (process.env["VCINSTALLDIR"] ? "nmake" :
+                (process.platform === 'win32' ?
+                    "mingw32-make" :
+                    (process.platform === 'freebsd' || process.platform === 'openbsd' || process.platform === 'netbsd') ?
+                        "gmake" : "make"))).trim();
+    }
+    getToolchainPrefix() {
+        return (GitHubInput.instance().getInputToolchainPrefix() || process.env["TOOLCHAIN_PREFIX"] || "");
+    }
+    getSemiColonSeparatedInput(inputGetter, inputName) {
+        const rawInput = inputGetter() || process.env[inputName];
+        return parseInputSemiColon(rawInput);
+    }
+    getCflagsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputCflagsExtra(), "CFLAGS_EXTRA");
+    }
+    getIncDirsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputIncDirsExtra(), "INCDIRS_EXTRA");
+    }
+    getLdFlagsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLdflagsExtra(), "LDFLAGS_EXTRA");
+    }
+    getLibDirsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibDirsExtra(), "LIBDIRS_EXTRA");
+    }
+    getLibsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibsExtra(), "LIBS_EXTRA");
+    }
+    getLuaPatches() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaPatches(), "LUA_PATCHES");
+    }
+    getLuaRocksPatches() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaRocksPatches(), "LUAROCKS_PATCHES");
+    }
+    getLuaMirrors() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaMirrors(), "LUA_MIRRORS");
+    }
+    constructor() {
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Util/CompareVersions.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function compareVersions(v1, v2) {
+    let result = 0;
+    const l1 = v1.length;
+    const l2 = v2.length;
+    let i = 0;
+    if (l1 <= l2) {
+        while (result === 0 && i < l2) {
+            result = (i < l1 ? v1[i] : 0) - v2[i];
+            i++;
+        }
+    }
+    else {
+        while (result === 0 && i < l1) {
+            result = v1[i] - (i < l2 ? v2[i] : 0);
+            i++;
+        }
+    }
+    return result;
+}
+
+;// CONCATENATED MODULE: ./src/Projects/PucLua/PucLuaVersion.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+
+
+const LATEST_LUA_RELEASE_VERSION = "5.5.1";
+const CONVERT_LUA_RELEASE_VERSION = {
+    "5.1": "5.1.5",
+    "5.2": "5.2.4",
+    "5.3": "5.3.6",
+    "5.4": "5.4.9",
+    "5.5": LATEST_LUA_RELEASE_VERSION
+};
+const LUA_RELEASES = {
+    "5.5.1": { "version": "5.5.1", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
+    "5.5.0": { "version": "5.5.0", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
+    "5.4.9": { "version": "5.4.9", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
+    "5.4.8": { "version": "5.4.8", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
+    "5.4.7": { "version": "5.4.7", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
+    "5.4.6": { "version": "5.4.6", "hash": { "algorithm": "sha256", "value": "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88" } },
+    "5.4.5": { "version": "5.4.5", "hash": { "algorithm": "sha256", "value": "59df426a3d50ea535a460a452315c4c0d4e1121ba72ff0bdde58c2ef31d6f444" } },
+    "5.4.4": { "version": "5.4.4", "hash": { "algorithm": "sha256", "value": "164c7849653b80ae67bec4b7473b884bf5cc8d2dca05653475ec2ed27b9ebf61" } },
+    "5.4.3": { "version": "5.4.3", "hash": { "algorithm": "sha256", "value": "f8612276169e3bfcbcfb8f226195bfc6e466fe13042f1076cbde92b7ec96bbfb" } },
+    "5.4.2": { "version": "5.4.2", "hash": { "algorithm": "sha256", "value": "11570d97e9d7303c0a59567ed1ac7c648340cd0db10d5fd594c09223ef2f524f" } },
+    "5.4.1": { "version": "5.4.1", "hash": { "algorithm": "sha256", "value": "4ba786c3705eb9db6567af29c91a01b81f1c0ac3124fdbf6cd94bdd9e53cca7d" } },
+    "5.4.0": { "version": "5.4.0", "hash": { "algorithm": "sha256", "value": "eac0836eb7219e421a96b7ee3692b93f0629e4cdb0c788432e3d10ce9ed47e28" } },
+    "5.3.6": { "version": "5.3.6", "hash": { "algorithm": "sha256", "value": "fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60" } },
+    "5.3.5": { "version": "5.3.5", "hash": { "algorithm": "sha256", "value": "0c2eed3f960446e1a3e4b9a1ca2f3ff893b6ce41942cf54d5dd59ab4b3b058ac" } },
+    "5.3.4": { "version": "5.3.4", "hash": { "algorithm": "sha256", "value": "f681aa518233bc407e23acf0f5887c884f17436f000d453b2491a9f11a52400c" } },
+    "5.3.3": { "version": "5.3.3", "hash": { "algorithm": "sha256", "value": "5113c06884f7de453ce57702abaac1d618307f33f6789fa870e87a59d772aca2" } },
+    "5.3.2": { "version": "5.3.2", "hash": { "algorithm": "sha256", "value": "c740c7bb23a936944e1cc63b7c3c5351a8976d7867c5252c8854f7b2af9da68f" } },
+    "5.3.1": { "version": "5.3.1", "hash": { "algorithm": "sha256", "value": "072767aad6cc2e62044a66e8562f51770d941e972dc1e4068ba719cd8bffac17" } },
+    "5.3.0": { "version": "5.3.0", "hash": { "algorithm": "sha256", "value": "ae4a5eb2d660515eb191bfe3e061f2b8ffe94dce73d32cfd0de090ddcc0ddb01" } },
+    "5.2.4": { "version": "5.2.4", "hash": { "algorithm": "sha256", "value": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b" } },
+    "5.2.3": { "version": "5.2.3", "hash": { "algorithm": "sha256", "value": "13c2fb97961381f7d06d5b5cea55b743c163800896fd5c5e2356201d3619002d" } },
+    "5.2.2": { "version": "5.2.2", "hash": { "algorithm": "sha256", "value": "3fd67de3f5ed133bf312906082fa524545c6b9e1b952e8215ffbd27113f49f00" } },
+    "5.2.1": { "version": "5.2.1", "hash": { "algorithm": "sha256", "value": "64304da87976133196f9e4c15250b70f444467b6ed80d7cfd7b3b982b5177be5" } },
+    "5.2.0": { "version": "5.2.0", "hash": { "algorithm": "sha256", "value": "cabe379465aa8e388988073d59b69e76ba0025429d2c1da80821a252cdf6be0d" } },
+    "5.1.5": { "version": "5.1.5", "hash": { "algorithm": "sha256", "value": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" } },
+    "5.1.4": { "version": "5.1.4", "hash": { "algorithm": "sha256", "value": "b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a" } },
+    "5.1.3": { "version": "5.1.3", "hash": { "algorithm": "sha256", "value": "6b5df2edaa5e02bf1a2d85e1442b2e329493b30b0c0780f77199d24f087d296d" } },
+    "5.1.2": { "version": "5.1.2", "hash": { "algorithm": "sha256", "value": "5cf098c6fe68d3d2d9221904f1017ff0286e4a9cc166a1452a456df9b88b3d9e" } },
+    "5.1.1": { "version": "5.1.1", "hash": { "algorithm": "sha256", "value": "c5daeed0a75d8e4dd2328b7c7a69888247868154acbda69110e97d4a6e17d1f0" } }
+};
+const LUA_WORKS = {
+    "5.5.1-rc2": { "version": "5.5.1-rc2", "hash": { "algorithm": "sha256", "value": "1c4b4068d67061f2a2231ad2b5422e77acea1487ea9890f6320af614f4373dce" } },
+    "5.5.1-rc1": { "version": "5.5.1-rc1", "hash": { "algorithm": "sha256", "value": "c1dbdbb5be08bbd0589edd786b8878620a05cba09cbcc4275e65d1f384ef18e6" } },
+    "5.5.0-rc4": { "version": "5.5.0-rc4", "hash": { "algorithm": "sha256", "value": "57ccc32bbbd005cab75bcc52444052535af691789dba2b9016d5c50640d68b3d" } },
+    "5.5.0-rc3": { "version": "5.5.0-rc3", "hash": { "algorithm": "sha256", "value": "f1a812cdcc3916f7441aec725014403177e0ef08ace097189548208f9605b2b3" } },
+    "5.5.0-rc2": { "version": "5.5.0-rc2", "hash": { "algorithm": "sha256", "value": "50b24b8fce4644a4590af0f23c65945836161515b9e87c45ee1f0e62b0255a1d" } },
+    "5.5.0-rc1": { "version": "5.5.0-rc1", "hash": { "algorithm": "sha256", "value": "34a4dcca0c04877fbce4baff54054b9793b70bca5d8c676ca4d3504dd47c3772" } },
+    "5.5.0-beta": { "version": "5.5.0-beta", "hash": { "algorithm": "sha256", "value": "30897f95fc72565cb6c1792f721ad44e1a42e7ac587f62f7587807b3cbff1645" } },
+    "5.4.9-rc1": { "version": "5.4.9-rc1", "hash": { "algorithm": "sha256", "value": "2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6" } },
+    "5.4.8-rc1": { "version": "5.4.8-rc1", "hash": { "algorithm": "sha256", "value": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae" } },
+    "5.4.7-rc4": { "version": "5.4.7-rc4", "hash": { "algorithm": "sha256", "value": "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30" } },
+    "5.4.7-rc3": { "version": "5.4.7-rc3", "hash": { "algorithm": "sha256", "value": "9bfdb269aefaa8a8c671cb509943bb2bac0704ea3fce3e6c00d92908326cd144" } },
+    "5.4.7-rc2": { "version": "5.4.7-rc2", "hash": { "algorithm": "sha256", "value": "047417676188278ee86a15c2136f400f9f2a0c21ff2b0d30ab8e2c9e217853ac" } },
+    "5.4.7-rc1": { "version": "5.4.7-rc1", "hash": { "algorithm": "sha256", "value": "9f51aeeaba66df34df7b63dfb8f94cb33000aad4d8788f66ac913a9efb5a64f7" } },
+    "5.4.6-rc1": { "version": "5.4.6-rc1", "hash": { "algorithm": "sha256", "value": "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88" } },
+    "5.4.5-rc2": { "version": "5.4.5-rc2", "hash": { "algorithm": "sha256", "value": "59df426a3d50ea535a460a452315c4c0d4e1121ba72ff0bdde58c2ef31d6f444" } },
+    "5.4.5-rc1": { "version": "5.4.5-rc1", "hash": { "algorithm": "sha256", "value": "6fedab336aeae90ea4eed1f0b86ac3e0367d58176153a97323c9098a6fe9daad" } },
+    "5.4.4-rc3": { "version": "5.4.4-rc3", "hash": { "algorithm": "sha256", "value": "164c7849653b80ae67bec4b7473b884bf5cc8d2dca05653475ec2ed27b9ebf61" } },
+    "5.4.4-rc2": { "version": "5.4.4-rc2", "hash": { "algorithm": "sha256", "value": "2c4460fa5ef62c54111323a59b510dffe8a76148da3d48cbc2b32234019ad105" } },
+    "5.4.4-rc1": { "version": "5.4.4-rc1", "hash": { "algorithm": "sha256", "value": "9f93b571e287c76541b0ed4ec54a815ecb5d5bf481285ca8170ac6c8294efaa5" } },
+    "5.4.3-rc2": { "version": "5.4.3-rc2", "hash": { "algorithm": "sha256", "value": "f8612276169e3bfcbcfb8f226195bfc6e466fe13042f1076cbde92b7ec96bbfb" } },
+    "5.4.3-rc1": { "version": "5.4.3-rc1", "hash": { "algorithm": "sha256", "value": "989c98e30452d60adc6820f5323205e77ee22f6f88403fedb21a69d262107a92" } },
+    "5.4.2-rc1": { "version": "5.4.2-rc1", "hash": { "algorithm": "sha256", "value": "11570d97e9d7303c0a59567ed1ac7c648340cd0db10d5fd594c09223ef2f524f" } },
+    "5.4.1-rc1": { "version": "5.4.1-rc1", "hash": { "algorithm": "sha256", "value": "4ba786c3705eb9db6567af29c91a01b81f1c0ac3124fdbf6cd94bdd9e53cca7d" } },
+    "5.3.6-rc3": { "version": "5.3.6-rc3", "hash": { "algorithm": "sha256", "value": "fc5fd69bb8736323f026672b1b7235da613d7177e72558893a0bdcd320466d60" } },
+    "5.3.6-rc2": { "version": "5.3.6-rc2", "hash": { "algorithm": "sha256", "value": "e2047dc90cc654671f615c04cffbfe4a281648ab9474a82a27d68d45d6442302" } },
+    "5.3.6-rc1": { "version": "5.3.6-rc1", "hash": { "algorithm": "sha256", "value": "94e86efb1141b57b270f7e75d5b76ddf12089bf570153e1d1189442cdb9487f4" } },
+    "5.4.0-rc6": { "version": "5.4.0-rc6", "hash": { "algorithm": "sha256", "value": "eac0836eb7219e421a96b7ee3692b93f0629e4cdb0c788432e3d10ce9ed47e28" } },
+    "5.4.0-rc5": { "version": "5.4.0-rc5", "hash": { "algorithm": "sha256", "value": "a8c31d95d1eaea2acc14472fdf917bec1fd39a333c0bf03bc2a4124f7844a4e5" } },
+    "5.4.0-rc4": { "version": "5.4.0-rc4", "hash": { "algorithm": "sha256", "value": "51321a019b27e09d3f00cda2c52d185ecb0fb453c904a3e4aab1d118f9c77992" } },
+    "5.4.0-rc3": { "version": "5.4.0-rc3", "hash": { "algorithm": "sha256", "value": "092087dbf519f31ff9bc74ae7560edd8ee934b6f16e37f63fc6236e1bf9a853c" } },
+    "5.4.0-rc2": { "version": "5.4.0-rc2", "hash": { "algorithm": "sha256", "value": "632855309ed55e3fdd8236869b40b11ca6010e70115dd85fb2c6ab146be8677a" } },
+    "5.4.0-rc1": { "version": "5.4.0-rc1", "hash": { "algorithm": "sha256", "value": "0a4fb4cb9281d924799650a768e61723fac3f0329bca39e51b90d1acc4228e71" } },
+    "5.4.0-beta": { "version": "5.4.0-beta", "hash": { "algorithm": "sha256", "value": "5eb2824bc08469be9d9282c7298f001830ea013179ad0ae8a50600332568ebb9" } },
+    "5.4.0-beta-rc1": { "version": "5.4.0-beta-rc1", "hash": { "algorithm": "sha256", "value": "ecd1deedca3ab604b746e42466b43e1cefbfafb1556e1ac95a92664368d5a6ec" } },
+    "5.4.0-alpha-rc2": { "version": "5.4.0-alpha-rc2", "hash": { "algorithm": "sha256", "value": "d8504506ede2dbac73c5a74235feaabb2101caff59c7f87efe774b24a10e8407" } },
+    "5.4.0-alpha": { "version": "5.4.0-alpha", "hash": { "algorithm": "sha256", "value": "d8504506ede2dbac73c5a74235feaabb2101caff59c7f87efe774b24a10e8407" } },
+    "5.4.0-alpha-rc1": { "version": "5.4.0-alpha-rc1", "hash": { "algorithm": "sha256", "value": "6dce98f6a5b19eef9e5090db09a82e1653425fd9886671c3041ab356491f2ef8" } },
+    "5.3.5-rc2": { "version": "5.3.5-rc2", "hash": { "algorithm": "sha256", "value": "0c2eed3f960446e1a3e4b9a1ca2f3ff893b6ce41942cf54d5dd59ab4b3b058ac" } },
+    "5.3.5-rc1": { "version": "5.3.5-rc1", "hash": { "algorithm": "sha256", "value": "23372e52138419459460ce576449b901086222e2c1f68812a89400391eb575f2" } },
+    "5.4.0-work2": { "version": "5.4.0-work2", "hash": { "algorithm": "sha256", "value": "68b7e8f1ff561b9a7e1c29de26ff99ac2a704773c0965a4fe1800b7657d5a057" } },
+    "5.4.0-work1": { "version": "5.4.0-work1", "hash": { "algorithm": "sha256", "value": "ada03980481110bfde44b3bd44bde4b03d72c84318b34d657b5b5a91ddb3912c" } },
+    "5.3.4-rc3": { "version": "5.3.4-rc3", "hash": { "algorithm": "sha256", "value": "f681aa518233bc407e23acf0f5887c884f17436f000d453b2491a9f11a52400c" } },
+    "5.3.4-rc2": { "version": "5.3.4-rc2", "hash": { "algorithm": "sha256", "value": "9c034489170cb0b4d0899f6cb833630ed4deeaea04f5ccb384d4c9125a43b2e9" } },
+    "5.3.4-rc1": { "version": "5.3.4-rc1", "hash": { "algorithm": "sha256", "value": "84818084e005e874b701f4aa6791659f5b39f23ac4a5eaa7b9a99d0734c6564d" } },
+    "5.3.3-rc3": { "version": "5.3.3-rc3", "hash": { "algorithm": "sha256", "value": "5113c06884f7de453ce57702abaac1d618307f33f6789fa870e87a59d772aca2" } },
+    "5.3.3-rc2": { "version": "5.3.3-rc2", "hash": { "algorithm": "sha256", "value": "0701c6e9063adce208c22313f5a516d5ed46a1b227581b3e905117504a7ecf2d" } },
+    "5.3.3-rc1": { "version": "5.3.3-rc1", "hash": { "algorithm": "sha256", "value": "247a09870ee5a8027f3848fd06fb9ce98821a6f2b443fdb863daf1bf38d23334" } },
+    "5.3.2-rc2": { "version": "5.3.2-rc2", "hash": { "algorithm": "sha256", "value": "c740c7bb23a936944e1cc63b7c3c5351a8976d7867c5252c8854f7b2af9da68f" } },
+    "5.3.2-rc1": { "version": "5.3.2-rc1", "hash": { "algorithm": "sha256", "value": "edcd5dc637824e71a98392be9ebc67e806fc93d84b89877086428a6b0be08c42" } },
+    "5.3.1-rc2": { "version": "5.3.1-rc2", "hash": { "algorithm": "sha256", "value": "072767aad6cc2e62044a66e8562f51770d941e972dc1e4068ba719cd8bffac17" } },
+    "5.3.1-rc1": { "version": "5.3.1-rc1", "hash": { "algorithm": "sha256", "value": "57cb83791cae679f5b04abfe43f9c85d2ad8e8ae47864484b511fd455adae50d" } },
+    "5.2.4-rc1": { "version": "5.2.4-rc1", "hash": { "algorithm": "sha256", "value": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b" } },
+    "5.3.0-rc4": { "version": "5.3.0-rc4", "hash": { "algorithm": "sha256", "value": "ae4a5eb2d660515eb191bfe3e061f2b8ffe94dce73d32cfd0de090ddcc0ddb01" } },
+    "5.3.0-rc3": { "version": "5.3.0-rc3", "hash": { "algorithm": "sha256", "value": "f03d91872689d818888ab6cde4c15f5fd319a7fa483ccdb2797796a86063a0a5" } },
+    "5.3.0-rc2": { "version": "5.3.0-rc2", "hash": { "algorithm": "sha256", "value": "a6a30ea6548089821e4ddd7586624f9ef0da0186312951c00d7e300c1ca8e314" } },
+    "5.3.0-rc1": { "version": "5.3.0-rc1", "hash": { "algorithm": "sha256", "value": "25c2123c9bd58e658145bad31732a0b12f218d6e56e0fd9b53ed32d3cf181062" } },
+    "5.3.0-rc0": { "version": "5.3.0-rc0", "hash": { "algorithm": "sha256", "value": "1c5788211d4b1a7147e1f7bcc4dae752910cd1a62af1c74e6686a1f2ce13b144" } },
+    "5.3.0-beta": { "version": "5.3.0-beta", "hash": { "algorithm": "sha256", "value": "a1137c07e58bcc3e9b270a6b8dc42623ae8addba1a5c0da2239e7e65645bce90" } },
+    "5.3.0-alpha": { "version": "5.3.0-alpha", "hash": { "algorithm": "sha256", "value": "23ef23ef74da2cc057b68078e2085f6c12a2f8160229449d4cf2c30b22537846" } },
+    "5.3.0-work3": { "version": "5.3.0-work3", "hash": { "algorithm": "sha256", "value": "c42d633c237e9a3a237496559fbb28627fc72c3298480ac05b4210b1dee0f32c" } },
+    "5.3.0-work2": { "version": "5.3.0-work2", "hash": { "algorithm": "sha256", "value": "a33d42f327e875b85b4d6d84cb62161a246af860fef1ce29d8d2fea825876423" } },
+    "5.2.3-rc1": { "version": "5.2.3-rc1", "hash": { "algorithm": "sha256", "value": "13c2fb97961381f7d06d5b5cea55b743c163800896fd5c5e2356201d3619002d" } },
+    "5.3.0-work1": { "version": "5.3.0-work1", "hash": { "algorithm": "sha256", "value": "d1435aded81c313592c4cbbc6cc1ffa63706fdb19c6c353aed1fec142cd73cfd" } },
+    "5.2.2-rc4": { "version": "5.2.2-rc4", "hash": { "algorithm": "sha256", "value": "3fd67de3f5ed133bf312906082fa524545c6b9e1b952e8215ffbd27113f49f00" } },
+    "5.2.2-rc3": { "version": "5.2.2-rc3", "hash": { "algorithm": "sha256", "value": "8ca83f7daa52750d2b49a032619b2e992d8867c4f2232f7c6a740fd3e40bfd32" } },
+    "5.2.2-rc2": { "version": "5.2.2-rc2", "hash": { "algorithm": "sha256", "value": "433b1245b1689e59ca531ba66de2834c2d63a932d71b5decca307708645da8c6" } },
+    "5.2.2-rc1": { "version": "5.2.2-rc1", "hash": { "algorithm": "sha256", "value": "433e7ca1a7590a8ad132b7583748c8d3e329929cc97163cf2d4be79e53b66c16" } },
+    "5.2.1-rc4": { "version": "5.2.1-rc4", "hash": { "algorithm": "sha256", "value": "64304da87976133196f9e4c15250b70f444467b6ed80d7cfd7b3b982b5177be5" } },
+    "5.2.1-rc3": { "version": "5.2.1-rc3", "hash": { "algorithm": "sha256", "value": "849733c3e125395e8c94debb5130555e979be76fd2767f6fcf3b03a3d9a22b3d" } },
+    "5.2.1-rc2": { "version": "5.2.1-rc2", "hash": { "algorithm": "sha256", "value": "938c2da29e04651b0cb614b41417dcbd6679e7c400ce79f57938100430e7bc9a" } },
+    "5.2.1-rc1": { "version": "5.2.1-rc1", "hash": { "algorithm": "sha256", "value": "7a895c3341683075436e86fe3a44325ab8cd3f29731cf057d41155f5ec9ec72d" } },
+    "5.2.1-work1": { "version": "5.2.1-work1", "hash": { "algorithm": "sha256", "value": "acdfef8c61524e3c1c047418a6beaab33da166fa83fb4a2f07d5519ef6fa5922" } },
+    "5.1.5-rc2": { "version": "5.1.5-rc2", "hash": { "algorithm": "sha256", "value": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333" } },
+    "5.1.5-rc1": { "version": "5.1.5-rc1", "hash": { "algorithm": "sha256", "value": "8a619dfd05c80a687f8fe9c01e66200577aa4f3962b2a4c71525fad78efb5ba5" } },
+    "5.2.0-rc8": { "version": "5.2.0-rc8", "hash": { "algorithm": "sha256", "value": "cabe379465aa8e388988073d59b69e76ba0025429d2c1da80821a252cdf6be0d" } },
+    "5.2.0-rc7": { "version": "5.2.0-rc7", "hash": { "algorithm": "sha256", "value": "c5ece090e005b9fbceb4b7dca0a191dac248590059ba3119ba6ac451883db5b3" } },
+    "5.2.0-rc6": { "version": "5.2.0-rc6", "hash": { "algorithm": "sha256", "value": "ad80dca436d983caeec6bac6cd22aeafc2cfda9ded22b902dd042b77b164d968" } },
+    "5.2.0-rc5": { "version": "5.2.0-rc5", "hash": { "algorithm": "sha256", "value": "4e4bfeeba3c7207fec825dd7971c76fe5825ec7663ea71ead11648f454325f72" } },
+    "5.2.0-rc4": { "version": "5.2.0-rc4", "hash": { "algorithm": "sha256", "value": "d0c8dcd5ce94d59ead8866a2d2481145789c8aab592ed99e1bb0890c898ee356" } },
+    "5.2.0-rc3": { "version": "5.2.0-rc3", "hash": { "algorithm": "sha256", "value": "fb2db80b5448601c8c6ccbd651d471be07d94465cd0c24f999d0e1a55ee2a31d" } },
+    "5.2.0-rc2": { "version": "5.2.0-rc2", "hash": { "algorithm": "sha256", "value": "fcf77ed357b154295471fc16ff64362a1170825441aeae62dcc185bc5eb87d28" } },
+    "5.2.0-rc1": { "version": "5.2.0-rc1", "hash": { "algorithm": "sha256", "value": "8f3835d6167101eff95a7f34df513337269f1a9934a5593e79e546427423e4b5" } },
+    "5.2.0-beta-rc7": { "version": "5.2.0-beta-rc7", "hash": { "algorithm": "sha256", "value": "e7e49a1cc1d03ca24caed0cd8d7b76b6fb88a96bf8814f609ddc821d9813cdc6" } },
+    "5.2.0-beta": { "version": "5.2.0-beta", "hash": { "algorithm": "sha256", "value": "e7e49a1cc1d03ca24caed0cd8d7b76b6fb88a96bf8814f609ddc821d9813cdc6" } },
+    "5.2.0-beta-rc6": { "version": "5.2.0-beta-rc6", "hash": { "algorithm": "sha256", "value": "30f0948723fd306ad344bf52e9e393a2a64b26900abad37aacafa45a547915ea" } },
+    "5.2.0-beta-rc5": { "version": "5.2.0-beta-rc5", "hash": { "algorithm": "sha256", "value": "9c1e5e240e36535d21d3dc53dd2b3f62b1fef737fdb4e9183ed0b71a77163963" } },
+    "5.2.0-beta-rc4": { "version": "5.2.0-beta-rc4", "hash": { "algorithm": "sha256", "value": "2983f5e2bccbb7ea23512d79e697d253f06509e9077a6663956f3ae71b33c658" } },
+    "5.2.0-beta-rc3": { "version": "5.2.0-beta-rc3", "hash": { "algorithm": "sha256", "value": "51edfebdc1f4a31c41c1a320ccf09ab35fa3f2921025ab1ad0a6b50140a05ed0" } },
+    "5.2.0-beta-rc2": { "version": "5.2.0-beta-rc2", "hash": { "algorithm": "sha256", "value": "a334806a8e785f19bfd6acc15e636a8d1d2184e9ccd31a96cfab6f22cf6e746d" } },
+    "5.2.0-beta-rc1": { "version": "5.2.0-beta-rc1", "hash": { "algorithm": "sha256", "value": "9370b606cfbf2e730ebc9669837bc1643ece222fd214bfbcc0a81075f5f556ee" } },
+    "5.2.0-alpha-rc4": { "version": "5.2.0-alpha-rc4", "hash": { "algorithm": "sha256", "value": "8d08193f8819db49827c1687e1cf73be45268478b0aa2c99b791576d68646aa0" } },
+    "5.2.0-alpha": { "version": "5.2.0-alpha", "hash": { "algorithm": "sha256", "value": "8d08193f8819db49827c1687e1cf73be45268478b0aa2c99b791576d68646aa0" } },
+    "5.2.0-alpha-rc3": { "version": "5.2.0-alpha-rc3", "hash": { "algorithm": "sha256", "value": "e1b466477945367f0fbb16ba0271f8a1609206f6352e909eddb9f5adbbc852c7" } },
+    "5.2.0-alpha-rc2": { "version": "5.2.0-alpha-rc2", "hash": { "algorithm": "sha256", "value": "9562008561caa63422a1369df03271b4a205de826aa0cf03b6a354b34854d344" } },
+    "5.2.0-alpha-rc1": { "version": "5.2.0-alpha-rc1", "hash": { "algorithm": "sha256", "value": "37ca7c4cb232c0954268446a234240e678de0f3691aeda2848dbd12bd4024a91" } },
+    "5.2.0-work5": { "version": "5.2.0-work5", "hash": { "algorithm": "sha256", "value": "fc6a2c730dc8fadf156fc3632a6a02713c4926f157ef34fa2f6bb4082f4e4a9b" } },
+    "5.2.0-work4": { "version": "5.2.0-work4", "hash": { "algorithm": "sha256", "value": "8b2539bc6d417dc85e76c956f7630e3629c8412605db047f38bbfe7b29030b0c" } },
+    "5.2.0-work3": { "version": "5.2.0-work3", "hash": { "algorithm": "sha256", "value": "c5c5e06b36fd0097ff8b65489a24391631009c816417798108f7103772977b4b" } },
+    "5.2.0-work2": { "version": "5.2.0-work2", "hash": { "algorithm": "sha256", "value": "5344b821acfe3d623b12a2c4c454837fd3b15e9c5a96a65781663053fd05cd0a" } },
+    "5.2.0-work1": { "version": "5.2.0-work1", "hash": { "algorithm": "sha256", "value": "c1af40891fa432af6bca1ed0d163c4f24f7997c4babbffa451f24f95bd54927a" } },
+    "5.1.4-rc3": { "version": "5.1.4-rc3", "hash": { "algorithm": "sha256", "value": "b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a" } },
+    "5.1.4-rc2": { "version": "5.1.4-rc2", "hash": { "algorithm": "sha256", "value": "64a8f099248064ebbd418e0efdc4de6aa10982ad3a4011acc9a58c8f37a4fce5" } },
+    "5.1.4-rc1": { "version": "5.1.4-rc1", "hash": { "algorithm": "sha256", "value": "8b903c7f64c2595cd7fad7a63c828dd184c29ef426ad4c3e850f8a2594549778" } },
+    "5.1.3-rc5": { "version": "5.1.3-rc5", "hash": { "algorithm": "sha256", "value": "6b5df2edaa5e02bf1a2d85e1442b2e329493b30b0c0780f77199d24f087d296d" } },
+    "5.1.3-rc4": { "version": "5.1.3-rc4", "hash": { "algorithm": "sha256", "value": "65a157f49993ad93016b2f7301543024d6939e29da5e9d081a3c8c93d0796224" } },
+    "5.1.3-rc3": { "version": "5.1.3-rc3", "hash": { "algorithm": "sha256", "value": "d26f27272d4064df9756ae3ba308edd00432f1558d99b757378ffc3f0b5da49f" } },
+    "5.1.3-rc2": { "version": "5.1.3-rc2", "hash": { "algorithm": "sha256", "value": "5da201797c131bca05072028f45d7168d1aceb3ea45d0195aa23874aa78059aa" } },
+    "5.1.3-rc1": { "version": "5.1.3-rc1", "hash": { "algorithm": "sha256", "value": "232219e6d26722047c52310fead85849b15480194fc47693c676670cd61bcc55" } },
+    "5.1.2-rc5": { "version": "5.1.2-rc5", "hash": { "algorithm": "sha256", "value": "5cf098c6fe68d3d2d9221904f1017ff0286e4a9cc166a1452a456df9b88b3d9e" } },
+    "5.1.2-rc4": { "version": "5.1.2-rc4", "hash": { "algorithm": "sha256", "value": "153911c46eb71e78c08eee39c8469e8e117a6fdf3ec656d4412c7c33841a0fd1" } },
+    "5.1.2-rc3": { "version": "5.1.2-rc3", "hash": { "algorithm": "sha256", "value": "ca5730f14e5daab90d7dbd457ebd556d38206f7d0c1b5d238b740355ac91dbde" } },
+    "5.1.2-rc2": { "version": "5.1.2-rc2", "hash": { "algorithm": "sha256", "value": "3f31cdfbc983c1aad7b439f2122cb15d168bce028b97992b66f9e4b1056a8d16" } },
+    "5.1.2-rc1": { "version": "5.1.2-rc1", "hash": { "algorithm": "sha256", "value": "27c4b24d4536689ddfe3f5fbc0e5db8f922cfcfb6b3e9a30dbfb9d40f8f4658d" } },
+    "5.1.1-rc4": { "version": "5.1.1-rc4", "hash": { "algorithm": "sha256", "value": "f9baa3c37915be2e7cb8fa205b042bd403fa0fe854fb92ede1861d9bc999ded9" } },
+    "5.1.1-rc3": { "version": "5.1.1-rc3", "hash": { "algorithm": "sha256", "value": "b5eb2b1382716d5755a57e2a19fd919748a8a191fc1a69030f9225b85e6fff6c" } },
+    "5.1.1-rc2": { "version": "5.1.1-rc2", "hash": { "algorithm": "sha256", "value": "b14642c7f5f211f8f899ae4e97891d025a72245a3c6938b4d37024513730d71e" } },
+    "5.1.1-rc1": { "version": "5.1.1-rc1", "hash": { "algorithm": "sha256", "value": "84dda3f7a03999785488304e9561e4f6771366845d3488efbb8e077b20839c99" } }
+};
+/*
+** Q: How to enable work versions for a future Lua 5.5.2
+**    release candidate (lua-5.5.2-rc1)?
+**
+** A: modify the next function to return to
+**    workVersion.startsWith("5.5.2-")
+**
+** Q: How to disable the current work version?
+**
+** A: modify the next function to return `false'
+*/
+function isCurrentWorkVersion(workVersion) {
+    return false; /* workVersion.startsWith("5.4.9-") */
+}
+function isKnownLuaShortVersion(version) {
+    return version in CONVERT_LUA_RELEASE_VERSION;
+}
+function parsePucLuaVersion(version) {
+    return new Promise((resolve, reject) => {
+        const pucLuaVersion = version in CONVERT_LUA_RELEASE_VERSION ?
+            (CONVERT_LUA_RELEASE_VERSION[version]) :
+            ((version || LATEST_LUA_RELEASE_VERSION).trim());
+        if (pucLuaVersion in LUA_RELEASES) {
+            const releaseMatch = /^([0-9]+)\.([0-9]+)\.([0-9]+)$/.exec(pucLuaVersion);
+            if (releaseMatch) {
+                const major = Number(releaseMatch[1]);
+                if (major >= 5) {
+                    const minor = Number(releaseMatch[2]);
+                    if (major == 5 && minor == 0) {
+                        reject(new Error("The minimum supported Lua version is 5.1"));
+                    }
+                    else {
+                        const build = Number(releaseMatch[3]);
+                        const v = LUA_RELEASES[pucLuaVersion];
+                        resolve(new PucLuaReleaseVersion(major, minor, build, v.hash.algorithm, v.hash.value));
+                    }
+                }
+                else {
+                    reject(new Error("Unsupported major version of Lua"));
+                }
+            }
+            else {
+                reject(new Error("Internal error: Unknown format for a Lua release version"));
+            }
+        }
+        else if (pucLuaVersion in LUA_WORKS) {
+            const workMatch = /^([0-9]+)\.([0-9]+)\.([0-9]+)\-([0-9a-zA-Z\-\.]+)$/.exec(pucLuaVersion);
+            if (workMatch) {
+                const major = Number(workMatch[1]);
+                if (major >= 5) {
+                    const minor = Number(workMatch[2]);
+                    if (major == 5 && minor == 0) {
+                        reject(new Error("The minimum supported Lua version is 5.1"));
+                    }
+                    else {
+                        const build = Number(workMatch[3]);
+                        const suffix = workMatch[4];
+                        const v = LUA_WORKS[pucLuaVersion];
+                        resolve(new PucLuaWorkVersion(major, minor, build, v.hash.algorithm, v.hash.value, suffix, isCurrentWorkVersion(workMatch[0])));
+                    }
+                }
+                else {
+                    reject(new Error("Unsupported major version of Lua"));
+                }
+            }
+            else {
+                reject(new Error("Internal error: Unknown format for a Lua work version"));
+            }
+        }
+        else {
+            reject(new Error("Unsupported version of Lua"));
+        }
+    });
+}
+class AbstractPucLuaVersion {
+    getMajor() {
+        return this.major;
+    }
+    getMinor() {
+        return this.minor;
+    }
+    getBuild() {
+        return this.build;
+    }
+    getHashAlgorithm() {
+        return this.hashAlgorithm;
+    }
+    getHashValue() {
+        return this.hashValue;
+    }
+    compareTo(other) {
+        return compareVersions([this.major, this.minor, this.build], [other.getMajor(), other.getMinor(), other.getBuild()]);
+    }
+    constructor(major, minor, build, hashAlgorithm, hashValue) {
+        this.major = major;
+        this.minor = minor;
+        this.build = build;
+        this.hashAlgorithm = hashAlgorithm;
+        this.hashValue = hashValue;
+    }
+}
+class PucLuaReleaseVersion extends AbstractPucLuaVersion {
+    getString() {
+        const M = this.getMajor();
+        const m = this.getMinor();
+        const b = this.getBuild();
+        return `${M}.${m}.${b}`;
+    }
+    getDownloadUriInfo() {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList = process.env["DEBUG_LUA_MIRRORS"] ?
+            [] :
+            [
+                `https://lua.org/ftp/${tarball}`,
+                `https://www.tecgraf.puc-rio.br/lua/mirror/ftp/${tarball}`
+            ];
+        const luaMirrors = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
+    }
+    constructor(major, minor, build, hashAlgorithm, hashValue) {
+        super(major, minor, build, hashAlgorithm, hashValue);
+    }
+}
+class PucLuaWorkVersion extends AbstractPucLuaVersion {
+    getSuffix() {
+        return this.suffix;
+    }
+    getCurrent() {
+        return this.current;
+    }
+    getString() {
+        const M = this.getMajor();
+        const m = this.getMinor();
+        const b = this.getBuild();
+        return `${M}.${m}.${b}-${this.suffix}`;
+    }
+    getDownloadUriInfo() {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList = process.env["DEBUG_LUA_MIRRORS"] ?
+            [] :
+            (this.current ?
+                [
+                    `https://lua.org/work/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/${tarball}`
+                ] :
+                [
+                    `https://lua.org/work/old/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/old/${tarball}`
+                ]);
+        const luaMirrors = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
+    }
+    constructor(major, minor, build, hashAlgorithm, hashValue, suffix, current) {
+        super(major, minor, build, hashAlgorithm, hashValue);
+        this.suffix = suffix;
+        this.current = current;
+    }
+}
+const LUA_5_1_1_VERSION = LUA_RELEASES["5.1.1"];
+const LUA_5_2_0_VERSION = LUA_RELEASES["5.2.0"];
+const LUA_5_3_0_VERSION = LUA_RELEASES["5.3.0"];
+const LUA_5_4_0_VERSION = LUA_RELEASES["5.4.0"];
+const LUA_5_5_0_VERSION = LUA_RELEASES["5.5.0"];
+const LUA_51_VERSION = new PucLuaReleaseVersion(5, 1, 1, LUA_5_1_1_VERSION.hash.algorithm, LUA_5_1_1_VERSION.hash.value);
+const LUA_52_VERSION = new PucLuaReleaseVersion(5, 2, 0, LUA_5_2_0_VERSION.hash.algorithm, LUA_5_2_0_VERSION.hash.value);
+const LUA_53_VERSION = new PucLuaReleaseVersion(5, 3, 0, LUA_5_3_0_VERSION.hash.algorithm, LUA_5_3_0_VERSION.hash.value);
+const LUA_54_VERSION = new PucLuaReleaseVersion(5, 4, 0, LUA_5_4_0_VERSION.hash.algorithm, LUA_5_4_0_VERSION.hash.value);
+const LUA_55_VERSION = new PucLuaReleaseVersion(5, 5, 0, LUA_5_5_0_VERSION.hash.algorithm, LUA_5_5_0_VERSION.hash.value);
+
+;// CONCATENATED MODULE: ./src/Projects/Targets/TargetPipeline.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+class TargetPipeline {
+    constructor(initialTarget) {
+        this.initialTarget = initialTarget;
+    }
+    init() {
+        return new Promise((resolve, reject) => {
+            resolve(this.initialTarget);
+        });
+    }
+    finalize() {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    }
+    execute() {
+        return new Promise((resolve, reject) => {
+            let failed = false;
+            let finished = false;
+            let err;
+            this.init()
+                .then(tgt => {
+                const iter = (target) => {
+                    if (!(failed || finished)) {
+                        target.init()
+                            .then(() => {
+                            target.execute()
+                                .then(() => {
+                                target.finalize()
+                                    .then(() => {
+                                    const nextTarget = target.getNext();
+                                    if (!nextTarget) {
+                                        finished = true;
+                                    }
+                                    iter(nextTarget);
+                                })
+                                    .catch(finalizeErr => {
+                                    failed = true;
+                                    err = finalizeErr;
+                                    iter(target);
+                                });
+                            })
+                                .catch(execErr => {
+                                target.finalize()
+                                    .then(() => {
+                                    failed = true;
+                                    err = execErr;
+                                    iter(target);
+                                })
+                                    .catch(finalizeErr => {
+                                    failed = true;
+                                    err = finalizeErr;
+                                    iter(target);
+                                });
+                            });
+                        })
+                            .catch(initErr => {
+                            failed = true;
+                            err = initErr;
+                            iter(target);
+                        });
+                    }
+                    else if (err) {
+                        this.finalize()
+                            .then(() => {
+                            reject(err);
+                        })
+                            .catch(reject);
+                    }
+                    else {
+                        this.finalize()
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                };
+                iter(tgt);
+            })
+                .catch(reject);
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Util/GetSetProperty.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+class GetSetProperty {
+    getValue() {
+        return this.value;
+    }
+    setValue(value) {
+        this.value = value;
+    }
+    constructor(value) {
+        this.value = value;
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Toolchains/IWin32ImportLibraryDecorator.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function hasWin32ImportLibraryDecorator(linker) {
+    return ('setImportLibrary' in linker && 'getImportLibraryExtension' in linker);
+}
+
+;// CONCATENATED MODULE: ./src/Toolchains/GCC/IGccLikeToolchain.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function isGccLikeToolchain(toolchain) {
+    return ('getRanlib' in toolchain && 'getStrip' in toolchain);
+}
+
+;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaBuildInfo.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+class PucLuaBuildInfo {
+    constructor(sourcesInfo, sharedLibrary, staticLibrary, interpreter, compiler, pkgConfigFiles, importLibrary) {
+        this.sourcesInfo = sourcesInfo;
+        this.sharedLibrary = sharedLibrary;
+        this.staticLibrary = staticLibrary;
+        this.interpreter = interpreter;
+        this.compiler = compiler;
+        this.pkgConfigFiles = new ReadOnlyArray(pkgConfigFiles);
+        this.importLibrary = importLibrary;
+    }
+    getSourcesInfo() {
+        return this.sourcesInfo;
+    }
+    getSharedLibrary() {
+        return this.sharedLibrary;
+    }
+    getStaticLibrary() {
+        return this.staticLibrary;
+    }
+    getInterpreter() {
+        return this.interpreter;
+    }
+    getCompiler() {
+        return this.compiler;
+    }
+    getPkgConfigFiles() {
+        return this.pkgConfigFiles;
+    }
+    getImportLibrary() {
+        return this.importLibrary;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/GitHubConsole.ts
 /*
 ** The MIT License (MIT)
@@ -42729,388 +42549,6 @@ class PucLuaCreatePkgConfigFilesTarget {
     }
 }
 
-;// CONCATENATED MODULE: ./src/NativeGitHubCore.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-class NativeGitHubCore {
-    static instance() {
-        if (!NativeGitHubCore._instance) {
-            NativeGitHubCore._instance = new NativeGitHubCore();
-        }
-        return NativeGitHubCore._instance;
-    }
-    getInput(variable) {
-        return getInput(variable);
-    }
-    appendToGitHubPath(value) {
-        return new Promise((resolve, reject) => {
-            let err = undefined;
-            try {
-                addPath(value);
-            }
-            catch (e) {
-                err = e;
-            }
-            if (err) {
-                reject(err);
-            }
-            else {
-                resolve();
-            }
-        });
-    }
-    appendToGitHubEnvironmentVariables(key, value) {
-        return new Promise((resolve, reject) => {
-            let err = undefined;
-            try {
-                exportVariable(key, value);
-            }
-            catch (e) {
-                err = e;
-            }
-            if (err) {
-                reject(err);
-            }
-            else {
-                resolve();
-            }
-        });
-    }
-    constructor() {
-    }
-}
-
-;// CONCATENATED MODULE: ./src/GitHubCore.ts
-
-const GitHubCore = NativeGitHubCore;
-
-;// CONCATENATED MODULE: ./src/Util/GitHubInput.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-class GitHubInput {
-    static instance() {
-        if (!GitHubInput._instance) {
-            GitHubInput._instance = new GitHubInput();
-        }
-        return GitHubInput._instance;
-    }
-    getInputDebugSetupLua() {
-        const debugMode = GitHubCore.instance().getInput("debug-setup-lua");
-        return debugMode === "true" ||
-            debugMode === "True" ||
-            debugMode === "TRUE" ||
-            debugMode === "1" ||
-            debugMode === "on" ||
-            debugMode === "On" ||
-            debugMode === "ON" ||
-            debugMode === "y" ||
-            debugMode === "Y" ||
-            debugMode === "yes" ||
-            debugMode === "Yes" ||
-            debugMode === "YES";
-    }
-    getInputCC() {
-        return GitHubCore.instance().getInput("cc");
-    }
-    getInputLD() {
-        return GitHubCore.instance().getInput("ld");
-    }
-    getInputAR() {
-        return GitHubCore.instance().getInput("ar");
-    }
-    getInputSTRIP() {
-        return GitHubCore.instance().getInput("strip");
-    }
-    getInputRANLIB() {
-        return GitHubCore.instance().getInput("ranlib");
-    }
-    getInputRC() {
-        return GitHubCore.instance().getInput("rc");
-    }
-    getInputMake() {
-        return GitHubCore.instance().getInput("make");
-    }
-    getInputToolchainPrefix() {
-        return GitHubCore.instance().getInput("toolchain-prefix");
-    }
-    getInputLuaVersion() {
-        return GitHubCore.instance().getInput("lua-version");
-    }
-    getInputLuaRocksVersion() {
-        return GitHubCore.instance().getInput("luarocks-version");
-    }
-    getInputMacOSXDeploymentTarget() {
-        return GitHubCore.instance().getInput("macosx-deployment-target");
-    }
-    getInputUseCache() {
-        const useCache = GitHubCore.instance().getInput("use-cache");
-        return useCache === undefined ||
-            useCache === '' ||
-            useCache === "true" ||
-            useCache === "True" ||
-            useCache === "TRUE" ||
-            useCache === "1" ||
-            useCache === "on" ||
-            useCache === "On" ||
-            useCache === "ON" ||
-            useCache === "y" ||
-            useCache === "Y" ||
-            useCache === "yes" ||
-            useCache === "Yes" ||
-            useCache === "YES";
-    }
-    getInputCflagsExtra() {
-        return GitHubCore.instance().getInput("cflags-extra");
-    }
-    getInputIncDirsExtra() {
-        return GitHubCore.instance().getInput("incdirs-extra");
-    }
-    getInputLdflagsExtra() {
-        return GitHubCore.instance().getInput("ldflags-extra");
-    }
-    getInputLibDirsExtra() {
-        return GitHubCore.instance().getInput("libdirs-extra");
-    }
-    getInputLibsExtra() {
-        return GitHubCore.instance().getInput("libs-extra");
-    }
-    getInputLuaPatches() {
-        return GitHubCore.instance().getInput("lua-patches");
-    }
-    getInputLuaRocksPatches() {
-        return GitHubCore.instance().getInput("luarocks-patches");
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Util/ParseInputSemiColon.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function coreParseInputSemiColon(input) {
-    const l = input.length;
-    const tokens = [];
-    if (l > 0) {
-        let i = 0;
-        let s = 0;
-        while (i < l) {
-            if (input[i] === ";") {
-                if (i + 1 < l) {
-                    if (input[i + 1] === ";") {
-                        i += 2;
-                    }
-                    else {
-                        tokens.push(input.substring(s, i).replace(";;", ";"));
-                        i++;
-                        s = i;
-                    }
-                }
-                else {
-                    tokens.push(input.substring(s, i).replace(";;", ";"));
-                    i++;
-                    s = i;
-                }
-            }
-            else {
-                i++;
-            }
-        }
-        tokens.push(input.substring(s).replace(";;", ";"));
-    }
-    return tokens;
-}
-function parseInputSemiColon(input) {
-    return input ? coreParseInputSemiColon(input.trim()) : [];
-}
-
-;// CONCATENATED MODULE: ./src/Toolchains/ToolchainEnvironmentVariables.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-
-class ToolchainEnvironmentVariables {
-    static instance() {
-        if (!ToolchainEnvironmentVariables._instance) {
-            ToolchainEnvironmentVariables._instance = new ToolchainEnvironmentVariables();
-        }
-        return ToolchainEnvironmentVariables._instance;
-    }
-    getRawCC() {
-        let msystem = process.env["MSYSTEM"] || "";
-        if (msystem) {
-            msystem = msystem.toUpperCase().trim();
-        }
-        return (GitHubInput.instance().getInputCC() || process.env["CC"] ||
-            (process.env["VCINSTALLDIR"] ? "cl" :
-                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
-    }
-    getRawLD() {
-        let msystem = process.env["MSYSTEM"] || "";
-        if (msystem) {
-            msystem = msystem.toUpperCase().trim();
-        }
-        return (GitHubInput.instance().getInputLD() || process.env["LD"] ||
-            (process.env["VCINSTALLDIR"] ? "link" :
-                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
-    }
-    getRawAR() {
-        return (GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
-    }
-    getRawSTRIP() {
-        return (GitHubInput.instance().getInputSTRIP() || process.env["STRIP"] || "strip").trim();
-    }
-    getRawRANLIB() {
-        return (GitHubInput.instance().getInputRANLIB() || process.env["RANLIB"] || "ranlib").trim();
-    }
-    getRawRC() {
-        return (GitHubInput.instance().getInputRC() || process.env["RC"] || (process.env["VCINSTALLDIR"] ? "rc" : "windres")).trim();
-    }
-    getCC() {
-        return this.getToolchainPrefix() + this.getRawCC();
-    }
-    getLD() {
-        return this.getToolchainPrefix() + this.getRawLD();
-    }
-    getAR() {
-        return this.getToolchainPrefix() + this.getRawAR();
-    }
-    getSTRIP() {
-        return this.getToolchainPrefix() + this.getRawSTRIP();
-    }
-    getRANLIB() {
-        return this.getToolchainPrefix() + this.getRawRANLIB();
-    }
-    getRC() {
-        return this.getToolchainPrefix() + this.getRawRC();
-    }
-    getMake() {
-        return (GitHubInput.instance().getInputMake() || process.env["MAKE"] ||
-            (process.env["VCINSTALLDIR"] ? "nmake" :
-                (process.platform === 'win32' ?
-                    "mingw32-make" :
-                    (process.platform === 'freebsd' || process.platform === 'openbsd' || process.platform === 'netbsd') ?
-                        "gmake" : "make"))).trim();
-    }
-    getToolchainPrefix() {
-        return (GitHubInput.instance().getInputToolchainPrefix() || process.env["TOOLCHAIN_PREFIX"] || "");
-    }
-    getSemiColonSeparatedInput(inputGetter, inputName) {
-        const rawInput = inputGetter() || process.env[inputName];
-        return parseInputSemiColon(rawInput);
-    }
-    getCflagsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputCflagsExtra(), "CFLAGS_EXTRA");
-    }
-    getIncDirsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputIncDirsExtra(), "INCDIRS_EXTRA");
-    }
-    getLdFlagsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLdflagsExtra(), "LDFLAGS_EXTRA");
-    }
-    getLibDirsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibDirsExtra(), "LIBDIRS_EXTRA");
-    }
-    getLibsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibsExtra(), "LIBS_EXTRA");
-    }
-    getLuaPatches() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaPatches(), "LUA_PATCHES");
-    }
-    getLuaRocksPatches() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaRocksPatches(), "LUAROCKS_PATCHES");
-    }
-    constructor() {
-    }
-}
-
 ;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaLinkCompilerTarget.ts
 /*
 ** The MIT License (MIT)
@@ -43227,15 +42665,15 @@ class PucLuaLinkCompilerTarget {
                     linker.addLinkLibrary("dl");
                 }
             }
-            const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+            const libDirs = UserInput.instance().getLibDirsExtra();
             for (const libDir of libDirs) {
                 linker.addLibDir(libDir);
             }
-            const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+            const libs = UserInput.instance().getLibsExtra();
             for (const lib of libs) {
                 linker.addLinkLibrary(lib);
             }
-            const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+            const ldFlags = UserInput.instance().getLdFlagsExtra();
             for (const flag of ldFlags) {
                 linker.addFlag(flag);
             }
@@ -43399,11 +42837,11 @@ class PucLuaCompileCompilerTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getCompilerBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -43548,15 +42986,15 @@ class PucLuaLinkInterpreterTarget {
                     linker.addLinkLibrary("dl");
                 }
             }
-            const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+            const libDirs = UserInput.instance().getLibDirsExtra();
             for (const libDir of libDirs) {
                 linker.addLibDir(libDir);
             }
-            const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+            const libs = UserInput.instance().getLibsExtra();
             for (const lib of libs) {
                 linker.addLinkLibrary(lib);
             }
-            const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+            const ldFlags = UserInput.instance().getLdFlagsExtra();
             for (const flag of ldFlags) {
                 linker.addFlag(flag);
             }
@@ -43718,11 +43156,11 @@ class PucLuaCompileInterpreterTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getInterpreterBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -44007,11 +43445,11 @@ class PucLuaCompileStaticLibTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getStaticLibBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -44189,15 +43627,15 @@ class PucLuaLinkSharedLibTarget {
                 else {
                     linker.addLinkLibrary("dl");
                 }
-                const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+                const libDirs = UserInput.instance().getLibDirsExtra();
                 for (const libDir of libDirs) {
                     linker.addLibDir(libDir);
                 }
-                const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+                const libs = UserInput.instance().getLibsExtra();
                 for (const lib of libs) {
                     linker.addLinkLibrary(lib);
                 }
-                const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+                const ldFlags = UserInput.instance().getLdFlagsExtra();
                 for (const flag of ldFlags) {
                     linker.addFlag(flag);
                 }
@@ -44379,11 +43817,11 @@ class PucLuaCompileSharedLibTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getSharedLibBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -44877,29 +44315,124 @@ const external_node_timers_promises_namespaceObject = __WEBPACK_EXTERNAL_createR
 
 
 
+
 const DEFAULT_MAX_TRIES = 5;
 const DOWNLOAD_MIN_BASE = 1.7;
 const DOWNLOAD_MAX_BASE = 2.3;
 function randomBetween(min, max) {
     return min + Math.random() * (max - min);
 }
-function getWaitingTimeInMilliseconds(retries) {
+/* B is the base number of exponential growth */
+function getWaitingTimeInMilliseconds(B, retries) {
     let waitingTimeInMilliseconds = 0;
     if (retries > 0) {
-        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const waitingTimeInSeconds = Math.pow(B, retries);
         waitingTimeInMilliseconds = Math.floor(waitingTimeInSeconds * 1000);
     }
     return waitingTimeInMilliseconds;
 }
+function downloadFileFromUriInfo(uriInfo, outFile, maxTries) {
+    return new Promise((resolve, reject) => {
+        const uriArray = uriInfo.getUriArray();
+        const nUrls = uriArray.getLenght();
+        if (nUrls <= 0) {
+            reject(new Error("internal error: empty URL list"));
+        }
+        else {
+            const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
+            const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
+            let succeed = false;
+            let execErr;
+            const downloadAttempt = (i) => {
+                if (!succeed && i < tries) {
+                    (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(B, i))
+                        .then(() => {
+                        const downloadAttemptFromUrl = (j) => {
+                            if (!succeed && j < nUrls) {
+                                const url = uriArray.getItem(j).toString();
+                                if (url.startsWith("http://") || url.startsWith("https://")) {
+                                    fetch(url).then(response => {
+                                        if (!response.ok) {
+                                            execErr = new Error("Response is not ok");
+                                            downloadAttemptFromUrl(j + 1);
+                                        }
+                                        else {
+                                            const body = response.body;
+                                            if (body === null) {
+                                                execErr = new Error("Response body is null");
+                                                downloadAttemptFromUrl(j + 1);
+                                            }
+                                            else {
+                                                external_node_stream_.Readable.fromWeb(body)
+                                                    .pipe((0,external_node_fs_namespaceObject.createWriteStream)(outFile))
+                                                    .on("error", err => {
+                                                    execErr = err;
+                                                    downloadAttemptFromUrl(j + 1);
+                                                })
+                                                    .on("finish", () => {
+                                                    succeed = true;
+                                                    downloadAttemptFromUrl(j + 1);
+                                                });
+                                            }
+                                        }
+                                    })
+                                        .catch(err => {
+                                        execErr = err;
+                                        downloadAttemptFromUrl(j + 1);
+                                    });
+                                }
+                                else {
+                                    (0,promises_namespaceObject.cp)(url, outFile)
+                                        .then(() => {
+                                        succeed = true;
+                                        downloadAttemptFromUrl(j + 1);
+                                    })
+                                        .catch(cpErr => {
+                                        execErr = cpErr;
+                                        downloadAttemptFromUrl(j + 1);
+                                    });
+                                }
+                            }
+                            else if (succeed) {
+                                resolve(outFile);
+                            }
+                            else if (execErr) {
+                                downloadAttempt(i + 1);
+                            }
+                            else {
+                                reject(new Error("internal error: unknown download condition"));
+                            }
+                        };
+                        downloadAttemptFromUrl(0);
+                    })
+                        .catch(timeoutErr => {
+                        execErr = timeoutErr;
+                        downloadAttempt(i + 1);
+                    });
+                }
+                else if (succeed) {
+                    resolve(outFile);
+                }
+                else if (execErr) {
+                    reject(execErr);
+                }
+                else {
+                    reject(new Error("internal error: unknown download condition"));
+                }
+            };
+            downloadAttempt(0);
+        }
+    });
+}
 function downloadFile(url, outFile, maxTries) {
     return new Promise((resolve, reject) => {
+        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
         let succeed = false;
         let execErr;
         const iter = (i) => {
             if (!succeed && i < tries) {
-                (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(i))
+                (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(B, i))
                     .then(() => {
                     fetch(url).then(response => {
                         if (!response.ok) {
@@ -45356,11 +44889,11 @@ const range = (a, b, str) => {
 //# sourceMappingURL=index.js.map
 ;// CONCATENATED MODULE: ./node_modules/brace-expansion/dist/esm/index.js
 
-const escSlash = '\0SLASH' + Math.random() + '\0';
-const escOpen = '\0OPEN' + Math.random() + '\0';
-const escClose = '\0CLOSE' + Math.random() + '\0';
-const escComma = '\0COMMA' + Math.random() + '\0';
-const escPeriod = '\0PERIOD' + Math.random() + '\0';
+const escSlash = '\0SLASH' + Math.random().toFixed(16) + '\0';
+const escOpen = '\0OPEN' + Math.random().toFixed(16) + '\0';
+const escClose = '\0CLOSE' + Math.random().toFixed(16) + '\0';
+const escComma = '\0COMMA' + Math.random().toFixed(16) + '\0';
+const escPeriod = '\0PERIOD' + Math.random().toFixed(16) + '\0';
 const escSlashPattern = new RegExp(escSlash, 'g');
 const escOpenPattern = new RegExp(escOpen, 'g');
 const escClosePattern = new RegExp(escClose, 'g');
@@ -45401,6 +44934,23 @@ const EXPANSION_MAX_DEPTH = 1_000;
 // seconds to produce two results. `EXPANSION_MAX_REWRITES` bounds how many
 // times the scan may restart. Real `{a},b}` input needs a handful.
 const EXPANSION_MAX_REWRITES = 1_000;
+// `EXPANSION_MAX_STEPS` bounds the work one `expand` call does, which `max`,
+// `maxLength` and `maxDepth` don't: nested sets are rescanned at every level
+// and chained groups each rebuild up to `max` results, so 2KB of input could
+// block the event loop for over 30 seconds. Each character scanned, result
+// built and sequence value generated is a step, and each `expand_` call costs
+// `CALL_STEPS` more. Past the budget, the set being expanded and everything
+// after it stay literal. A glob needs a few hundred steps, and nesting all the
+// way to `EXPANSION_MAX_DEPTH` about 4M.
+const EXPANSION_MAX_STEPS = 20_000_000;
+// What one `expand_` call costs on top of what it scans and builds. Setting
+// one up takes about as long as scanning 16 characters, and a set whose
+// results are wrapped to be expanded again makes one call per result, each
+// scanning and building next to nothing: 64KB of
+// `('{{' + ','.repeat(316) + '}{' + ','.repeat(316) + '}}').repeat(n)` made
+// 4M such calls, which spent the budget three times as slowly as anything
+// else.
+const CALL_STEPS = 16;
 function numeric(str) {
     return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
 }
@@ -45426,12 +44976,96 @@ function pushAll(target, items) {
         target.push(items[i]);
     }
 }
+// `balanced`, run on `masked` (see `maskUnmatchedOpens`), sliced from `str`
+// and charged for the characters it walks: up to the group's `}`, or the
+// whole string when there is no match or unmatched `{` come first, which
+// `unmatched` then flags for masking. Once a call overdraws the budget, it
+// and every later one return undefined, so the rest stays literal.
+function balancedWithBudget(str, masked, budget) {
+    if (budget.remaining < 0) {
+        return undefined;
+    }
+    const r = range('{', '}', masked);
+    const unmatched = r !== undefined && masked.indexOf('{') < r[0];
+    budget.remaining -= r && !unmatched ? r[1] + 1 : str.length;
+    if (!r || budget.remaining < 0) {
+        return undefined;
+    }
+    return {
+        end: r[1],
+        pre: str.slice(0, r[0]),
+        body: str.slice(r[0] + 1, r[1]),
+        post: str.slice(r[1] + 1),
+        unmatched,
+    };
+}
+// `masked` with every `{` that has no matching `}` swapped for a `\0`, which
+// keeps the length, so a scan of it still lines up with the string it was
+// made from. Such a `{` is literal either way, but `balanced` only learns that
+// one is unmatched by reading to the end of the string, so with one at the
+// head of every group (`'{a,{b,c}'.repeat(n)`) each scan read the rest of the
+// input. That was quadratic, and once the step budget charged for it, it ran
+// out partway through and left the rest literal. A scan of the masked copy
+// stops at the group's `}`. It is one pass, charged as such.
+function maskUnmatchedOpens(masked, budget) {
+    budget.remaining -= masked.length;
+    const open = [];
+    for (let i = 0; i < masked.length; i++) {
+        const c = masked.charCodeAt(i);
+        if (c === 0x7b) {
+            open.push(i);
+        }
+        else if (c === 0x7d && open.length) {
+            open.pop();
+        }
+    }
+    let out = '';
+    let last = 0;
+    for (let i = 0; i < open.length; i++) {
+        const at = open[i];
+        out += masked.slice(last, at) + '\0';
+        last = at + 1;
+    }
+    return out + masked.slice(last);
+}
+// Whether `str` has a `,` not followed by another `,`, with a `}` after it on
+// the same line - what `/,(?!,).*\}/.test(str)` asks, answered in one pass from
+// the end. The regex tries every `,` and backtracks through the rest of its
+// line from each, which is quadratic, and the `{a},b}` rewrite asks again on
+// every pass. Like a scan, it is charged for the whole string and refused if
+// that overdraws the budget.
+function commaSetFollows(str, budget) {
+    budget.remaining -= str.length;
+    if (budget.remaining < 0) {
+        return false;
+    }
+    // Whether a `}` follows the current position before the line ends
+    let close = false;
+    for (let i = str.length - 1; i >= 0; i--) {
+        const c = str.charCodeAt(i);
+        if (c === 0x7d) {
+            close = true;
+        }
+        else if (c === 0x0a || c === 0x0d || c === 0x2028 || c === 0x2029) {
+            // A line terminator, which `.` does not match
+            close = false;
+        }
+        else if (c === 0x2c && close && str.charCodeAt(i + 1) !== 0x2c) {
+            return true;
+        }
+    }
+    return false;
+}
 /**
  * Basically just str.split(","), but handling cases
  * where we have nested braced sections, which should be
  * treated as individual members, like {a,{b,c},d}
+ *
+ * Returns `undefined` if the step budget runs out before the whole set is
+ * split, since splitting what is left on every comma would tear apart the
+ * nested sets it still holds.
  */
-function parseCommaParts(str) {
+function parseCommaParts(str, budget) {
     const parts = [];
     // Walk the brace groups iteratively. Recursing on `post` once per group let a
     // chain of them exhaust the stack - the parsing-side counterpart to
@@ -45441,7 +45075,11 @@ function parseCommaParts(str) {
     // The part the next chunk continues
     let carry = '';
     for (;;) {
-        const m = balanced('{', '}', str);
+        // A set's body holds no unmatched `{`, so there is nothing to mask.
+        const m = balancedWithBudget(str, str, budget);
+        if (budget.remaining < 0) {
+            return undefined;
+        }
         if (!m) {
             const tail = str.split(',');
             tail[0] = carry + tail[0];
@@ -45461,11 +45099,23 @@ function parseCommaParts(str) {
         str = post;
     }
 }
+// An option that is left out, or that is NaN, gets its default. Every
+// comparison against NaN is false, so a NaN bound would never be reached:
+// `{ maxSteps: NaN }` let 15KB of input block the event loop for 16 seconds,
+// and `{ maxDepth: NaN }` overflowed the stack again (CVE-2026-102278). Pass
+// `Infinity` to lift a bound.
+function bound(value, fallback) {
+    return value === undefined || isNaN(value) ? fallback : value;
+}
 function expand(str, options = {}) {
     if (!str) {
         return [];
     }
-    const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES, } = options;
+    const max = bound(options.max, EXPANSION_MAX);
+    const maxLength = bound(options.maxLength, EXPANSION_MAX_LENGTH);
+    const maxDepth = bound(options.maxDepth, EXPANSION_MAX_DEPTH);
+    const maxRewrites = bound(options.maxRewrites, EXPANSION_MAX_REWRITES);
+    const maxSteps = bound(options.maxSteps, EXPANSION_MAX_STEPS);
     // I don't know why Bash 4.3 does this, but it does.
     // Anything starting with {} will have the first two bytes preserved
     // but *only* at the top level, so {},a}b will not expand to anything,
@@ -45475,7 +45125,7 @@ function expand(str, options = {}) {
     if (str.slice(0, 2) === '{}') {
         str = '\\{\\}' + str.slice(2);
     }
-    return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
+    return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, { remaining: maxSteps }, true).map(unescapeBraces);
 }
 function embrace(str) {
     return '{' + str + '}';
@@ -45493,30 +45143,41 @@ function gte(i, y) {
 // number of results at `max` and the total number of characters at `maxLength`.
 // This is the one place output grows, so bounding it here keeps the single
 // accumulator - and therefore memory - flat regardless of how many brace groups
-// are combined (CVE-2026-14257).
-function combine(acc, pre, values, max, maxLength, dropEmpties) {
+// are combined (CVE-2026-14257). Each result built is a step, since `max` and
+// `maxLength` bound one combination, not how many brace groups are combined.
+function combine(acc, pre, values, max, maxLength, dropEmpties, budget) {
     const out = [];
     let length = 0;
-    for (let a = 0; a < acc.length; a++) {
-        for (let v = 0; v < values.length; v++) {
+    // Bash drops empty results at the top level, and they don't count against
+    // `max`, so `max` bounds the number of *kept* results. Only an empty
+    // `acc[a] + pre` can make one, so for those the empty values are skipped
+    // without being visited. Visiting them one at a time let a set of empties
+    // cost `acc.length * values.length` while keeping nothing.
+    let nonEmpty;
+    outer: for (let a = 0; a < acc.length; a++) {
+        const prefix = acc[a] + pre;
+        let vs = values;
+        if (dropEmpties && !prefix) {
+            if (!nonEmpty)
+                nonEmpty = values.filter(v => v);
+            vs = nonEmpty;
+        }
+        for (let v = 0; v < vs.length; v++) {
             if (out.length >= max)
-                return out;
-            const expansion = acc[a] + pre + values[v];
-            // Bash drops empty results at the top level. Skip them before they count
-            // against `max`, so `max` bounds the number of *kept* results.
-            if (dropEmpties && !expansion)
-                continue;
+                break outer;
+            const expansion = prefix + vs[v];
             if (length + expansion.length > maxLength)
-                return out;
+                break outer;
             out.push(expansion);
             length += expansion.length;
         }
     }
+    budget.remaining -= out.length;
     return out;
 }
 // The expansion values of a single numeric (`1..5`) or alphabetic (`a..e..2`)
-// sequence body.
-function expandSequence(body, isAlphaSequence, max, maxLength) {
+// sequence body, or `undefined` if the step budget runs out generating them.
+function expandSequence(body, isAlphaSequence, max, maxLength, budget) {
     const n = body.split(/\.\./);
     const N = [];
     // A sequence body always splits into two or three parts, but the compiler
@@ -45539,8 +45200,20 @@ function expandSequence(body, isAlphaSequence, max, maxLength) {
         test = gte;
     }
     const pad = n.some(isPadded);
+    // A padded value is built a character at a time to `width`, which the input
+    // sets, so it costs one step per character: 64KB of
+    // `('{' + '0'.repeat(100) + '..99999}').repeat(n)` took 7 seconds charged
+    // one step per value.
+    const cost = pad ? width : 1;
     let length = 0;
     for (let i = x; test(i, y) && N.length < max; i += incr) {
+        // Each value is a step. `max` and `maxLength` bound one sequence, but a
+        // chain of them still generated up to `max` values each, however few
+        // combining could keep.
+        budget.remaining -= cost;
+        if (budget.remaining < 0) {
+            return undefined;
+        }
         let c;
         if (isAlphaSequence) {
             c = String.fromCharCode(i);
@@ -45570,7 +45243,9 @@ function expandSequence(body, isAlphaSequence, max, maxLength) {
     }
     return N;
 }
-function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
+function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, budget, isTop) {
+    // An overdraft here makes the first scan refuse, so `str` stays literal.
+    budget.remaining -= CALL_STEPS;
     // Too deeply nested to keep following: treat the rest as literal, the same
     // way a group that cannot expand is already handled. Truncating rather than
     // throwing keeps `expand` total, matching `max` and `maxLength`.
@@ -45593,20 +45268,33 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
     let rewrites = 0;
     let dropEmpties = false;
     let firstGroup = true;
+    // `str` with its unmatched `{` masked, once a scan has run into them
+    let masked = str;
     for (;;) {
-        const m = balanced('{', '}', str);
-        // No brace set left: the rest of the string is literal.
+        const m = balancedWithBudget(str, masked, budget);
+        // No brace set left, or no step budget left to look for one: the rest of
+        // the string is literal.
         if (!m) {
-            return combine(acc, str, [''], max, maxLength, dropEmpties);
+            return combine(acc, str, [''], max, maxLength, dropEmpties, budget);
+        }
+        if (m.unmatched) {
+            masked = maskUnmatchedOpens(masked, budget);
         }
         // no need to expand pre, since it is guaranteed to be free of brace-sets
         const pre = m.pre;
+        // This set and the rest of the string, literal: for a set that cannot
+        // expand, and for one the step budget runs out on. Once it is overdrawn,
+        // every set still being expanded, at every level, stays literal like this -
+        // otherwise each level above would go on combining, and wrapping and
+        // expanding again, results the budget was too small for.
+        const literal = () => combine(acc, pre + '{' + m.body + '}' + m.post, [''], max, maxLength, dropEmpties, budget);
         if (/\$$/.test(pre)) {
-            acc = combine(acc, pre + '{' + m.body + '}', [''], max, maxLength, dropEmpties && !m.post.length);
+            acc = combine(acc, pre + '{' + m.body + '}', [''], max, maxLength, dropEmpties && !m.post.length, budget);
             firstGroup = false;
             if (!m.post.length)
                 break;
             str = m.post;
+            masked = masked.slice(m.end + 1);
             continue;
         }
         const isNumericSequence = /^-?\d+\.\.-?\d+(?:\.\.-?\d+)?$/.test(m.body);
@@ -45615,14 +45303,19 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
         const isOptions = m.body.indexOf(',') >= 0;
         if (!isSequence && !isOptions) {
             // {a},b}
-            if (rewrites < maxRewrites && m.post.match(/,(?!,).*\}/)) {
+            if (rewrites < maxRewrites && commaSetFollows(m.post, budget)) {
                 rewrites++;
                 str = m.pre + '{' + m.body + escClose + m.post;
+                // Taking a `}` away never gives an unmatched `{` a partner, so what
+                // is masked stays unmatched. The `{` it closed can be left without
+                // one, and the next scan masks it.
+                masked =
+                    masked.slice(0, m.end) + escClose + masked.slice(m.end + 1);
                 isTop = true;
                 continue;
             }
             // Nothing here expands, so the whole remaining string is literal.
-            return combine(acc, pre + '{' + m.body + '}' + m.post, [''], max, maxLength, dropEmpties);
+            return literal();
         }
         if (firstGroup) {
             dropEmpties = isTop && !isSequence;
@@ -45630,20 +45323,36 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
         }
         let values;
         if (isSequence) {
-            values = expandSequence(m.body, isAlphaSequence, max, maxLength);
+            values = expandSequence(m.body, isAlphaSequence, max, maxLength, budget);
+            if (!values) {
+                return literal();
+            }
         }
         else {
-            let n = parseCommaParts(m.body);
+            let n = parseCommaParts(m.body, budget);
+            // The step budget ran out partway through the set.
+            if (!n) {
+                return literal();
+            }
             if (n.length === 1 && n[0] !== undefined) {
                 // x{{a,b}}y ==> x{a}y x{b}y
-                n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
+                n = expand_(n[0], max, maxLength, maxDepth, depth + 1, maxRewrites, budget, false).map(embrace);
+                // The step budget ran out expanding the set's only part.
+                if (budget.remaining < 0) {
+                    return literal();
+                }
                 //XXX is this necessary? Can't seem to hit it in tests.
                 /* c8 ignore start */
                 if (n.length === 1) {
-                    acc = combine(acc, pre + n[0], [''], max, maxLength, dropEmpties && !m.post.length);
+                    const next = combine(acc, pre + n[0], [''], max, maxLength, dropEmpties && !m.post.length, budget);
+                    if (budget.remaining < 0) {
+                        return literal();
+                    }
+                    acc = next;
                     if (!m.post.length)
                         break;
                     str = m.post;
+                    masked = masked.slice(m.end + 1);
                     continue;
                 }
                 /* c8 ignore stop */
@@ -45662,7 +45371,11 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
             values = [];
             let valuesLength = 0;
             outer: for (let j = 0; j < n.length; j++) {
-                const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
+                const expanded = expand_(n[j], max, maxLength, maxDepth, depth + 1, maxRewrites, budget, false);
+                // The step budget ran out expanding a member.
+                if (budget.remaining < 0) {
+                    return literal();
+                }
                 for (let k = 0; k < expanded.length; k++) {
                     const v = expanded[k];
                     if (dropsEmpties && !v)
@@ -45676,10 +45389,16 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
                 }
             }
         }
-        acc = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length);
+        const next = combine(acc, pre, values, max, maxLength, dropEmpties && !m.post.length, budget);
+        // The step budget ran out combining the set's values in.
+        if (budget.remaining < 0) {
+            return literal();
+        }
+        acc = next;
         if (!m.post.length)
             break;
         str = m.post;
+        masked = masked.slice(m.end + 1);
     }
     return acc;
 }
@@ -48750,8 +48469,8 @@ function getRuntimeToken() {
     return token;
 }
 //# sourceMappingURL=cacheUtils.js.map
-// EXTERNAL MODULE: external "url"
-var external_url_ = __nccwpck_require__(7016);
+;// CONCATENATED MODULE: external "url"
+const external_url_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("url");
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/abort-controller/AbortError.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
@@ -49652,6 +49371,7 @@ const defaultAllowedHeaderNames = [
     "ms-cv",
     "return-client-request-id",
     "traceparent",
+    "azure-deprecating",
     "Access-Control-Allow-Credentials",
     "Access-Control-Allow-Headers",
     "Access-Control-Allow-Methods",
@@ -49876,6 +49596,10 @@ class restError_RestError extends Error {
  * @param e - Something caught by a catch clause.
  */
 function restError_isRestError(e) {
+    // This package declares RestError, so there is exactly one constructor that can produce it
+    // here and the cross-package `instanceof` restriction does not apply. The `name` check below
+    // is the fallback for a RestError built by a second copy of this package.
+    // eslint-disable-next-line no-restricted-syntax
     if (e instanceof restError_RestError) {
         return true;
     }
@@ -49894,6 +49618,484 @@ var external_node_zlib_ = __nccwpck_require__(8522);
 
 const log_logger = createClientLogger("ts-http-runtime");
 //# sourceMappingURL=log.js.map
+;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/util/requestBodyHeaders.js
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+/**
+ * Converts a flat `[name, value, ...]` raw header array to `[name, value]` pairs,
+ * or returns an existing pair array unchanged, preserving order and duplicates.
+ *
+ * @param headers - Header names and values in either array format.
+ * @returns The header pairs in their original order.
+ * @see https://nodejs.org/api/http.html#messagerawheaders
+ */
+function getHeaderPairs(headers) {
+    return Array.isArray(headers[0])
+        ? headers
+        : Array.from({ length: Math.ceil(headers.length / 2) }, (_, index) => [
+            headers[index * 2],
+            headers[index * 2 + 1],
+        ]);
+}
+function isIterable(value) {
+    return Symbol.iterator in value && typeof value[Symbol.iterator] === "function";
+}
+function removeContinueToken(value) {
+    if (typeof value === "string") {
+        const tokens = value.split(",");
+        const remaining = tokens.filter((token) => token.trim().toLowerCase() !== "100-continue");
+        if (remaining.length === tokens.length) {
+            return value;
+        }
+        return (remaining
+            .map((token) => token.trim())
+            .filter(Boolean)
+            .join(", ") || undefined);
+    }
+    if (Array.isArray(value)) {
+        const remaining = value.map(removeContinueToken).filter((entry) => entry !== undefined);
+        return remaining.length > 0 ? remaining : undefined;
+    }
+    return value;
+}
+function stripRequestBodyHeaders(request, removeFraming) {
+    const stripHeaderValue = (name, value) => {
+        const lowerName = name.toLowerCase();
+        if (removeFraming &&
+            (lowerName === "content-length" ||
+                lowerName === "transfer-encoding" ||
+                lowerName === "trailer")) {
+            return undefined;
+        }
+        return lowerName === "expect" ? removeContinueToken(value) : value;
+    };
+    const stripHeaderPairs = (pairs) => pairs.flatMap(([name, value]) => {
+        const updated = typeof name === "string" ? stripHeaderValue(name, value) : value;
+        return updated === undefined ? [] : [[name, updated]];
+    });
+    for (const [name, value] of request.headers) {
+        const updated = stripHeaderValue(name, value);
+        if (updated === undefined) {
+            request.headers.delete(name);
+        }
+        else if (typeof updated === "string" && updated !== value) {
+            request.headers.set(name, updated);
+        }
+    }
+    const overrides = request.requestOverrides;
+    if (!overrides || !("headers" in overrides)) {
+        return;
+    }
+    const headers = overrides.headers;
+    if (Array.isArray(headers)) {
+        const updatedPairs = stripHeaderPairs(getHeaderPairs(headers));
+        request.requestOverrides = {
+            ...overrides,
+            headers: Array.isArray(headers[0]) ? updatedPairs : updatedPairs.flat(),
+        };
+    }
+    else if (headers && typeof headers === "object" && isIterable(headers)) {
+        const pairs = Array.from(headers, (entry) => {
+            if (!Array.isArray(entry) || entry.length !== 2) {
+                throw new TypeError("Header entry must be a name/value pair");
+            }
+            return entry;
+        });
+        request.requestOverrides = { ...overrides, headers: stripHeaderPairs(pairs) };
+    }
+    else if (headers && typeof headers === "object") {
+        const updatedHeaders = {};
+        for (const [name, value] of Object.entries(headers)) {
+            const updated = stripHeaderValue(name, value);
+            if (updated !== undefined) {
+                updatedHeaders[name] = updated;
+            }
+        }
+        request.requestOverrides = { ...overrides, headers: updatedHeaders };
+    }
+}
+/**
+ * Removes only the 100-continue expectation from pipeline and replacement headers.
+ * Raw header arrays retain their shape, and caller-supplied override headers are not mutated.
+ * Iterable override collections are materialized as reusable name/value pairs.
+ *
+ * @param request - The request whose body is known to be empty.
+ */
+function removeExpectContinueHeader(request) {
+    stripRequestBodyHeaders(request, false);
+}
+/**
+ * Removes obsolete body framing, trailer declarations, and the 100-continue expectation
+ * after discarding a body.
+ *
+ * @param request - The request whose body has been discarded.
+ */
+function removeRequestBodyHeaders(request) {
+    stripRequestBodyHeaders(request, true);
+}
+//# sourceMappingURL=requestBodyHeaders.js.map
+;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/util/nodeExpectContinue.js
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+const EXPECT_CONTINUE_TIMEOUT_IN_MS = 1000;
+function getHeaderValues(headers, name) {
+    if (Array.isArray(headers)) {
+        return getHeaderPairs(headers)
+            .filter(([key]) => typeof key === "string" && key.toLowerCase() === name)
+            .flatMap(([, value]) => (Array.isArray(value) ? value : [value]));
+    }
+    if (headers && typeof headers === "object") {
+        if ("get" in headers && typeof headers.get === "function") {
+            const value = headers.get(name);
+            return value === undefined || value === null ? [] : [value];
+        }
+        let value;
+        for (const [key, entry] of Object.entries(headers)) {
+            if (key.toLowerCase() === name) {
+                value = entry;
+            }
+        }
+        return value === undefined ? [] : Array.isArray(value) ? value : [value];
+    }
+    return [];
+}
+function getEffectiveHeaderValues(request, name) {
+    const headers = request.requestOverrides && "headers" in request.requestOverrides
+        ? request.requestOverrides.headers
+        : request.headers;
+    return getHeaderValues(headers, name.toLowerCase());
+}
+function hasExpectContinue(request) {
+    return getEffectiveHeaderValues(request, "expect").some((value) => typeof value === "string" &&
+        value.split(",").some((token) => token.trim().toLowerCase() === "100-continue"));
+}
+function addHeader(headers, name, value) {
+    if (!Array.isArray(headers)) {
+        return { ...headers, [name]: value };
+    }
+    return Array.isArray(headers[0]) ? [...headers, [name, value]] : [...headers, name, value];
+}
+function hasHeader(headers, name) {
+    if (Array.isArray(headers)) {
+        return getHeaderPairs(headers).some(([key]) => typeof key === "string" && key.toLowerCase() === name);
+    }
+    return Object.keys(headers ?? {}).some((key) => key.toLowerCase() === name);
+}
+function addExpectContinueFraming(options, bodyLength) {
+    if (hasHeader(options.headers, "content-length") ||
+        hasHeader(options.headers, "transfer-encoding")) {
+        return;
+    }
+    options.headers = addHeader(options.headers, bodyLength === null ? "Transfer-Encoding" : "Content-Length", bodyLength === null ? "chunked" : String(bodyLength));
+}
+function createExpectContinueRequest(options) {
+    let fallback;
+    let waiting = true;
+    let bodyStarted = false;
+    let errorReported = false;
+    let request;
+    let bodyError;
+    const bodyStream = options.bodyStream;
+    // Error observation must not consume a caller-owned source before upload permission.
+    bodyStream?.once("error", onBodyError);
+    if (bodyStream && "errored" in bodyStream && bodyStream.errored instanceof Error) {
+        // destroy(error) may still have its error event queued on the next tick.
+        process.nextTick(onBodyError, bodyStream.errored);
+        return;
+    }
+    try {
+        request = options.createRequest(onResponse);
+    }
+    catch (error) {
+        onError(error);
+        return;
+    }
+    function stopWaiting(keepBodyObserved = false) {
+        waiting = false;
+        if (fallback !== undefined) {
+            clearTimeout(fallback);
+            fallback = undefined;
+        }
+        request?.removeListener("continue", sendBody);
+        request?.removeListener("socket", onSocket);
+        if (!keepBodyObserved) {
+            bodyStream?.removeListener("error", onBodyError);
+        }
+    }
+    function onError(error) {
+        const requestError = error instanceof Error ? error : new Error(String(error));
+        // destroy() may emit no error on a closed request, or emit this error again on a live one.
+        if (!errorReported) {
+            errorReported = true;
+            stopWaiting();
+            options.onError(requestError);
+        }
+        return requestError;
+    }
+    function onBodyError(error) {
+        if (errorReported || (!waiting && !bodyStarted)) {
+            return;
+        }
+        errorReported = true;
+        bodyError = error instanceof Error ? error : new Error(String(error));
+        stopWaiting();
+        options.onBodyError(error);
+        request?.destroy(bodyError);
+    }
+    function sendBody() {
+        if (!waiting) {
+            return;
+        }
+        bodyStarted = true;
+        stopWaiting(true);
+        try {
+            options.sendBody(request);
+        }
+        catch (error) {
+            onBodyError(error);
+        }
+        finally {
+            // The upload path now observes the source, including synchronous failures while piping.
+            bodyStream?.removeListener("error", onBodyError);
+        }
+    }
+    function onAbort() {
+        stopWaiting();
+        options.onAbort(request);
+    }
+    function onSocket() {
+        if (!waiting) {
+            return;
+        }
+        try {
+            request.flushHeaders();
+            if (!waiting) {
+                return;
+            }
+            // This ordered write excludes connection setup and preceding header writes from the timeout.
+            request.write("", (error) => {
+                if (error) {
+                    request.destroy(onError(error));
+                }
+                else if (waiting) {
+                    fallback = setTimeout(sendBody, EXPECT_CONTINUE_TIMEOUT_IN_MS);
+                }
+            });
+        }
+        catch (error) {
+            request.destroy(onError(error));
+        }
+    }
+    function onResponse(response) {
+        stopWaiting();
+        if (!bodyStarted) {
+            request.shouldKeepAlive = false;
+            const destroyRequest = () => {
+                response.removeListener("end", destroyRequest);
+                response.removeListener("close", destroyRequest);
+                request.destroy();
+            };
+            response.once("end", destroyRequest);
+            response.once("close", destroyRequest);
+            if (response.readableEnded || response.destroyed) {
+                destroyRequest();
+            }
+        }
+        options.onResponse(response);
+    }
+    request.once("error", onError);
+    if (bodyError) {
+        request.destroy(bodyError);
+        return;
+    }
+    if (options.abortSignal.aborted) {
+        onAbort();
+        return;
+    }
+    options.abortSignal.addEventListener("abort", onAbort, { once: true });
+    // Request close can precede consumption of buffered response data.
+    // Keep private abort forwarding until sendRequest's outer lifecycle disconnects the caller.
+    request.once("close", () => stopWaiting());
+    if (request.destroyed || request.closed) {
+        stopWaiting();
+    }
+    if (!waiting) {
+        return;
+    }
+    request.once("continue", sendBody);
+    if (request.socket) {
+        onSocket();
+    }
+    else {
+        request.once("socket", onSocket);
+    }
+}
+//# sourceMappingURL=nodeExpectContinue.js.map
+;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/util/responseBody.js
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+const responseBodySources = new WeakMap();
+const responseBodyDisposers = new WeakMap();
+const requestCompletions = new WeakMap();
+const responseBodyCompletions = new WeakMap();
+function setRequestCompletion(response, completion) {
+    requestCompletions.set(response, completion);
+    completion
+        .then(() => requestCompletions.get(response) === completion && requestCompletions.delete(response))
+        .catch((error) => {
+        log_logger.warning("Error tracking request completion", error);
+    });
+}
+/**
+ * Returns a promise that resolves when the response's outgoing request has completed.
+ *
+ * @param response - The response whose request completion should be observed.
+ * @returns The request completion promise, if the transport provides one.
+ */
+function getRequestCompletion(response) {
+    return requestCompletions.get(response);
+}
+function setResponseBodyCompletion(response, completion) {
+    responseBodyCompletions.set(response, completion);
+    completion
+        .then(() => responseBodyCompletions.get(response) === completion &&
+        responseBodyCompletions.delete(response))
+        .catch((error) => {
+        logger.warning("Error tracking response body completion", error);
+    });
+}
+/**
+ * Returns a promise that resolves when the response body has completed, errored, or been canceled.
+ *
+ * @param response - The response whose body completion should be observed.
+ * @returns The response body completion promise, if the transport provides one.
+ */
+function getResponseBodyCompletion(response) {
+    return responseBodyCompletions.get(response);
+}
+function isNodeResponseBody(value) {
+    return (typeof value === "object" &&
+        value !== null &&
+        "resume" in value &&
+        typeof value.resume === "function");
+}
+function isNodeEventEmitterBody(value) {
+    return ("on" in value &&
+        typeof value.on === "function" &&
+        "once" in value &&
+        typeof value.once === "function" &&
+        "removeListener" in value &&
+        typeof value.removeListener === "function");
+}
+function isBrowserResponseBody(value) {
+    return (typeof value === "object" &&
+        value !== null &&
+        "cancel" in value &&
+        typeof value.cancel === "function");
+}
+function setResponseBodySource(body, source) {
+    if (isNodeResponseBody(body) && isNodeResponseBody(source)) {
+        responseBodySources.set(body, source);
+    }
+}
+function setResponseBodyDisposer(response, dispose) {
+    responseBodyDisposers.set(response, dispose);
+    return () => {
+        if (responseBodyDisposers.get(response) === dispose) {
+            responseBodyDisposers.delete(response);
+        }
+    };
+}
+/**
+ * Destroys a Node stream, or drains it if destruction is unavailable,
+ * and recursively disposes its tracked upstream sources.
+ */
+function disposeNodeResponseBody(readableStream, disposed = new Set()) {
+    // Avoid disposing a stream twice if the source chain contains a cycle.
+    if (disposed.has(readableStream)) {
+        return;
+    }
+    disposed.add(readableStream);
+    const source = responseBodySources.get(readableStream);
+    responseBodySources.delete(readableStream);
+    if (readableStream.closed !== true) {
+        if (readableStream.destroy) {
+            if (isNodeEventEmitterBody(readableStream)) {
+                const onError = (error) => {
+                    log_logger.warning("Error disposing Node stream", error);
+                };
+                const onClose = () => {
+                    readableStream.removeListener("error", onError);
+                };
+                readableStream.on("error", onError);
+                readableStream.once("close", onClose);
+                try {
+                    readableStream.destroy();
+                }
+                catch (error) {
+                    readableStream.removeListener("error", onError);
+                    readableStream.removeListener("close", onClose);
+                    throw error;
+                }
+            }
+            else {
+                readableStream.destroy();
+            }
+        }
+        else {
+            readableStream.resume();
+        }
+    }
+    if (source) {
+        disposeNodeResponseBody(source, disposed);
+    }
+}
+/**
+ * Disposes a raw Node stream and its tracked upstream sources without throwing.
+ *
+ * @param stream - The stream to destroy, or drain if destruction is unavailable.
+ */
+function disposeNodeStream(stream) {
+    try {
+        disposeNodeResponseBody(stream);
+    }
+    catch (error) {
+        log_logger.warning("Error disposing Node stream", error);
+    }
+}
+/**
+ * Releases the body of a response that will not be read, so the underlying connection can be
+ * reused or closed. Handles Node readable streams and browser web streams, and never throws:
+ * disposal failures are logged as warnings.
+ *
+ * @param response - The response whose `readableStreamBody` or `browserStreamBody` should be disposed.
+ */
+async function responseBody_disposeResponseBody(response) {
+    try {
+        const dispose = responseBodyDisposers.get(response);
+        responseBodyDisposers.delete(response);
+        try {
+            const readableStream = response.readableStreamBody;
+            if (isNodeResponseBody(readableStream)) {
+                disposeNodeStream(readableStream);
+                return;
+            }
+            const browserStream = response.browserStreamBody;
+            if (isBrowserResponseBody(browserStream)) {
+                await browserStream.cancel();
+            }
+        }
+        finally {
+            dispose?.();
+        }
+    }
+    catch (error) {
+        log_logger.warning("Error disposing response body", error);
+    }
+}
+//# sourceMappingURL=responseBody.js.map
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/nodeHttpClient.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
@@ -49906,9 +50108,13 @@ const log_logger = createClientLogger("ts-http-runtime");
 
 
 
+
+
+
+
 const DEFAULT_TLS_SETTINGS = {};
 function nodeHttpClient_isReadableStream(body) {
-    return body && typeof body.pipe === "function";
+    return (typeof body === "object" && body !== null && "pipe" in body && typeof body.pipe === "function");
 }
 function isStreamComplete(stream) {
     if (stream.readable === false) {
@@ -49927,7 +50133,15 @@ function isStreamComplete(stream) {
     });
 }
 function isArrayBuffer(body) {
-    return body && typeof body.byteLength === "number";
+    return external_node_util_.types.isArrayBuffer(body) || ArrayBuffer.isView(body);
+}
+function arrayBufferToBuffer(body) {
+    if (Buffer.isBuffer(body)) {
+        return body;
+    }
+    return ArrayBuffer.isView(body)
+        ? Buffer.from(body.buffer, body.byteOffset, body.byteLength)
+        : Buffer.from(body);
 }
 class ReportTransform extends external_node_stream_.Transform {
     loadedBytes = 0;
@@ -49949,6 +50163,108 @@ class ReportTransform extends external_node_stream_.Transform {
         this.progressCallback = progressCallback;
     }
 }
+function createRequestLifecycle(request, options, isInsecure, resolve, reject) {
+    let clientRequest;
+    let response;
+    let requestDone = false;
+    let resolveRequestComplete;
+    const requestComplete = new Promise((_resolve) => {
+        resolveRequestComplete = _resolve;
+    });
+    const onComplete = () => {
+        requestDone = true;
+        clientRequest.removeListener("finish", onComplete);
+        clientRequest.removeListener("close", onComplete);
+        resolveRequestComplete();
+    };
+    const onResponse = (incomingResponse) => {
+        response = incomingResponse;
+        resolve({
+            response: incomingResponse,
+            requestComplete,
+            isRequestComplete: () => requestDone,
+            disposeRequest: () => {
+                if (!requestDone) {
+                    clientRequest.destroy();
+                }
+            },
+        });
+    };
+    return {
+        createRequest: (onResponseCallback = onResponse) => {
+            clientRequest = isInsecure
+                ? external_node_http_.request(options, onResponseCallback)
+                : external_node_https_namespaceObject.request(options, onResponseCallback);
+            clientRequest.once("finish", onComplete);
+            clientRequest.once("close", onComplete);
+            return clientRequest;
+        },
+        onResponse,
+        rejectRequest: (error) => {
+            reject(toRequestSendError(error, request));
+        },
+        abortRequest: (req) => {
+            const abortError = new AbortError("The operation was aborted. Rejecting from abort signal callback while making request.");
+            response?.destroy(abortError);
+            req.destroy(abortError);
+            reject(abortError);
+        },
+    };
+}
+function toRequestSendError(error, request) {
+    if (restError_isRestError(error)) {
+        return error;
+    }
+    const prematureClose = error.code === "ERR_STREAM_PREMATURE_CLOSE";
+    return new restError_RestError(prematureClose ? "Request body stream closed before ending" : error.message, {
+        code: prematureClose
+            ? restError_RestError.REQUEST_SEND_ERROR
+            : (error.code ?? restError_RestError.REQUEST_SEND_ERROR),
+        request,
+    });
+}
+function sendRequestBody(clientRequest, body, request, onError) {
+    if (body && nodeHttpClient_isReadableStream(body)) {
+        pipeUploadStream(body, clientRequest, request, onError);
+    }
+    else if (body) {
+        if (typeof body === "string" || Buffer.isBuffer(body)) {
+            clientRequest.end(body);
+        }
+        else {
+            log_logger.error("Unrecognized body type", body);
+            throw new restError_RestError("Unrecognized body type", { request });
+        }
+    }
+    else {
+        clientRequest.end();
+    }
+}
+function prepareRequestBody(request, useExpectContinue) {
+    const requestBody = request.body;
+    const resolvedBody = typeof requestBody === "function" ? requestBody() : requestBody;
+    const body = resolvedBody && isArrayBuffer(resolvedBody) ? arrayBufferToBuffer(resolvedBody) : resolvedBody;
+    if (!useExpectContinue && body && !request.headers.has("Content-Length")) {
+        const bodyLength = getBodyLength(body);
+        if (bodyLength !== null) {
+            request.headers.set("Content-Length", bodyLength);
+        }
+    }
+    if (!body || !request.onUploadProgress) {
+        return body;
+    }
+    const uploadReportStream = new ReportTransform(request.onUploadProgress);
+    uploadReportStream.on("error", (e) => {
+        log_logger.error("Error in upload progress", e);
+    });
+    if (nodeHttpClient_isReadableStream(body)) {
+        pipeUploadStream(body, uploadReportStream, request);
+    }
+    else {
+        uploadReportStream.end(body);
+    }
+    return uploadReportStream;
+}
 /**
  * A HttpClient implementation that uses Node's "https" module to send HTTPS requests.
  * @internal
@@ -49961,10 +50277,12 @@ class NodeHttpClient {
      * @param request - The request to be made.
      */
     async sendRequest(request) {
+        const requestBody = request.body;
         const abortController = new AbortController();
         let abortListener;
-        if (request.abortSignal) {
-            if (request.abortSignal.aborted) {
+        const requestAbortSignal = request.abortSignal;
+        if (requestAbortSignal) {
+            if (requestAbortSignal.aborted) {
                 throw new AbortError("The operation was aborted. Request has already been canceled.");
             }
             abortListener = (event) => {
@@ -49972,7 +50290,7 @@ class NodeHttpClient {
                     abortController.abort();
                 }
             };
-            request.abortSignal.addEventListener("abort", abortListener);
+            requestAbortSignal.addEventListener("abort", abortListener);
         }
         let timeoutId;
         if (request.timeout > 0) {
@@ -49984,30 +50302,31 @@ class NodeHttpClient {
         }
         const acceptEncoding = request.headers.get("Accept-Encoding");
         const shouldDecompress = acceptEncoding?.includes("gzip") || acceptEncoding?.includes("deflate");
-        let body = typeof request.body === "function" ? request.body() : request.body;
-        if (body && !request.headers.has("Content-Length")) {
-            const bodyLength = getBodyLength(body);
-            if (bodyLength !== null) {
-                request.headers.set("Content-Length", bodyLength);
-            }
-        }
+        // Keep input separate from the prepared upload. Even a direct stream must leave body
+        // undefined until preparation starts, so early rejection does not transfer its ownership.
+        let body;
         let responseStream;
+        let requestComplete = Promise.resolve();
         try {
-            if (body && request.onUploadProgress) {
-                const onUploadProgress = request.onUploadProgress;
-                const uploadReportStream = new ReportTransform(onUploadProgress);
-                uploadReportStream.on("error", (e) => {
-                    log_logger.error("Error in upload progress", e);
-                });
-                if (nodeHttpClient_isReadableStream(body)) {
-                    body.pipe(uploadReportStream);
-                }
-                else {
-                    uploadReportStream.end(body);
-                }
-                body = uploadReportStream;
+            let useExpectContinue = hasExpectContinue(request);
+            const knownBodyLength = useExpectContinue && typeof requestBody !== "function"
+                ? getBodyLength(requestBody ?? null)
+                : null;
+            if (knownBodyLength === 0) {
+                removeExpectContinueHeader(request);
+                useExpectContinue = false;
             }
-            const res = await this.makeRequest(request, abortController, body);
+            if (!useExpectContinue) {
+                body = prepareRequestBody(request, false);
+            }
+            const result = useExpectContinue
+                ? await this.makeRequestWithExpectContinue(request, abortController, () => {
+                    body = prepareRequestBody(request, true);
+                    return body;
+                }, knownBodyLength)
+                : await this.makeRequest(request, abortController, body);
+            requestComplete = result.requestComplete;
+            const res = result.response;
             const headers = getResponseHeaders(res);
             const status = res.statusCode ?? 0;
             const response = {
@@ -50015,23 +50334,34 @@ class NodeHttpClient {
                 headers,
                 request,
             };
+            if (!result.isRequestComplete()) {
+                setRequestCompletion(response, result.requestComplete);
+                const clearDisposer = setResponseBodyDisposer(response, result.disposeRequest);
+                result.requestComplete.then(clearDisposer).catch((error) => {
+                    log_logger.warning("Error disposing request", error);
+                });
+            }
             // Responses to HEAD must not have a body.
             // If they do return a body, that body must be ignored.
-            if (request.method === "HEAD") {
+            const method = typeof request.requestOverrides?.method === "string"
+                ? request.requestOverrides.method.toUpperCase()
+                : request.method;
+            if (method === "HEAD") {
                 // call resume() and not destroy() to avoid closing the socket
                 // and losing keep alive
                 res.resume();
                 return response;
             }
-            responseStream = shouldDecompress ? getDecodedResponseStream(res, headers) : res;
+            responseStream = shouldDecompress
+                ? getDecodedResponseStream(res, headers, abortController.signal)
+                : res;
             const onDownloadProgress = request.onDownloadProgress;
             if (onDownloadProgress) {
                 const downloadReportStream = new ReportTransform(onDownloadProgress);
                 downloadReportStream.on("error", (e) => {
                     log_logger.error("Error in download progress", e);
                 });
-                responseStream.pipe(downloadReportStream);
-                responseStream = downloadReportStream;
+                responseStream = pipeResponseStream(responseStream, downloadReportStream, abortController.signal);
             }
             if (
             // Value of POSITIVE_INFINITY in streamResponseStatusCodes is considered as any status code
@@ -50044,13 +50374,26 @@ class NodeHttpClient {
             }
             return response;
         }
+        catch (error) {
+            // Dispose only the prepared upload. If preparation never ran, body is undefined
+            // and the caller's untouched input stream is left alone.
+            if (nodeHttpClient_isReadableStream(body)) {
+                disposeNodeStream(body);
+            }
+            if (responseStream) {
+                disposeNodeStream(responseStream);
+            }
+            throw error;
+        }
         finally {
             if (timeoutId !== undefined) {
                 clearTimeout(timeoutId);
             }
-            // clean up event listener
-            if (request.abortSignal && abortListener) {
+            // Keep abort forwarding until the outgoing request and response have both completed.
+            if (requestAbortSignal && abortListener) {
                 let uploadStreamDone = Promise.resolve();
+                // Wait only for a prepared upload. If preparation never ran, body is undefined,
+                // so the caller's untouched input stream cannot block abort-listener cleanup.
                 if (nodeHttpClient_isReadableStream(body)) {
                     uploadStreamDone = isStreamComplete(body);
                 }
@@ -50058,11 +50401,11 @@ class NodeHttpClient {
                 if (nodeHttpClient_isReadableStream(responseStream)) {
                     downloadStreamDone = isStreamComplete(responseStream);
                 }
-                Promise.all([uploadStreamDone, downloadStreamDone])
+                Promise.all([requestComplete, uploadStreamDone, downloadStreamDone])
                     .then(() => {
                     // eslint-disable-next-line promise/always-return
                     if (abortListener) {
-                        request.abortSignal?.removeEventListener("abort", abortListener);
+                        requestAbortSignal.removeEventListener("abort", abortListener);
                     }
                 })
                     .catch((e) => {
@@ -50072,53 +50415,54 @@ class NodeHttpClient {
         }
     }
     makeRequest(request, abortController, body) {
+        const { options, isInsecure } = this.getRequestOptions(request);
+        return new Promise((resolve, reject) => {
+            const { createRequest, rejectRequest, abortRequest } = createRequestLifecycle(request, options, isInsecure, resolve, reject);
+            const req = createRequest();
+            req.once("error", rejectRequest);
+            abortController.signal.addEventListener("abort", () => abortRequest(req));
+            sendRequestBody(req, body, request, rejectRequest);
+        });
+    }
+    makeRequestWithExpectContinue(request, abortController, prepareBody, knownBodyLength) {
+        const { options, isInsecure } = this.getRequestOptions(request);
+        addExpectContinueFraming(options, knownBodyLength);
+        return new Promise((resolve, reject) => {
+            const { createRequest, onResponse, rejectRequest, abortRequest } = createRequestLifecycle(request, options, isInsecure, resolve, reject);
+            createExpectContinueRequest({
+                abortSignal: abortController.signal,
+                bodyStream: nodeHttpClient_isReadableStream(request.body) ? request.body : undefined,
+                createRequest,
+                onAbort: abortRequest,
+                onError: rejectRequest,
+                onBodyError: reject,
+                onResponse,
+                sendBody: (clientRequest) => {
+                    const body = prepareBody();
+                    sendRequestBody(clientRequest, body, request, rejectRequest);
+                },
+            });
+        });
+    }
+    getRequestOptions(request) {
         const url = new URL(request.url);
         const isInsecure = url.protocol !== "https:";
         if (isInsecure && !request.allowInsecureConnection) {
             throw new Error(`Cannot connect to ${request.url} while allowInsecureConnection is false.`);
         }
         const agent = request.agent ?? this.getOrCreateAgent(request, isInsecure);
-        const options = {
-            agent,
-            hostname: url.hostname,
-            path: `${url.pathname}${url.search}`,
-            port: url.port,
-            method: request.method,
-            headers: request.headers.toJSON({ preserveCase: true }),
-            ...request.requestOverrides,
+        return {
+            isInsecure,
+            options: {
+                agent,
+                hostname: url.hostname,
+                path: `${url.pathname}${url.search}`,
+                port: url.port,
+                method: request.method,
+                headers: request.headers.toJSON({ preserveCase: true }),
+                ...request.requestOverrides,
+            },
         };
-        return new Promise((resolve, reject) => {
-            const req = isInsecure ? external_node_http_.request(options, resolve) : external_node_https_namespaceObject.request(options, resolve);
-            req.once("error", (err) => {
-                reject(new restError_RestError(err.message, { code: err.code ?? restError_RestError.REQUEST_SEND_ERROR, request }));
-            });
-            abortController.signal.addEventListener("abort", () => {
-                const abortError = new AbortError("The operation was aborted. Rejecting from abort signal callback while making request.");
-                req.destroy(abortError);
-                reject(abortError);
-            });
-            if (body && nodeHttpClient_isReadableStream(body)) {
-                body.pipe(req);
-            }
-            else if (body) {
-                if (typeof body === "string" || Buffer.isBuffer(body)) {
-                    req.end(body);
-                }
-                else if (isArrayBuffer(body)) {
-                    req.end(ArrayBuffer.isView(body)
-                        ? Buffer.from(body.buffer, body.byteOffset, body.byteLength)
-                        : Buffer.from(body));
-                }
-                else {
-                    log_logger.error("Unrecognized body type", body);
-                    reject(new restError_RestError("Unrecognized body type"));
-                }
-            }
-            else {
-                // streams don't like "undefined" being passed as data
-                req.end();
-            }
-        });
     }
     getOrCreateAgent(request, isInsecure) {
         const disableKeepAlive = request.disableKeepAlive;
@@ -50175,44 +50519,85 @@ function getResponseHeaders(res) {
     }
     return headers;
 }
-function getDecodedResponseStream(stream, headers) {
+function getDecodedResponseStream(stream, headers, abortSignal) {
     const contentEncoding = headers.get("Content-Encoding");
     if (contentEncoding === "gzip") {
-        const unzip = external_node_zlib_.createGunzip();
-        stream.pipe(unzip);
-        return unzip;
+        return pipeResponseStream(stream, external_node_zlib_.createGunzip(), abortSignal);
     }
     else if (contentEncoding === "deflate") {
-        const inflate = external_node_zlib_.createInflate();
-        stream.pipe(inflate);
-        return inflate;
+        return pipeResponseStream(stream, external_node_zlib_.createInflate(), abortSignal);
     }
     return stream;
+}
+function pipeUploadStream(source, destination, request, onError) {
+    let tearingDown = false;
+    const cleanupFinished = (0,external_node_stream_.finished)(source, { writable: false }, onSourceComplete);
+    function onSourceComplete(error) {
+        cleanupFinished();
+        destination.removeListener("close", onDestinationClose);
+        if (error && !tearingDown) {
+            const requestError = toRequestSendError(error, request);
+            destination.destroy(requestError);
+            onError?.(requestError);
+        }
+    }
+    function onDestinationClose() {
+        // Keep observing the source, but do not forward failures caused by intentional teardown.
+        tearingDown = true;
+        source.unpipe(destination);
+        disposeNodeStream(source);
+    }
+    destination.once("close", onDestinationClose);
+    source.pipe(destination);
+}
+function pipeResponseStream(source, destination, abortSignal) {
+    setResponseBodySource(destination, source);
+    let cleanupSource = () => { };
+    let cleanupDestination = () => { };
+    cleanupSource = (0,external_node_stream_.finished)(source, { writable: false }, (error) => {
+        cleanupSource();
+        if (error) {
+            destination.destroy(abortSignal.aborted ? new AbortError() : error);
+        }
+    });
+    cleanupDestination = (0,external_node_stream_.finished)(destination, { writable: false }, () => {
+        cleanupDestination();
+        // Keep the source observer until its own completion, including any queued error.
+        source.unpipe(destination);
+        if (source.readable) {
+            disposeNodeStream(source);
+        }
+    });
+    return source.pipe(destination);
 }
 function streamToText(stream) {
     return new Promise((resolve, reject) => {
         const buffer = [];
-        stream.on("data", (chunk) => {
+        const cleanupFinished = (0,external_node_stream_.finished)(stream, { writable: false }, onComplete);
+        function onData(chunk) {
             if (Buffer.isBuffer(chunk)) {
                 buffer.push(chunk);
             }
             else {
                 buffer.push(Buffer.from(chunk));
             }
-        });
-        stream.on("end", () => {
-            resolve(Buffer.concat(buffer).toString("utf8"));
-        });
-        stream.on("error", (e) => {
-            if (e && e?.name === "AbortError") {
-                reject(e);
+        }
+        function onComplete(error) {
+            cleanupFinished();
+            stream.removeListener("data", onData);
+            if (error?.name === "AbortError") {
+                reject(error);
             }
-            else {
-                reject(new restError_RestError(`Error reading response as text: ${e.message}`, {
+            else if (error) {
+                reject(new restError_RestError(`Error reading response as text: ${error.message}`, {
                     code: restError_RestError.PARSE_ERROR,
                 }));
             }
-        });
+            else {
+                resolve(Buffer.concat(buffer).toString("utf8"));
+            }
+        }
+        stream.on("data", onData);
     });
 }
 /** @internal */
@@ -50230,7 +50615,7 @@ function getBodyLength(body) {
         return body.byteLength;
     }
     else if (typeof body === "string") {
-        return Buffer.from(body).length;
+        return Buffer.byteLength(body);
     }
     else {
         return null;
@@ -50621,12 +51006,13 @@ function isSystemError(err) {
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/constants.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-const constants_SDK_VERSION = "0.3.9";
+const constants_SDK_VERSION = "0.3.10";
 const constants_DEFAULT_RETRY_POLICY_COUNT = 3;
 //# sourceMappingURL=constants.js.map
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/policies/retryPolicy.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 
 
 
@@ -50704,11 +51090,17 @@ function retryPolicy_retryPolicy(strategies, options = { maxRetries: constants_D
                     }
                     if (retryAfterInMs || retryAfterInMs === 0) {
                         strategyLogger.info(`Retry ${retryCount}: Retry strategy ${strategy.name} retries after ${retryAfterInMs}`);
+                        if (response) {
+                            await responseBody_disposeResponseBody(response);
+                        }
                         await helpers_delay(retryAfterInMs, undefined, { abortSignal: request.abortSignal });
                         continue retryRequest;
                     }
                     if (redirectTo) {
                         strategyLogger.info(`Retry ${retryCount}: Retry strategy ${strategy.name} redirects to ${redirectTo}`);
+                        if (response) {
+                            await responseBody_disposeResponseBody(response);
+                        }
                         request.url = redirectTo;
                         continue retryRequest;
                     }
@@ -50894,10 +51286,696 @@ async function prepareFormData(formData, request) {
     request.multipartBody = { parts };
 }
 //# sourceMappingURL=formDataPolicy.js.map
-// EXTERNAL MODULE: ./node_modules/https-proxy-agent/dist/index.js
-var dist = __nccwpck_require__(3669);
-// EXTERNAL MODULE: ./node_modules/http-proxy-agent/dist/index.js
-var http_proxy_agent_dist = __nccwpck_require__(1970);
+// EXTERNAL MODULE: external "net"
+var external_net_ = __nccwpck_require__(9278);
+// EXTERNAL MODULE: external "tls"
+var external_tls_ = __nccwpck_require__(4756);
+// EXTERNAL MODULE: ./node_modules/debug/src/index.js
+var src = __nccwpck_require__(2830);
+;// CONCATENATED MODULE: ./node_modules/agent-base/dist/helpers.js
+
+
+async function toBuffer(stream) {
+    let length = 0;
+    const chunks = [];
+    for await (const chunk of stream) {
+        length += chunk.length;
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks, length);
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function json(stream) {
+    const buf = await toBuffer(stream);
+    const str = buf.toString('utf8');
+    try {
+        return JSON.parse(str);
+    }
+    catch (_err) {
+        const err = _err;
+        err.message += ` (input: ${str})`;
+        throw err;
+    }
+}
+function req(url, opts = {}) {
+    const href = typeof url === 'string' ? url : url.href;
+    const req = (href.startsWith('https:') ? https : http).request(url, opts);
+    const promise = new Promise((resolve, reject) => {
+        req
+            .once('response', resolve)
+            .once('error', reject)
+            .end();
+    });
+    req.then = promise.then.bind(promise);
+    return req;
+}
+//# sourceMappingURL=helpers.js.map
+;// CONCATENATED MODULE: ./node_modules/agent-base/dist/index.js
+
+
+
+
+const INTERNAL = Symbol('AgentBaseInternalState');
+class Agent extends external_http_.Agent {
+    constructor(opts) {
+        super(opts);
+        this[INTERNAL] = {};
+    }
+    /**
+     * Determine whether this is an `http` or `https` request.
+     */
+    isSecureEndpoint(options) {
+        if (options) {
+            // First check the `secureEndpoint` property explicitly, since this
+            // means that a parent `Agent` is "passing through" to this instance.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (typeof options.secureEndpoint === 'boolean') {
+                return options.secureEndpoint;
+            }
+            // If no explicit `secure` endpoint, check if `protocol` property is
+            // set. This will usually be the case since using a full string URL
+            // or `URL` instance should be the most common usage.
+            if (typeof options.protocol === 'string') {
+                return options.protocol === 'https:';
+            }
+        }
+        // Finally, if no `protocol` property was set, then fall back to
+        // checking the stack trace of the current call stack, and try to
+        // detect the "https" module.
+        const { stack } = new Error();
+        if (typeof stack !== 'string')
+            return false;
+        return stack
+            .split('\n')
+            .some((l) => l.indexOf('(https.js:') !== -1 ||
+            l.indexOf('node:https:') !== -1);
+    }
+    // In order to support async signatures in `connect()` and Node's native
+    // connection pooling in `http.Agent`, the array of sockets for each origin
+    // has to be updated synchronously. This is so the length of the array is
+    // accurate when `addRequest()` is next called. We achieve this by creating a
+    // fake socket and adding it to `sockets[origin]` and incrementing
+    // `totalSocketCount`.
+    incrementSockets(name) {
+        // If `maxSockets` and `maxTotalSockets` are both Infinity then there is no
+        // need to create a fake socket because Node.js native connection pooling
+        // will never be invoked.
+        if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
+            return null;
+        }
+        // All instances of `sockets` are expected TypeScript errors. The
+        // alternative is to add it as a private property of this class but that
+        // will break TypeScript subclassing.
+        if (!this.sockets[name]) {
+            // @ts-expect-error `sockets` is readonly in `@types/node`
+            this.sockets[name] = [];
+        }
+        const fakeSocket = new external_net_.Socket({ writable: false });
+        this.sockets[name].push(fakeSocket);
+        // @ts-expect-error `totalSocketCount` isn't defined in `@types/node`
+        this.totalSocketCount++;
+        return fakeSocket;
+    }
+    decrementSockets(name, socket) {
+        if (!this.sockets[name] || socket === null) {
+            return;
+        }
+        const sockets = this.sockets[name];
+        const index = sockets.indexOf(socket);
+        if (index !== -1) {
+            sockets.splice(index, 1);
+            // @ts-expect-error  `totalSocketCount` isn't defined in `@types/node`
+            this.totalSocketCount--;
+            if (sockets.length === 0) {
+                // @ts-expect-error `sockets` is readonly in `@types/node`
+                delete this.sockets[name];
+            }
+        }
+    }
+    // In order to properly update the socket pool, we need to call `getName()` on
+    // the core `https.Agent` if it is a secureEndpoint.
+    getName(options) {
+        const secureEndpoint = this.isSecureEndpoint(options);
+        if (secureEndpoint) {
+            return external_https_.Agent.prototype.getName.call(this, options);
+        }
+        return super.getName(options);
+    }
+    createSocket(req, options, cb) {
+        const connectOpts = {
+            ...options,
+            secureEndpoint: this.isSecureEndpoint(options),
+        };
+        const name = this.getName(connectOpts);
+        const fakeSocket = this.incrementSockets(name);
+        Promise.resolve()
+            .then(() => this.connect(req, connectOpts))
+            .then((socket) => {
+            this.decrementSockets(name, fakeSocket);
+            if (typeof socket
+                .addRequest === 'function') {
+                try {
+                    return socket.addRequest(req, connectOpts);
+                }
+                catch (err) {
+                    return cb(err);
+                }
+            }
+            this[INTERNAL].currentSocket = socket;
+            // @ts-expect-error `createSocket()` isn't defined in `@types/node`
+            super.createSocket(req, options, cb);
+        }, (err) => {
+            this.decrementSockets(name, fakeSocket);
+            cb(err);
+        });
+    }
+    createConnection() {
+        const socket = this[INTERNAL].currentSocket;
+        this[INTERNAL].currentSocket = undefined;
+        if (!socket) {
+            throw new Error('No socket was returned in the `connect()` function');
+        }
+        return socket;
+    }
+    get defaultPort() {
+        return (this[INTERNAL].defaultPort ??
+            (this.protocol === 'https:' ? 443 : 80));
+    }
+    set defaultPort(v) {
+        if (this[INTERNAL]) {
+            this[INTERNAL].defaultPort = v;
+        }
+    }
+    get protocol() {
+        return (this[INTERNAL].protocol ??
+            (this.isSecureEndpoint() ? 'https:' : 'http:'));
+    }
+    set protocol(v) {
+        if (this[INTERNAL]) {
+            this[INTERNAL].protocol = v;
+        }
+    }
+}
+//# sourceMappingURL=index.js.map
+;// CONCATENATED MODULE: ./node_modules/https-proxy-agent/dist/parse-proxy-response.js
+
+const parse_proxy_response_debug = src('https-proxy-agent:parse-proxy-response');
+function parseProxyResponse(socket) {
+    return new Promise((resolve, reject) => {
+        // we need to buffer any HTTP traffic that happens with the proxy before we get
+        // the CONNECT response, so that if the response is anything other than an "200"
+        // response code, then we can re-play the "data" events on the socket once the
+        // HTTP parser is hooked up...
+        let buffersLength = 0;
+        const buffers = [];
+        function read() {
+            const b = socket.read();
+            if (b)
+                ondata(b);
+            else
+                socket.once('readable', read);
+        }
+        function cleanup() {
+            socket.removeListener('end', onend);
+            socket.removeListener('error', onerror);
+            socket.removeListener('readable', read);
+        }
+        function onend() {
+            cleanup();
+            parse_proxy_response_debug('onend');
+            reject(new Error('Proxy connection ended before receiving CONNECT response'));
+        }
+        function onerror(err) {
+            cleanup();
+            parse_proxy_response_debug('onerror %o', err);
+            reject(err);
+        }
+        function ondata(b) {
+            buffers.push(b);
+            buffersLength += b.length;
+            const buffered = Buffer.concat(buffers, buffersLength);
+            const endOfHeaders = buffered.indexOf('\r\n\r\n');
+            if (endOfHeaders === -1) {
+                // keep buffering
+                parse_proxy_response_debug('have not received end of HTTP headers yet...');
+                read();
+                return;
+            }
+            const headerParts = buffered
+                .slice(0, endOfHeaders)
+                .toString('ascii')
+                .split('\r\n');
+            const firstLine = headerParts.shift();
+            if (!firstLine) {
+                socket.destroy();
+                return reject(new Error('No header received from proxy CONNECT response'));
+            }
+            const firstLineParts = firstLine.split(' ');
+            const statusCode = +firstLineParts[1];
+            const statusText = firstLineParts.slice(2).join(' ');
+            const headers = {};
+            for (const header of headerParts) {
+                if (!header)
+                    continue;
+                const firstColon = header.indexOf(':');
+                if (firstColon === -1) {
+                    socket.destroy();
+                    return reject(new Error(`Invalid header from proxy CONNECT response: "${header}"`));
+                }
+                const key = header.slice(0, firstColon).toLowerCase();
+                const value = header.slice(firstColon + 1).trimStart();
+                const current = headers[key];
+                if (typeof current === 'string') {
+                    headers[key] = [current, value];
+                }
+                else if (Array.isArray(current)) {
+                    current.push(value);
+                }
+                else {
+                    headers[key] = value;
+                }
+            }
+            parse_proxy_response_debug('got proxy server response: %o %o', firstLine, headers);
+            cleanup();
+            resolve({
+                connect: {
+                    statusCode,
+                    statusText,
+                    headers,
+                },
+                buffered,
+            });
+        }
+        socket.on('error', onerror);
+        socket.on('end', onend);
+        read();
+    });
+}
+//# sourceMappingURL=parse-proxy-response.js.map
+;// CONCATENATED MODULE: ./node_modules/proxy-agent-negotiate/dist/index.js
+function createNegotiateAuth() {
+    return async ({ response, scheme }) => {
+        if (scheme.toLowerCase() !== 'negotiate') {
+            throw new Error(`Expected Negotiate scheme but got "${scheme}"`);
+        }
+        let kerberos;
+        try {
+            kerberos = await __nccwpck_require__.e(/* import() */ 50).then(__nccwpck_require__.t.bind(__nccwpck_require__, 8050, 19));
+        }
+        catch {
+            throw new Error('The "kerberos" package is required for Negotiate proxy authentication. ' +
+                'Install it with: npm install kerberos');
+        }
+        const proxyAuthenticate = response.headers['proxy-authenticate'] || '';
+        const challengeHeader = Array.isArray(proxyAuthenticate)
+            ? proxyAuthenticate[0]
+            : proxyAuthenticate;
+        const serverToken = typeof challengeHeader === 'string' && challengeHeader.includes(' ')
+            ? challengeHeader.split(' ').slice(1).join(' ')
+            : undefined;
+        const client = await kerberos.initializeClient('HTTP@proxy', {
+            mechOID: kerberos.GSS_MECH_OID_SPNEGO,
+        });
+        const token = await client.step(serverToken || '');
+        if (!token) {
+            throw new Error('Kerberos client.step() returned no token');
+        }
+        return {
+            headers: {
+                'Proxy-Authorization': `Negotiate ${token}`,
+            },
+        };
+    };
+}
+//# sourceMappingURL=index.js.map
+;// CONCATENATED MODULE: ./node_modules/https-proxy-agent/dist/index.js
+
+
+
+
+
+
+
+
+const dist_debug = src('https-proxy-agent');
+const setServernameFromNonIpHost = (options) => {
+    if (options.servername === undefined &&
+        options.host &&
+        !external_net_.isIP(options.host)) {
+        return {
+            ...options,
+            servername: options.host,
+        };
+    }
+    return options;
+};
+/**
+ * The `HttpsProxyAgent` implements an HTTP Agent subclass that connects to
+ * the specified "HTTP(s) proxy server" in order to proxy HTTPS requests.
+ *
+ * Outgoing HTTP requests are first tunneled through the proxy server using the
+ * `CONNECT` HTTP request method to establish a connection to the proxy server,
+ * and then the proxy server connects to the destination target and issues the
+ * HTTP request from the proxy server.
+ *
+ * `https:` requests have their socket connection upgraded to TLS once
+ * the connection to the proxy server has been established.
+ */
+class HttpsProxyAgent extends Agent {
+    constructor(proxy, opts) {
+        super(opts);
+        this.options = { path: undefined };
+        this.proxy = typeof proxy === 'string' ? new external_url_namespaceObject.URL(proxy) : proxy;
+        this.proxyHeaders = opts?.headers ?? {};
+        dist_debug('Creating new HttpsProxyAgent instance: %o', this.proxy.href);
+        if (opts?.negotiate) {
+            this.onProxyAuth = createNegotiateAuth();
+        }
+        else if (opts?.onProxyAuth) {
+            this.onProxyAuth = opts.onProxyAuth;
+        }
+        // Trim off the brackets from IPv6 addresses
+        const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, '');
+        const port = this.proxy.port
+            ? parseInt(this.proxy.port, 10)
+            : this.proxy.protocol === 'https:'
+                ? 443
+                : 80;
+        this.connectOpts = {
+            // Attempt to negotiate http/1.1 for proxy servers that support http/2
+            ALPNProtocols: ['http/1.1'],
+            ...(opts
+                ? omit(opts, 'headers', 'onProxyAuth', 'negotiate')
+                : null),
+            host,
+            port,
+        };
+    }
+    /**
+     * Called when the node-core HTTP client library is creating a
+     * new HTTP request.
+     */
+    async connect(req, opts) {
+        const { proxy } = this;
+        if (!opts.host) {
+            throw new TypeError('No "host" provided');
+        }
+        // Create a socket connection to the proxy server.
+        let socket;
+        if (proxy.protocol === 'https:') {
+            dist_debug('Creating `tls.Socket`: %o', this.connectOpts);
+            socket = external_tls_.connect(setServernameFromNonIpHost(this.connectOpts));
+        }
+        else {
+            dist_debug('Creating `net.Socket`: %o', this.connectOpts);
+            socket = external_net_.connect(this.connectOpts);
+        }
+        const headers = typeof this.proxyHeaders === 'function'
+            ? this.proxyHeaders()
+            : { ...this.proxyHeaders };
+        const host = external_net_.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+        let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`;
+        // Inject the `Proxy-Authorization` header if necessary.
+        if (proxy.username || proxy.password) {
+            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
+        }
+        headers.Host = `${host}:${opts.port}`;
+        if (!headers['Proxy-Connection']) {
+            headers['Proxy-Connection'] = this.keepAlive
+                ? 'Keep-Alive'
+                : 'close';
+        }
+        for (const name of Object.keys(headers)) {
+            payload += `${name}: ${headers[name]}\r\n`;
+        }
+        const proxyResponsePromise = parseProxyResponse(socket);
+        socket.write(`${payload}\r\n`);
+        const { connect, buffered } = await proxyResponsePromise;
+        req.emit('proxyConnect', connect);
+        this.emit('proxyConnect', connect, req);
+        req.emit('proxy', { proxy: this.proxy.href, socket });
+        if (connect.statusCode === 200) {
+            req.once('socket', resume);
+            if (opts.secureEndpoint) {
+                // The proxy is connecting to a TLS server, so upgrade
+                // this socket connection to a TLS connection.
+                dist_debug('Upgrading socket connection to TLS');
+                return external_tls_.connect({
+                    ...omit(setServernameFromNonIpHost(opts), 'host', 'path', 'port'),
+                    socket,
+                });
+            }
+            return socket;
+        }
+        // Handle 407 Proxy Authentication Required
+        if (connect.statusCode === 407 && this.onProxyAuth) {
+            dist_debug('Got 407 response, invoking onProxyAuth callback');
+            socket.destroy();
+            const proxyAuthenticate = connect.headers['proxy-authenticate'] || '';
+            const scheme = Array.isArray(proxyAuthenticate)
+                ? proxyAuthenticate[0].split(/\s/)[0]
+                : proxyAuthenticate.split(/\s/)[0];
+            const authResponse = await this.onProxyAuth({
+                response: connect,
+                scheme,
+            });
+            // Retry with the auth headers
+            return this._connectWithAuth(req, opts, authResponse.headers);
+        }
+        // Some other status code that's not 200... need to re-play the HTTP
+        // header "data" events onto the socket once the HTTP machinery is
+        // attached so that the node core `http` can parse and handle the
+        // error status code.
+        // Close the original socket, and a new "fake" socket is returned
+        // instead, so that the proxy doesn't get the HTTP request
+        // written to it (which may contain `Authorization` headers or other
+        // sensitive data).
+        //
+        // See: https://hackerone.com/reports/541502
+        socket.destroy();
+        const fakeSocket = new external_net_.Socket({ writable: false });
+        fakeSocket.readable = true;
+        // Need to wait for the "socket" event to re-play the "data" events.
+        req.once('socket', (s) => {
+            dist_debug('Replaying proxy buffer for failed request');
+            external_assert_(s.listenerCount('data') > 0);
+            // Replay the "buffered" Buffer onto the fake `socket`, since at
+            // this point the HTTP module machinery has been hooked up for
+            // the user.
+            s.push(buffered);
+            s.push(null);
+        });
+        return fakeSocket;
+    }
+    /**
+     * Retry a CONNECT request with additional auth headers.
+     */
+    async _connectWithAuth(req, opts, authHeaders) {
+        const { proxy } = this;
+        let socket;
+        if (proxy.protocol === 'https:') {
+            socket = external_tls_.connect(setServernameFromNonIpHost(this.connectOpts));
+        }
+        else {
+            socket = external_net_.connect(this.connectOpts);
+        }
+        const headers = typeof this.proxyHeaders === 'function'
+            ? this.proxyHeaders()
+            : { ...this.proxyHeaders };
+        const host = external_net_.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+        let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`;
+        if (proxy.username || proxy.password) {
+            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
+        }
+        // Merge auth headers (overrides existing)
+        Object.assign(headers, authHeaders);
+        headers.Host = `${host}:${opts.port}`;
+        if (!headers['Proxy-Connection']) {
+            headers['Proxy-Connection'] = this.keepAlive
+                ? 'Keep-Alive'
+                : 'close';
+        }
+        for (const name of Object.keys(headers)) {
+            payload += `${name}: ${headers[name]}\r\n`;
+        }
+        const proxyResponsePromise = parseProxyResponse(socket);
+        socket.write(`${payload}\r\n`);
+        const { connect } = await proxyResponsePromise;
+        req.emit('proxyConnect', connect);
+        this.emit('proxyConnect', connect, req);
+        if (connect.statusCode === 200) {
+            req.once('socket', resume);
+            if (opts.secureEndpoint) {
+                dist_debug('Upgrading socket connection to TLS');
+                return external_tls_.connect({
+                    ...omit(setServernameFromNonIpHost(opts), 'host', 'path', 'port'),
+                    socket,
+                });
+            }
+            return socket;
+        }
+        // If still not 200, throw
+        socket.destroy();
+        throw new Error(`Proxy authentication failed with status ${connect.statusCode} after retry`);
+    }
+}
+HttpsProxyAgent.protocols = ['http', 'https'];
+function resume(socket) {
+    // Defer the resume so that all 'socket' event handlers have a chance
+    // to attach their listeners (e.g. the HTTP client's 'data' handler)
+    // before data starts flowing. Without this, buffered proxy-response
+    // data can be emitted synchronously before listeners are ready.
+    // See: https://github.com/nicolo-ribaudo/tc39-proposal-await-dictionary/issues/7
+    setImmediate(() => {
+        socket.resume();
+    });
+}
+function omit(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+        if (!keys.includes(key)) {
+            ret[key] = obj[key];
+        }
+    }
+    return ret;
+}
+//# sourceMappingURL=index.js.map
+;// CONCATENATED MODULE: ./node_modules/http-proxy-agent/dist/index.js
+
+
+
+
+
+
+
+const http_proxy_agent_dist_debug = src('http-proxy-agent');
+/**
+ * The `HttpProxyAgent` implements an HTTP Agent subclass that connects
+ * to the specified "HTTP proxy server" in order to proxy HTTP requests.
+ */
+class HttpProxyAgent extends Agent {
+    constructor(proxy, opts) {
+        super(opts);
+        this.proxy = typeof proxy === 'string' ? new external_url_namespaceObject.URL(proxy) : proxy;
+        this.proxyHeaders = opts?.headers ?? {};
+        http_proxy_agent_dist_debug('Creating new HttpProxyAgent instance: %o', this.proxy.href);
+        if (opts?.negotiate) {
+            this.onProxyAuth = createNegotiateAuth();
+        }
+        else if (opts?.onProxyAuth) {
+            this.onProxyAuth = opts.onProxyAuth;
+        }
+        // Trim off the brackets from IPv6 addresses
+        const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, '');
+        const port = this.proxy.port
+            ? parseInt(this.proxy.port, 10)
+            : this.proxy.protocol === 'https:'
+                ? 443
+                : 80;
+        this.connectOpts = {
+            ...(opts
+                ? dist_omit(opts, 'headers', 'onProxyAuth', 'negotiate')
+                : null),
+            host,
+            port,
+        };
+    }
+    addRequest(req, opts) {
+        req._header = null;
+        this.setRequestProps(req, opts);
+        // @ts-expect-error `addRequest()` isn't defined in `@types/node`
+        super.addRequest(req, opts);
+    }
+    setRequestProps(req, opts) {
+        const { proxy } = this;
+        const protocol = opts.secureEndpoint ? 'https:' : 'http:';
+        const hostname = req.getHeader('host') || 'localhost';
+        const base = `${protocol}//${hostname}`;
+        const url = new external_url_namespaceObject.URL(req.path, base);
+        if (opts.port !== 80) {
+            url.port = String(opts.port);
+        }
+        // Change the `http.ClientRequest` instance's "path" field
+        // to the absolute path of the URL that will be requested.
+        req.path = String(url);
+        // Inject the `Proxy-Authorization` header if necessary.
+        const headers = typeof this.proxyHeaders === 'function'
+            ? this.proxyHeaders()
+            : { ...this.proxyHeaders };
+        if (proxy.username || proxy.password) {
+            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
+        }
+        if (!headers['Proxy-Connection']) {
+            headers['Proxy-Connection'] = this.keepAlive
+                ? 'Keep-Alive'
+                : 'close';
+        }
+        for (const name of Object.keys(headers)) {
+            const value = headers[name];
+            if (value) {
+                req.setHeader(name, value);
+            }
+        }
+    }
+    async connect(req, opts) {
+        req._header = null;
+        if (!req.path.includes('://')) {
+            this.setRequestProps(req, opts);
+        }
+        // At this point, the http ClientRequest's internal `_header` field
+        // might have already been set. If this is the case then we'll need
+        // to re-generate the string since we just changed the `req.path`.
+        let first;
+        let endOfHeaders;
+        http_proxy_agent_dist_debug('Regenerating stored HTTP header string for request');
+        req._implicitHeader();
+        if (req.outputData && req.outputData.length > 0) {
+            http_proxy_agent_dist_debug('Patching connection write() output buffer with updated header');
+            first = req.outputData[0].data;
+            endOfHeaders = first.indexOf('\r\n\r\n') + 4;
+            req.outputData[0].data =
+                req._header + first.substring(endOfHeaders);
+            http_proxy_agent_dist_debug('Output buffer: %o', req.outputData[0].data);
+        }
+        // Create a socket connection to the proxy server.
+        let socket;
+        if (this.proxy.protocol === 'https:') {
+            http_proxy_agent_dist_debug('Creating `tls.Socket`: %o', this.connectOpts);
+            socket = external_tls_.connect(this.connectOpts);
+        }
+        else {
+            http_proxy_agent_dist_debug('Creating `net.Socket`: %o', this.connectOpts);
+            socket = external_net_.connect(this.connectOpts);
+        }
+        // Wait for the socket's `connect` event, so that this `callback()`
+        // function throws instead of the `http` request machinery. This is
+        // important for i.e. `PacProxyAgent` which determines a failed proxy
+        // connection via the `callback()` function throwing.
+        await (0,external_events_.once)(socket, 'connect');
+        // Emit the 'proxyConnect' event for parity with https-proxy-agent
+        const connect = { socket };
+        req.emit('proxyConnect', connect);
+        this.emit('proxyConnect', connect, req);
+        req.emit('proxy', { proxy: this.proxy.href, socket });
+        return socket;
+    }
+}
+HttpProxyAgent.protocols = ['http', 'https'];
+function dist_omit(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+        if (!keys.includes(key)) {
+            ret[key] = obj[key];
+        }
+    }
+    return ret;
+}
+//# sourceMappingURL=index.js.map
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/policies/proxyPolicy.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
@@ -51046,13 +52124,13 @@ function setProxyAgentOnRequest(request, cachedAgents, proxyUrl) {
     }
     if (isInsecure) {
         if (!cachedAgents.httpProxyAgent) {
-            cachedAgents.httpProxyAgent = new http_proxy_agent_dist.HttpProxyAgent(proxyUrl);
+            cachedAgents.httpProxyAgent = new HttpProxyAgent(proxyUrl);
         }
         request.agent = cachedAgents.httpProxyAgent;
     }
     else {
         if (!cachedAgents.httpsProxyAgent) {
-            cachedAgents.httpsProxyAgent = new dist.HttpsProxyAgent(proxyUrl);
+            cachedAgents.httpsProxyAgent = new HttpsProxyAgent(proxyUrl);
         }
         request.agent = cachedAgents.httpsProxyAgent;
     }
@@ -51091,6 +52169,8 @@ function proxyPolicy_proxyPolicy(proxySettings, options) {
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
+
 
 /**
  * The programmatic identifier of the redirectPolicy.
@@ -51140,10 +52220,14 @@ async function handleRedirect(next, response, maxRetries, allowCrossOriginRedire
         // redirected GET request if the redirect url is present in the location header
         if (status === 303) {
             request.method = "GET";
-            request.headers.delete("Content-Length");
+            if (request.requestOverrides && "method" in request.requestOverrides) {
+                request.requestOverrides = { ...request.requestOverrides, method: "GET" };
+            }
+            removeRequestBodyHeaders(request);
             delete request.body;
         }
         request.headers.delete("Authorization");
+        await responseBody_disposeResponseBody(response);
         const res = await next(request);
         return handleRedirect(next, res, maxRetries, allowCrossOriginRedirects, currentRetries + 1);
     }
@@ -51822,21 +52906,6 @@ async function sendRequest_sendRequest(method, url, pipeline, options = {}, cust
     }
 }
 /**
- * Function to determine the request content type
- * @param options - request options InternalRequestParameters
- * @returns returns the content-type
- */
-function getRequestContentType(options = {}) {
-    if (options.contentType) {
-        return options.contentType;
-    }
-    const headerContentType = options.headers?.["content-type"];
-    if (typeof headerContentType === "string") {
-        return headerContentType;
-    }
-    return getContentType(options.body);
-}
-/**
  * Function to determine the content-type of a body
  * this is used if an explicit content-type is not provided
  * @param body - body in the request
@@ -51846,7 +52915,7 @@ function getContentType(body) {
     if (body === undefined) {
         return undefined;
     }
-    if (ArrayBuffer.isView(body)) {
+    if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
         return "application/octet-stream";
     }
     if (isBlob(body) && body.type) {
@@ -51866,18 +52935,24 @@ function getContentType(body) {
     return "application/json";
 }
 function buildPipelineRequest(method, url, options = {}) {
-    const requestContentType = getRequestContentType(options);
+    const headers = createHttpHeaders(options.headers);
+    let requestContentType = options.contentType;
+    if (!requestContentType) {
+        requestContentType = headers.get("content-type");
+    }
+    if (requestContentType === undefined) {
+        requestContentType = getContentType(options.body);
+    }
     const { body, multipartBody } = getRequestBody(options.body, requestContentType);
     const accept = options.accept ??
-        options.headers?.accept ??
+        headers.get("accept") ??
         (options.noDefaultAcceptHeader ? undefined : "application/json");
-    const headers = createHttpHeaders({
-        ...(options.headers ? options.headers : {}),
-        ...(accept !== undefined && { accept }),
-        ...(requestContentType && {
-            "content-type": requestContentType,
-        }),
-    });
+    if (accept !== undefined) {
+        headers.set("accept", accept);
+    }
+    if (requestContentType) {
+        headers.set("content-type", requestContentType);
+    }
     const { allowInsecureConnection, abortSignal, onUploadProgress, onDownloadProgress, timeout, responseAsStream, noDefaultAcceptHeader: _noDefaultAcceptHeader, url: _url, method: _method, body: _body, multipartBody: _multiBody, headers: _headers, ...rest } = options;
     const request = createPipelineRequest({
         url,
@@ -51915,10 +52990,8 @@ function getRequestBody(body, contentType = "") {
     if (typeof body === "function") {
         return { body: body };
     }
-    if (ArrayBuffer.isView(body)) {
-        return {
-            body: body instanceof Uint8Array ? body : JSON.stringify(body),
-        };
+    if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
+        return { body };
     }
     const firstType = contentType.split(";")[0];
     switch (firstType) {
@@ -52502,6 +53575,7 @@ async function computeSha256Hash(content, encoding) {
 ;// CONCATENATED MODULE: ./node_modules/@typespec/ts-http-runtime/dist/esm/util/internal.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 
 
 
@@ -53445,7 +54519,7 @@ function tryProcessResponse(span, response) {
  * @param abortSignalLike - The AbortSignalLike to wrap.
  * @returns - An object containing the native AbortSignal and an optional cleanup function. The cleanup function should be called when the AbortSignal is no longer needed.
  */
-function wrapAbortSignalLike(abortSignalLike) {
+function wrapAbortSignal_wrapAbortSignalLike(abortSignalLike) {
     if (abortSignalLike instanceof AbortSignal) {
         return { abortSignal: abortSignalLike };
     }
@@ -53486,7 +54560,7 @@ function wrapAbortSignalLikePolicy_wrapAbortSignalLikePolicy() {
             if (!request.abortSignal) {
                 return next(request);
             }
-            const { abortSignal, cleanup } = wrapAbortSignalLike(request.abortSignal);
+            const { abortSignal, cleanup } = wrapAbortSignal_wrapAbortSignalLike(request.abortSignal);
             request.abortSignal = abortSignal;
             try {
                 return await next(request);
@@ -53568,7 +54642,7 @@ function esm_defaultHttpClient_createDefaultHttpClient() {
             // we wrap any AbortSignalLike here since the TypeSpec runtime expects a native AbortSignal.
             // 99% of the time, this should be a no-op since a native AbortSignal is passed in.
             const { abortSignal, cleanup } = request.abortSignal
-                ? wrapAbortSignalLike(request.abortSignal)
+                ? wrapAbortSignal_wrapAbortSignalLike(request.abortSignal)
                 : {};
             try {
                 request.abortSignal = abortSignal;
@@ -55016,7 +56090,12 @@ function serializeDictionaryType(serializer, mapper, object, objectName, isXml, 
     for (const key of Object.keys(object)) {
         const serializedValue = serializer.serialize(valueType, object[key], objectName, options);
         // If the element needs an XML namespace we need to add it within the $ property
-        tempDictionary[key] = getXmlObjectValue(valueType, serializedValue, isXml, options);
+        Object.defineProperty(tempDictionary, key, {
+            value: getXmlObjectValue(valueType, serializedValue, isXml, options),
+            enumerable: true,
+            configurable: true,
+            writable: true,
+        });
     }
     // Add the namespace to the root element if needed
     if (isXml && mapper.xmlNamespace) {
@@ -55215,7 +56294,12 @@ function deserializeCompositeType(serializer, mapper, responseBody, objectName, 
             const dictionary = {};
             for (const headerKey of Object.keys(responseBody)) {
                 if (headerKey.startsWith(headerCollectionPrefix)) {
-                    dictionary[headerKey.substring(headerCollectionPrefix.length)] = serializer.deserialize(propertyMapper.type.value, responseBody[headerKey], propertyObjectName, options);
+                    Object.defineProperty(dictionary, headerKey.substring(headerCollectionPrefix.length), {
+                        value: serializer.deserialize(propertyMapper.type.value, responseBody[headerKey], propertyObjectName, options),
+                        enumerable: true,
+                        configurable: true,
+                        writable: true,
+                    });
                 }
                 handledPropertyNames.push(headerKey);
             }
@@ -55370,7 +56454,12 @@ function deserializeDictionaryType(serializer, mapper, responseBody, objectName,
     if (responseBody) {
         const tempDictionary = {};
         for (const key of Object.keys(responseBody)) {
-            tempDictionary[key] = serializer.deserialize(value, responseBody[key], objectName, options);
+            Object.defineProperty(tempDictionary, key, {
+                value: serializer.deserialize(value, responseBody[key], objectName, options),
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
         }
         return tempDictionary;
     }
@@ -58056,6 +59145,37 @@ function safeCdata(val) {
 function escapeAttribute(val) {
   return valToStr(val).replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }
+
+/**
+ * Resolve a tag or attribute name through sanitizeName if configured.
+ * Validation via xml-naming's qName is performed first; the sanitizeName
+ * callback is invoked only when the name is invalid. If sanitizeName is
+ * false (default), no validation occurs and the name is used as-is.
+ *
+ * @param {string}  name        - raw name from the JS object
+ * @param {boolean} isAttribute - true when resolving an attribute name
+ * @param {object}  options
+ * @param {Matcher} matcher     - current matcher state (readonly from callback perspective)
+ * @param {function} qNameValidator - function to validate tag names
+ */
+
+function resolveName(name, isAttribute, options, matcher, validator) {
+  if (!options.sanitizeName) return name;
+
+  // Processing-instruction names: validate the part after the leading "?"
+  const isPI = !isAttribute && name[0] === '?';
+  const bare = isPI ? name.slice(1) : name;
+
+  if (validator(bare)) return name;
+
+  const result = options.sanitizeName(bare, { isAttribute, matcher: matcher.readOnly() });
+
+  // Never trust the callback's output
+  if (typeof result !== 'string' || !validator(result)) {
+    throw new Error(`sanitizeName returned an invalid XML name for "${bare}"`);
+  }
+  return isPI ? '?' + result : result;
+}
 ;// CONCATENATED MODULE: ./node_modules/xml-naming/src/index.js
 /**
  * xml-naming
@@ -58469,24 +59589,6 @@ function detectXmlVersionFromArray(jArray, options) {
 }
 
 /**
- * Resolve a tag or attribute name through sanitizeName if configured.
- * Validation via xml-naming's qName is performed first; the sanitizeName
- * callback is invoked only when the name is invalid. If sanitizeName is
- * false (default), no validation occurs and the name is used as-is.
- *
- * @param {string}  name        - raw name from the JS object
- * @param {boolean} isAttribute - true when resolving an attribute name
- * @param {object}  options
- * @param {Matcher} matcher     - current matcher state (readonly from callback perspective)
- * @param {function} qNameValidator - function to validate tag names
- */
-function resolveTagName(name, isAttribute, options, matcher, qNameValidator) {
-    if (!options.sanitizeName) return name;
-    if (qNameValidator(name)) return name;
-    return options.sanitizeName(name, { isAttribute, matcher: matcher.readOnly() });
-}
-
-/**
  * @param {array} jArray
  * @param {any} options
  * @returns
@@ -58546,13 +59648,13 @@ function arrToStr(arr, options, indentation, matcher, stopNodeExpressions, qName
         // are not user-supplied XML element names.
         const isSpecialName = rawTagName === options.textNodeName
             || rawTagName === options.cdataPropName
-            || rawTagName === options.commentPropName
-            || rawTagName[0] === '?';
+            || rawTagName === options.commentPropName;
+        //|| rawTagName[0] === '?';
 
         // Resolve tag name (may transform it; may throw for invalid names)
         const tagName = isSpecialName
             ? rawTagName
-            : resolveTagName(rawTagName, false, options, matcher, qNameValidator);
+            : resolveName(rawTagName, false, options, matcher, qNameValidator);
 
         // Extract attributes from ":@" property
         const attrValues = extractAttributeValues(tagObj[":@"], options);
@@ -58617,7 +59719,7 @@ function arrToStr(arr, options, indentation, matcher, stopNodeExpressions, qName
         // If this is a stopNode, get raw content without processing
         let tagValue;
         if (isStopNode) {
-            tagValue = orderedJs2Xml_getRawContent(tagObj[rawTagName], options);
+            tagValue = orderedJs2Xml_getRawContent(tagObj[rawTagName], options, matcher.getDepth());
         } else {
             tagValue = arrToStr(tagObj[rawTagName], options, newIdentation, matcher, stopNodeExpressions, qNameValidator);
         }
@@ -58674,7 +59776,10 @@ function extractAttributeValues(attrMap, options) {
  * Extract raw content from a stopNode without any processing
  * This preserves the content exactly as-is, including special characters
  */
-function orderedJs2Xml_getRawContent(arr, options) {
+function orderedJs2Xml_getRawContent(arr, options, depth = 0) {
+    if (options.maxNestedTags && depth > options.maxNestedTags) {
+        throw new Error("Maximum nested tags exceeded");
+    }
     if (!Array.isArray(arr)) {
         // Non-array values return as-is
         if (arr !== undefined && arr !== null) {
@@ -58703,7 +59808,7 @@ function orderedJs2Xml_getRawContent(arr, options) {
         } else if (tagName) {
             // Nested tags within stopNode — no sanitizeName, content is raw
             const attStr = attr_to_str_raw(item[":@"], options);
-            const nestedContent = orderedJs2Xml_getRawContent(item[tagName], options);
+            const nestedContent = orderedJs2Xml_getRawContent(item[tagName], options, depth + 1);
 
             if (!nestedContent || nestedContent.length === 0) {
                 content += `<${tagName}${attStr}/>`;
@@ -58758,7 +59863,7 @@ function attr_to_str(attrMap, options, isStopNode, matcher, qNameValidator) {
             const cleanAttrName = attr.substr(options.attributeNamePrefix.length);
             const resolvedAttrName = isStopNode
                 ? cleanAttrName  // stopNodes are raw — skip sanitizeName for attr names too
-                : resolveTagName(cleanAttrName, true, options, matcher, qNameValidator);
+                : resolveName(cleanAttrName, true, options, matcher, qNameValidator);
 
             let attrVal;
             if (isStopNode) {
@@ -58942,24 +60047,6 @@ function detectXmlVersionFromObj(jObj, options) {
   return '1.0';
 }
 
-/**
- * Resolve a tag or attribute name through sanitizeName if configured.
- * Validation via xml-naming's qName is performed first; the sanitizeName
- * callback is invoked only when the name is invalid. If sanitizeName is
- * false (default), no validation occurs and the name is used as-is.
- *
- * @param {string}  name        - raw name from the JS object
- * @param {boolean} isAttribute - true when resolving an attribute name
- * @param {object}  options
- * @param {Matcher} matcher     - current matcher state (readonly from callback perspective)
- * @param {function} qNameValidator - function to validate tag names
- */
-function fxb_resolveTagName(name, isAttribute, options, matcher, qNameValidator) {
-  if (!options.sanitizeName) return name;
-  if (qNameValidator(name)) return name;
-  return options.sanitizeName(name, { isAttribute, matcher: matcher.readOnly() });
-}
-
 Builder.prototype.build = function (jObj) {
   if (this.options.preserveOrder) {
     return toXml(jObj, this.options);
@@ -59000,12 +60087,12 @@ Builder.prototype.j2x = function (jObj, level, matcher, qNameValidator) {
       || key === this.options.cdataPropName
       || key === this.options.commentPropName
       || (this.options.attributesGroupName && key === this.options.attributesGroupName)
-      || this.isAttribute(key)
-      || key[0] === '?';
+      || this.isAttribute(key);
+    //|| key[0] === '?';
 
     const resolvedKey = isSpecialKey
       ? key
-      : fxb_resolveTagName(key, false, this.options, matcher, qNameValidator);
+      : resolveName(key, false, this.options, matcher, qNameValidator);
 
     if (typeof jObj[key] === 'undefined') {
       // supress undefined node only if it is not an attribute
@@ -59030,7 +60117,7 @@ Builder.prototype.j2x = function (jObj, level, matcher, qNameValidator) {
       const attr = this.isAttribute(key);
       if (attr && !this.ignoreAttributesFn(attr, jPath)) {
         // Resolve the attribute name through sanitizeName
-        const resolvedAttr = fxb_resolveTagName(attr, true, this.options, matcher, qNameValidator);
+        const resolvedAttr = resolveName(attr, true, this.options, matcher, qNameValidator);
         attrStr += this.buildAttrPairStr(resolvedAttr, valToStr(jObj[key]), isCurrentStopNode);
       } else if (!attr) {
         //tag value
@@ -59120,7 +60207,7 @@ Builder.prototype.j2x = function (jObj, level, matcher, qNameValidator) {
         const L = Ks.length;
         for (let j = 0; j < L; j++) {
           // Resolve attribute names inside attributesGroupName
-          const resolvedAttr = fxb_resolveTagName(Ks[j], true, this.options, matcher, qNameValidator);
+          const resolvedAttr = resolveName(Ks[j], true, this.options, matcher, qNameValidator);
           attrStr += this.buildAttrPairStr(resolvedAttr, valToStr(jObj[key][Ks[j]]), isCurrentStopNode);
         }
       } else {
@@ -59153,7 +60240,7 @@ function processTextOrObjNode(object, key, level, matcher, qNameValidator) {
 
   if (isStopNode) {
     // For stopNodes, build raw content without entity encoding
-    const rawContent = this.buildRawContent(object);
+    const rawContent = this.buildRawContent(object, matcher.getDepth());
     const attrStr = this.buildAttributesForStopNode(object);
     matcher.pop();
     return this.buildObjectNode(rawContent, key, attrStr, level);
@@ -59209,7 +60296,10 @@ Builder.prototype.extractAttributes = function (obj) {
 };
 
 // Build raw content for stopNode without entity encoding
-Builder.prototype.buildRawContent = function (obj) {
+Builder.prototype.buildRawContent = function (obj, depth = 0) {
+  if (this.options.maxNestedTags && depth >= this.options.maxNestedTags) {
+    throw new Error("Maximum nested tags exceeded");
+  }
   if (typeof obj === 'string') {
     return obj; // Already a string, return as-is
   }
@@ -59243,7 +60333,7 @@ Builder.prototype.buildRawContent = function (obj) {
         if (typeof item === 'string' || typeof item === 'number') {
           content += `<${key}>${item}</${key}>`;
         } else if (typeof item === 'object' && item !== null) {
-          const nestedContent = this.buildRawContent(item);
+          const nestedContent = this.buildRawContent(item, depth + 1);
           const nestedAttrs = this.buildAttributesForStopNode(item);
           if (nestedContent === '') {
             content += `<${key}${nestedAttrs}/>`;
@@ -59254,7 +60344,7 @@ Builder.prototype.buildRawContent = function (obj) {
       }
     } else if (typeof value === 'object' && value !== null) {
       // Nested object
-      const nestedContent = this.buildRawContent(value);
+      const nestedContent = this.buildRawContent(value, depth + 1);
       const nestedAttrs = this.buildAttributesForStopNode(value);
       if (nestedContent === '') {
         content += `<${key}${nestedAttrs}/>`;
@@ -59822,9 +60912,9 @@ function readAttributeStr(xmlData, i) {
  * and moving to the next starting position — one full backtrack per
  * position, which is quadratic in the length of the run.
  *
- * A single forward-only scan can never backtrack, so it can't be made slow
- * this way no matter how much whitespace the input contains — it's always
- * proportional to the length of the string, once.
+ * The scan is forward-only: the cursor never moves backwards, so each
+ * character is visited a constant number of times and the cost is linear
+ * in the length of the string.
  *
  * Each returned token mirrors the shape the old regex match array had, so
  * the validation logic below (which reads token[1]..token[6]) didn't need
@@ -59856,8 +60946,7 @@ function scanAttributeTokens(attrStr) {
 
     if (attrStr[i] === '=') {
       // No name before this '=' — not a valid attribute start. Move past
-      // just this one character and try again from the next position.
-      i = tokenStart + 1;
+      i++;
       continue;
     }
 
@@ -63285,6 +64374,56 @@ const SQL_STRICT_PATTERNS = [...sql, ...SQL_STRICT_EXTRA];
 
 /* harmony default export */ const sql_strict = (SQL_STRICT_PATTERNS);
 
+;// CONCATENATED MODULE: ./node_modules/is-unsafe/src/util/decode-entities.js
+/**
+ * Decode the HTML character references that matter for markup-context
+ * detection.
+ *
+ * Browsers decode character references in attribute values before they
+ * interpret a URL, so `javascript&#58;alert(1)` in an href is the
+ * `javascript:` scheme. The HTML/XML/SVG rules match literal characters, so
+ * without this step such payloads slip through.
+ *
+ * Deliberately NOT a full entity decoder. It decodes only:
+ *   - decimal refs  &#58;  &#058;  &#00000058;  &#58   (any leading zeros,
+ *                   trailing ; optional — browsers accept both)
+ *   - hex refs      &#x3a; &#X3A; &#x0000003a; &#x3a   (same)
+ *   - named refs    &colon;  &Tab;  &NewLine;
+ *       Named refs are CASE-SENSITIVE and REQUIRE the trailing ';', exactly
+ *       like a browser (so `&COLON;` and `&colon` are not decoded).
+ *       &Tab; / &NewLine; matter because the URL parser strips tab/newline,
+ *       so `java&Tab;script:` is still a javascript: URL.
+ *
+ * It does NOT decode &amp; (single pass only), so double-encoded text such as
+ * "&amp;lt;script&amp;gt;" stays literal — a browser renders that as text.
+ *
+ * All quantifiers are bounded; no ReDoS risk.
+ *
+ * @param {string} input
+ * @returns {string}
+ */
+const NAMED = Object.freeze({
+  colon: ':',
+  Tab: '\t',
+  NewLine: '\n',
+});
+
+const ENTITY_RE =
+  /&(?:#[xX]0*([0-9a-fA-F]{1,6});?|#0*([0-9]{1,7});?|([a-zA-Z][a-zA-Z0-9]{1,15});)/g;
+
+function decodeEntities(input) {
+  if (input.indexOf('&') === -1) return input;
+
+  return input.replace(ENTITY_RE, (match, hex, dec, name) => {
+    if (name !== undefined) {
+      return Object.prototype.hasOwnProperty.call(NAMED, name) ? NAMED[name] : match;
+    }
+    const cp = hex !== undefined ? parseInt(hex, 16) : parseInt(dec, 10);
+    if (!Number.isFinite(cp) || cp > 0x10ffff) return match;
+    return String.fromCodePoint(cp);
+  });
+}
+
 ;// CONCATENATED MODULE: ./node_modules/is-unsafe/src/contexts/html.js
 /**
  * HTML context patterns.
@@ -63968,6 +65107,11 @@ const LOG_PATTERNS = [
 
 
 
+// Markup contexts are also matched against an entity-decoded copy of the input,
+// because browsers decode HTML character references before interpreting a URL
+// scheme (e.g. javascript&#58;… is a javascript: URL).
+
+
 // ─── VALID_CONTEXTS convenience re-export ─────────────────────────────────
 // Importing this pulls in ALL contexts. Use it only when you need all of them
 // (e.g. for validation UI, tooling, or exhaustive audits).
@@ -63990,6 +65134,12 @@ const LOG_PATTERNS = [
 html.label       = 'HTML';
 xml.label        = 'XML';
 svg.label        = 'SVG';
+
+// Markup contexts: also test an entity-decoded copy (see util/decode-entities.js).
+// Non-markup contexts (SQL, SHELL, LOG, …) are matched byte-for-byte as supplied.
+html.decodeEntities = true;
+xml.decodeEntities  = true;
+svg.decodeEntities  = true;
 sql.label        = 'SQL';
 sql_strict.label = 'SQL-STRICT';
 shell.label      = 'SHELL';
@@ -64085,6 +65235,20 @@ function normalise(context) {
 }
 
 /**
+ * For markup contexts, return an entity-decoded copy of `value` to test
+ * alongside the raw input, or null when there is nothing extra to test.
+ *
+ * @param {string} value
+ * @param {Rule[]} list
+ * @returns {string|null}
+ */
+function decodedCopy(value, list) {
+  if (!list.decodeEntities) return null;
+  const decoded = decodeEntities(value);
+  return decoded === value ? null : decoded;
+}
+
+/**
  * Test value against a single PatternList. Returns the first MatchResult or null.
  *
  * @param {string} value
@@ -64093,8 +65257,9 @@ function normalise(context) {
  */
 function matchList(value, list) {
   const label = list.label ?? 'CUSTOM';
+  const decoded = decodedCopy(value, list);
   for (const rule of list) {
-    if (rule.pattern.test(value)) {
+    if (rule.pattern.test(value) || (decoded !== null && rule.pattern.test(decoded))) {
       return { context: label, id: rule.id, description: rule.description, pattern: rule.pattern };
     }
   }
@@ -64192,8 +65357,9 @@ function allUnsafe(value, context) {
 
   for (const list of lists) {
     const label = list.label ?? 'CUSTOM';
+    const decoded = decodedCopy(value, list);
     for (const rule of list) {
-      if (rule.pattern.test(value)) {
+      if (rule.pattern.test(value) || (decoded !== null && rule.pattern.test(decoded))) {
         results.push({ context: label, id: rule.id, description: rule.description, pattern: rule.pattern });
       }
     }
@@ -64203,7 +65369,7 @@ function allUnsafe(value, context) {
 }
 
 
-/* harmony default export */ const src = ((/* unused pure expression or super */ null && (isUnsafe)));
+/* harmony default export */ const is_unsafe_src = ((/* unused pure expression or super */ null && (isUnsafe)));
 
 ;// CONCATENATED MODULE: ./node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js
 
@@ -64404,7 +65570,14 @@ function resolveNameSpace(tagname) {
 
 //TODO: change regex to capture NS
 //const attrsRegx = new RegExp("([\\w\\-\\.\\:]+)\\s*=\\s*(['\"])((.|\n)*?)\\2","gm");
-const attrsRegx = new RegExp('([^\\s=]+)\\s*(=\\s*([\'"])([\\s\\S]*?)\\3)?', 'gm');
+// The value is matched with a negated class per quote type rather than a lazy `[\s\S]*?` up to a
+// backreference, which is much slower on long values (SVG paths, data URIs)
+const attrsRegx = /([^\s=]+)\s*(=\s*(?:"([^"]*)"|'([^']*)'))?/gm;
+
+// value inside double quotes, or inside single quotes, or undefined when there is no value
+function attrValue(match) {
+  return match[3] !== undefined ? match[3] : match[4];
+}
 
 function buildAttributesMap(attrStr, jPath, tagName, force = false) {
   const options = this.options;
@@ -64424,7 +65597,7 @@ function buildAttributesMap(attrStr, jPath, tagName, force = false) {
 
     for (let i = 0; i < len; i++) {
       const attrName = this.resolveNameSpace(matches[i][1]);
-      const oldVal = matches[i][4];
+      const oldVal = attrValue(matches[i]);
 
       if (attrName.length && oldVal !== undefined) {
         let val = oldVal;
@@ -64460,7 +65633,7 @@ function buildAttributesMap(attrStr, jPath, tagName, force = false) {
         }
         aName = sanitizeName(aName, options);
 
-        if (matches[i][4] !== undefined) {
+        if (attrValue(matches[i]) !== undefined) {
           // Reuse already-processed value — no double entity replacement
           const oldVal = processedVals[i];
 
@@ -64491,7 +65664,15 @@ function buildAttributesMap(attrStr, jPath, tagName, force = false) {
   }
 }
 const parseXml = function (xmlData) {
-  xmlData = xmlData.replace(/\r\n?/g, "\n"); //TODO: remove this line
+  const options = this.options;
+  const crlfPositions = options.captureMetaData ? [] : undefined;
+  xmlData = xmlData.replace(/\r\n?/g, options.captureMetaData ? (newline, index) => {
+    if (newline.length === 2) {
+      // Store the position after earlier CRLF pairs have been normalized.
+      crlfPositions.push(index - crlfPositions.length);
+    }
+    return "\n";
+  } : "\n");
   const xmlObj = new XmlNode('!xml');
   let currentNode = xmlObj;
   let textData = "";
@@ -64504,7 +65685,6 @@ const parseXml = function (xmlData) {
   this.entityExpansionCount = 0;
   this.currentExpandedLength = 0;
   this.doctypefound = false;
-  const options = this.options;
   const docTypeReader = new DocTypeReader(options.processEntities);
   const xmlLen = xmlData.length;
   for (let i = 0; i < xmlLen; i++) {//for each char in XML data
@@ -64548,7 +65728,7 @@ const parseXml = function (xmlData) {
         currentNode = this.tagsNodeStack.pop() || xmlObj;//avoid recursion, set the parent tag scope
 
         if (options.captureMetaData && currentNode) {
-          currentNode.addEndIndex(closeIndex + 1);
+          currentNode.addEndIndex(getOriginalIndex(closeIndex + 1, crlfPositions));
         }
         textData = "";
         i = closeIndex;
@@ -64574,11 +65754,12 @@ const parseXml = function (xmlData) {
           if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent && options.ignoreAttributes !== true) {
             childNode[":@"] = attsMap
           }
-          this.addChild(currentNode, childNode, this.readonlyMatcher, i);
+          const startIndex = options.captureMetaData ? getOriginalIndex(i, crlfPositions) : i;
+          this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
 
           if (options.captureMetaData) {
             // closeIndex points at '?' of the closing '?>'
-            currentNode.addEndIndex(tagData.closeIndex + 2);
+            currentNode.addEndIndex(getOriginalIndex(tagData.closeIndex + 2, crlfPositions));
           }
         }
 
@@ -64710,7 +65891,7 @@ const parseXml = function (xmlData) {
           this.isCurrentNodeStopNode = this.isItStopNode();
         }
 
-        const startIndex = i;
+        const startIndex = options.captureMetaData ? getOriginalIndex(i, crlfPositions) : i;
         if (this.isCurrentNodeStopNode) {
           let tagContent = "";
 
@@ -64746,7 +65927,7 @@ const parseXml = function (xmlData) {
           this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
 
           if (options.captureMetaData) {
-            currentNode.addEndIndex(i + 1);
+            currentNode.addEndIndex(getOriginalIndex(i + 1, crlfPositions));
           }
         } else {
           //selfClosing tag
@@ -64760,7 +65941,7 @@ const parseXml = function (xmlData) {
             this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
 
             if (options.captureMetaData) {
-              currentNode.addEndIndex(closeIndex + 1);
+              currentNode.addEndIndex(getOriginalIndex(closeIndex + 1, crlfPositions));
             }
             this.matcher.pop(); // Pop self-closing tag
             this.isCurrentNodeStopNode = false; // Reset flag
@@ -64773,7 +65954,7 @@ const parseXml = function (xmlData) {
             this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
 
             if (options.captureMetaData) {
-              currentNode.addEndIndex(result.closeIndex + 1);
+              currentNode.addEndIndex(getOriginalIndex(result.closeIndex + 1, crlfPositions));
             }
             this.matcher.pop(); // Pop unpaired tag
             this.isCurrentNodeStopNode = false; // Reset flag
@@ -64804,6 +65985,17 @@ const parseXml = function (xmlData) {
     }
   }
   return xmlObj.child;
+}
+
+function getOriginalIndex(index, crlfPositions) {
+  let low = 0;
+  let high = crlfPositions.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (crlfPositions[middle] < index) low = middle + 1;
+    else high = middle;
+  }
+  return index + low;
 }
 
 function addChild(currentNode, childNode, matcher, startIndex) {
@@ -64896,7 +66088,6 @@ function isItStopNode() {
 function tagExpWithClosingIndex(xmlData, i, closingChar = ">") {
   //TODO: ignore boolean attributes in tag expression
   //TODO: if ignore attributes, dont read full attribute expression but the end. But read for xml declaration
-  let attrBoundary = 0;
   const len = xmlData.length;
   const closeCode0 = closingChar.charCodeAt(0);
   const closeCode1 = closingChar.length > 1 ? closingChar.charCodeAt(1) : -1;
@@ -64907,10 +66098,10 @@ function tagExpWithClosingIndex(xmlData, i, closingChar = ">") {
   for (let index = i; index < len; index++) {
     const code = xmlData.charCodeAt(index);
 
-    if (attrBoundary) {
-      if (code === attrBoundary) attrBoundary = 0;
-    } else if (code === 34 || code === 39) { // " or '
-      attrBoundary = code;
+    if (code === 34 || code === 39) { // " or '
+      // Skip the quoted value in one step: nothing inside it can close the tag
+      index = xmlData.indexOf(xmlData[index], index + 1);
+      if (index === -1) return;
     } else if (code === closeCode0) {
       if (closeCode1 !== -1) {
         if (xmlData.charCodeAt(index + 1) === closeCode1) {
@@ -64921,7 +66112,7 @@ function tagExpWithClosingIndex(xmlData, i, closingChar = ">") {
         result += xmlData.substring(segmentStart, index);
         return { data: result, index };
       }
-    } else if (code === 9 && !attrBoundary) { // \t - only replace with space outside attribute values
+    } else if (code === 9) { // \t - only replace with space outside attribute values
       // Flush accumulated segment, add space, start new segment
       result += xmlData.substring(segmentStart, index) + ' ';
       segmentStart = index + 1;
@@ -64984,6 +66175,8 @@ function readStopNodeData(xmlData, tagName, i) {
   const startIndex = i;
   // Starting at 1 since we already have an open tag
   let openTagCount = 1;
+  let lenient = false; // set once a quote-aware tag scan fails
+  let nextGt = -1; // cached index of the next '>'
 
   const xmllen = xmlData.length;
   for (; i < xmllen; i++) {
@@ -65015,14 +66208,29 @@ function readStopNodeData(xmlData, tagName, i) {
         const closeIndex = findClosingIndex(xmlData, "]]>", i, "StopNode is not closed.") - 2;
         i = closeIndex;
       } else {
-        const tagData = readTagExp(xmlData, i, false)
+        const tagData = lenient ? undefined : readTagExp(xmlData, i, false);
 
         if (tagData) {
-          const openTagName = tagData && tagData.tagName;
+          const openTagName = tagData.tagName;
           if (openTagName === tagName && tagData.tagExp[tagData.tagExp.length - 1] !== "/") {
             openTagCount++;
           }
           i = tagData.closeIndex;
+        } else {
+          // no closing '>'. use lenient approach to find '<' instead of readTagExp, to avoid repeated rescans.
+          lenient = true;
+          if (nextGt < i) {
+            nextGt = xmlData.indexOf(">", i);
+            if (nextGt === -1) return; // no '>' left, so no closing tag can follow
+          }
+          const nextLt = xmlData.indexOf("<", i + 1);
+          if (nextLt === -1 || nextLt > nextGt) { // looks like a real tag
+            const exp = xmlData.substring(i + 1, nextGt);
+            const sep = exp.search(/\s/);
+            const name = sep === -1 ? exp : exp.substring(0, sep);
+            if (name === tagName && exp[exp.length - 1] !== "/") openTagCount++;
+            i = nextGt;
+          } // else: treat this '<' as plain text
         }
       }
     }
@@ -69945,6 +71153,106 @@ function tracingPolicy_tryProcessResponse(span, response) {
     }
 }
 //# sourceMappingURL=tracingPolicy.js.map
+;// CONCATENATED MODULE: ./node_modules/@azure/storage-common/node_modules/@azure/core-rest-pipeline/dist/esm/util/cleanupOnCompletion.js
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+
+/**
+ * Runs the cleanup callback associated with the response and its request once they are complete.
+ */
+function cleanupOnCompletion_cleanupOnRequestResponseCompletion(response, cleanup) {
+    const stream = response?.readableStreamBody;
+    const requestCompletion = response ? getRequestCompletion(response) : undefined;
+    const browserResponseCompletion = response ? getResponseBodyCompletion(response) : undefined;
+    let requestDone = requestCompletion === undefined;
+    let nodeResponseDone = !stream || !stream.readable;
+    let browserResponseDone = browserResponseCompletion === undefined;
+    let cleanedUp = false;
+    const cleanupIfComplete = () => {
+        if (cleanedUp || !requestDone || !nodeResponseDone || !browserResponseDone) {
+            return;
+        }
+        cleanedUp = true;
+        cleanup();
+    };
+    const onResponseComplete = () => {
+        stream?.removeListener("end", onResponseComplete);
+        stream?.removeListener("close", onResponseComplete);
+        stream?.removeListener("error", onResponseComplete);
+        nodeResponseDone = true;
+        try {
+            cleanupIfComplete();
+        }
+        catch (error) {
+            core_rest_pipeline_dist_esm_log_logger.warning("Error cleaning up after response stream completion", error);
+        }
+    };
+    if (!nodeResponseDone && stream) {
+        stream.once("end", onResponseComplete);
+        stream.once("close", onResponseComplete);
+        stream.once("error", onResponseComplete);
+    }
+    if (requestCompletion) {
+        requestCompletion
+            .then(() => {
+            requestDone = true;
+            return cleanupIfComplete();
+        })
+            .catch((error) => {
+            core_rest_pipeline_dist_esm_log_logger.warning("Error cleaning up after request completion", error);
+        });
+    }
+    if (browserResponseCompletion) {
+        browserResponseCompletion
+            .then(() => {
+            browserResponseDone = true;
+            return cleanupIfComplete();
+        })
+            .catch((error) => {
+            core_rest_pipeline_dist_esm_log_logger.warning("Error cleaning up after response body completion", error);
+        });
+    }
+    cleanupIfComplete();
+}
+//# sourceMappingURL=cleanupOnCompletion.js.map
+;// CONCATENATED MODULE: ./node_modules/@azure/storage-common/node_modules/@azure/core-rest-pipeline/dist/esm/policies/wrapAbortSignalLikePolicy.js
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+
+const wrapAbortSignalLikePolicy_wrapAbortSignalLikePolicyName = "wrapAbortSignalLikePolicy";
+/**
+ * Policy that ensure that any AbortSignalLike is wrapped in a native AbortSignal for processing by the pipeline.
+ * Since the ts-http-runtime expects a native AbortSignal, this policy is used to ensure that any AbortSignalLike is wrapped in a native AbortSignal.
+ *
+ * @returns - created policy
+ */
+function policies_wrapAbortSignalLikePolicy_wrapAbortSignalLikePolicy() {
+    return {
+        name: wrapAbortSignalLikePolicy_wrapAbortSignalLikePolicyName,
+        sendRequest: async (request, next) => {
+            if (!request.abortSignal) {
+                return next(request);
+            }
+            const originalAbortSignal = request.abortSignal;
+            const { abortSignal, cleanup } = wrapAbortSignalLike(originalAbortSignal);
+            request.abortSignal = abortSignal;
+            let response;
+            try {
+                response = await next(request);
+                return response;
+            }
+            finally {
+                request.abortSignal = originalAbortSignal;
+                if (cleanup) {
+                    cleanupOnRequestResponseCompletion(response, cleanup);
+                }
+            }
+        },
+    };
+}
+//# sourceMappingURL=wrapAbortSignalLikePolicy.js.map
 ;// CONCATENATED MODULE: ./node_modules/@azure/storage-common/node_modules/@azure/core-rest-pipeline/dist/esm/createPipelineFromOptions.js
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
@@ -70009,7 +71317,7 @@ function dist_esm_createPipelineFromOptions_createPipelineFromOptions(options) {
  * @param abortSignalLike - The AbortSignalLike to wrap.
  * @returns - An object containing the native AbortSignal and an optional cleanup function. The cleanup function should be called when the AbortSignal is no longer needed.
  */
-function wrapAbortSignal_wrapAbortSignalLike(abortSignalLike) {
+function util_wrapAbortSignal_wrapAbortSignalLike(abortSignalLike) {
     if (abortSignalLike instanceof AbortSignal) {
         return { abortSignal: abortSignalLike };
     }
@@ -70039,6 +71347,7 @@ function wrapAbortSignal_wrapAbortSignalLike(abortSignalLike) {
 // Licensed under the MIT License.
 
 
+
 /**
  * Create the correct HttpClient for the current environment.
  */
@@ -70048,15 +71357,21 @@ function dist_esm_defaultHttpClient_createDefaultHttpClient() {
         async sendRequest(request) {
             // we wrap any AbortSignalLike here since the TypeSpec runtime expects a native AbortSignal.
             // 99% of the time, this should be a no-op since a native AbortSignal is passed in.
-            const { abortSignal, cleanup } = request.abortSignal
-                ? wrapAbortSignal_wrapAbortSignalLike(request.abortSignal)
+            const originalAbortSignal = request.abortSignal;
+            const { abortSignal, cleanup } = originalAbortSignal
+                ? util_wrapAbortSignal_wrapAbortSignalLike(originalAbortSignal)
                 : {};
+            let response;
             try {
                 request.abortSignal = abortSignal;
-                return await client.sendRequest(request);
+                response = await client.sendRequest(request);
+                return response;
             }
             finally {
-                cleanup?.();
+                request.abortSignal = originalAbortSignal;
+                if (cleanup) {
+                    cleanupOnCompletion_cleanupOnRequestResponseCompletion(response, cleanup);
+                }
             }
         },
     };
@@ -70339,6 +71654,7 @@ function util_tokenCycler_createTokenCycler(credential, tokenCyclerOptions) {
 
 
 
+
 /**
  * The programmatic identifier of the bearerTokenAuthenticationPolicy.
  */
@@ -70474,6 +71790,7 @@ function bearerTokenAuthenticationPolicy_bearerTokenAuthenticationPolicy(options
                     }, parsedClaim);
                     // Send updated request and handle response for RestError
                     if (shouldSendRequest) {
+                        await disposeResponseBody(response);
                         [response, error] = await bearerTokenAuthenticationPolicy_trySendRequest(request, next);
                     }
                 }
@@ -70488,6 +71805,7 @@ function bearerTokenAuthenticationPolicy_bearerTokenAuthenticationPolicy(options
                     });
                     // Send updated request and handle response for RestError
                     if (shouldSendRequest) {
+                        await disposeResponseBody(response);
                         [response, error] = await bearerTokenAuthenticationPolicy_trySendRequest(request, next);
                     }
                     // If we get another CAE Claim, we will handle it by default and return whatever value we receive for this
@@ -70511,6 +71829,7 @@ function bearerTokenAuthenticationPolicy_bearerTokenAuthenticationPolicy(options
                             }, parsedClaim);
                             // Send updated request and handle response for RestError
                             if (shouldSendRequest) {
+                                await disposeResponseBody(response);
                                 [response, error] = await bearerTokenAuthenticationPolicy_trySendRequest(request, next);
                             }
                         }
@@ -99386,7 +100705,7 @@ function printCachesListForDiagnostics(key, httpClient, version) {
 }
 function downloadCache(archiveLocation, archivePath, options) {
     return cacheHttpClient_awaiter(this, void 0, void 0, function* () {
-        const archiveUrl = new external_url_.URL(archiveLocation);
+        const archiveUrl = new external_url_namespaceObject.URL(archiveLocation);
         const downloadOptions = getDownloadOptions(options);
         if (archiveUrl.hostname.endsWith('.blob.core.windows.net')) {
             if (downloadOptions.useAzureSdk) {
@@ -101358,9 +102677,10 @@ const CacheService_CacheService = GitHubCacheService;
 
 
 
+
 class AbstractFetchCompressedTarget {
-    getUrl() {
-        return this.url;
+    getUriInfo() {
+        return this.uriInfo;
     }
     getWorkDir() {
         return this.workDir;
@@ -101368,14 +102688,19 @@ class AbstractFetchCompressedTarget {
     getCacheKey() {
         return this.cacheKey;
     }
-    constructor(url, workDir, cacheKey, handler, opts) {
+    constructor(uriInfo, workDir, cacheKey, handler, opts) {
         var _a;
-        this.url = url;
+        if (typeof uriInfo === "string" || uriInfo instanceof URL) {
+            this.uriInfo = new FileUriInfo([uriInfo]);
+        }
+        else {
+            this.uriInfo = uriInfo;
+        }
         this.workDir = workDir;
         this.cacheKey = cacheKey;
         this.handler = handler;
         this.opts = {};
-        this.opts.filename = (_a = opts === null || opts === void 0 ? void 0 : opts.filename) !== null && _a !== void 0 ? _a : (0,external_node_path_namespaceObject.basename)(url.toString());
+        this.opts.filename = (_a = opts === null || opts === void 0 ? void 0 : opts.filename) !== null && _a !== void 0 ? _a : (0,external_node_path_namespaceObject.basename)(this.uriInfo.getMainUri().toString());
         this.opts.maxTries = opts === null || opts === void 0 ? void 0 : opts.maxTries;
         if (opts === null || opts === void 0 ? void 0 : opts.fileHash) {
             this.opts.fileHash = {
@@ -101445,7 +102770,7 @@ class AbstractFetchCompressedTarget {
             const filename = this.opts.filename;
             const outFile = (0,external_node_path_namespaceObject.join)(this.workDir, filename);
             const performDownload = (useCache) => {
-                downloadFile(this.url, outFile, this.opts.maxTries)
+                downloadFileFromUriInfo(this.uriInfo, outFile, this.opts.maxTries)
                     .then(file => {
                     this.saveOnCache(file, useCache)
                         .then(resolve)
@@ -101499,8 +102824,8 @@ class AbstractFetchCompressedTarget {
 
 
 class AbstractFetchTarballTarget extends AbstractFetchCompressedTarget {
-    constructor(url, workDir, cacheKey, opts) {
-        super(url, workDir, cacheKey, extractTarGz, opts);
+    constructor(uriInfo, workDir, cacheKey, opts) {
+        super(uriInfo, workDir, cacheKey, extractTarGz, opts);
     }
 }
 
@@ -102391,7 +103716,7 @@ function replaceAllInFile(filePath, numberOfLinesToSkip, targetStr, replacementS
 
 class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
+        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -102480,7 +103805,7 @@ class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
 
 class PucLuaFetchTarget extends AbstractFetchTarballTarget {
     constructor(project, parent) {
-        super(project.getVersion().getDownloadUrl(), project.getBuildDir(), `lua-${project.getVersion().getString()}`, {
+        super(project.getVersion().getDownloadUriInfo(), project.getBuildDir(), `lua-${project.getVersion().getString()}`, {
             fileHash: {
                 algorithm: project.getVersion().getHashAlgorithm(),
                 expectedHash: project.getVersion().getHashValue()
@@ -103845,13 +105170,13 @@ class GccArchiver {
         this.flags.splice(0, this.flags.length);
         this.inputs.splice(0, this.inputs.length);
         this.output = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getAR());
+        this._path.setValue(UserInput.instance().getAR());
     }
     constructor() {
         this.flags = [];
         this.inputs = [];
         this.output = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getAR());
+        this._path = new GetSetProperty(UserInput.instance().getAR());
         this.reset();
     }
     path() {
@@ -103974,7 +105299,7 @@ class GccCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getCC());
+        this._path.setValue(UserInput.instance().getCC());
     }
     constructor() {
         this.flags = [];
@@ -103984,7 +105309,7 @@ class GccCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getCC());
+        this._path = new GetSetProperty(UserInput.instance().getCC());
         this.reset();
     }
     path() {
@@ -104100,7 +105425,7 @@ class GccLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getLD());
+        this._path.setValue(UserInput.instance().getLD());
     }
     constructor() {
         this.flags = [];
@@ -104111,7 +105436,7 @@ class GccLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getLD());
+        this._path = new GetSetProperty(UserInput.instance().getLD());
         this.reset();
     }
     path() {
@@ -104188,12 +105513,12 @@ class GccRanlib {
     reset() {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path.setValue(UserInput.instance().getRANLIB());
     }
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path = new GetSetProperty(UserInput.instance().getRANLIB());
         this.reset();
     }
     path() {
@@ -104276,12 +105601,12 @@ class GccStrip {
     reset() {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path.setValue(UserInput.instance().getSTRIP());
     }
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path = new GetSetProperty(UserInput.instance().getSTRIP());
         this.reset();
     }
     path() {
@@ -104420,13 +105745,13 @@ class MsvcArchiver {
         this.flags.splice(0, this.flags.length);
         this.inputs.splice(0, this.inputs.length);
         this.output = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getAR());
+        this._path.setValue(UserInput.instance().getAR());
     }
     constructor() {
         this.flags = [];
         this.inputs = [];
         this.output = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getAR());
+        this._path = new GetSetProperty(UserInput.instance().getAR());
         this.reset();
     }
     path() {
@@ -104543,7 +105868,7 @@ class MsvcCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getCC());
+        this._path.setValue(UserInput.instance().getCC());
     }
     constructor() {
         this.flags = [];
@@ -104553,7 +105878,7 @@ class MsvcCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getCC());
+        this._path = new GetSetProperty(UserInput.instance().getCC());
         this.reset();
     }
     path() {
@@ -104666,7 +105991,7 @@ class MsvcLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getLD());
+        this._path.setValue(UserInput.instance().getLD());
     }
     constructor() {
         this.flags = [];
@@ -104677,7 +106002,7 @@ class MsvcLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getLD());
+        this._path = new GetSetProperty(UserInput.instance().getLD());
         this.reset();
     }
     path() {
@@ -105324,7 +106649,7 @@ class LuaJitConfigureSourcesTarget {
 
 class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
+        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -106033,11 +107358,11 @@ class LuaJitBuildTarget {
                 ];
                 const cmd = (process.env["COMSPEC"] || "cmd").trim();
                 if (isGccLike) {
-                    const make = ToolchainEnvironmentVariables.instance().getMake();
-                    const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                    const envCC = ToolchainEnvironmentVariables.instance().getRawCC();
-                    const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                    const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const make = UserInput.instance().getMake();
+                    const cross = UserInput.instance().getToolchainPrefix();
+                    const envCC = UserInput.instance().getRawCC();
+                    const cflags = UserInput.instance().getCflagsExtra();
+                    const incDirs = UserInput.instance().getIncDirsExtra();
                     const combinedXcflags = [];
                     for (const flag of cflags) {
                         combinedXcflags.push(`"${flag}"`);
@@ -106138,11 +107463,11 @@ class LuaJitBuildTarget {
                 }
             }
             else {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
-                const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                const envCC = ToolchainEnvironmentVariables.instance().getCC();
-                const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                const make = UserInput.instance().getMake();
+                const cross = UserInput.instance().getToolchainPrefix();
+                const envCC = UserInput.instance().getCC();
+                const cflags = UserInput.instance().getCflagsExtra();
+                const incDirs = UserInput.instance().getIncDirsExtra();
                 const combinedXcflags = [];
                 for (const flag of cflags) {
                     combinedXcflags.push(`"${flag}"`);
@@ -107640,7 +108965,7 @@ class LuaRocksConfigureSourcesTarget {
 
 class LuaRocksApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaRocksPatches());
+        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaRocksPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -108521,7 +109846,7 @@ class LuaRocksBuildTarget {
                     .catch(reject);
             }
             else if (details instanceof LuaRocksUnixSourcesInfoDetails) {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
+                const make = UserInput.instance().getMake();
                 const makeArgs = ["-C", this.srcInfo.getDir()];
                 executeProcess(make, {
                     args: makeArgs,
@@ -108899,7 +110224,7 @@ class LuaRocksPostInstallTarget {
                 }
             }
             externalDepsDirs.push((0,external_node_path_namespaceObject.join)("C:", "external"));
-            findProgram(ToolchainEnvironmentVariables.instance().getCC(), true)
+            findProgram(UserInput.instance().getCC(), true)
                 .then(ccPath => {
                 const ccBinDir = (0,external_node_path_namespaceObject.dirname)(ccPath);
                 if ((0,external_node_path_namespaceObject.basename)(ccBinDir).toLowerCase() === 'bin') {
@@ -108909,7 +110234,7 @@ class LuaRocksPostInstallTarget {
                         .then(ccIncludeStat => {
                         if (ccIncludeStat.isDirectory()) {
                             externalDepsDirs.push(ccDir);
-                            getFirstLineFromProcessExecution(ToolchainEnvironmentVariables.instance().getCC(), ["-dumpmachine"])
+                            getFirstLineFromProcessExecution(UserInput.instance().getCC(), ["-dumpmachine"])
                                 .then(dumpMachine => {
                                 const ccSysroot = (0,external_node_path_namespaceObject.join)(ccDir, dumpMachine);
                                 const ccSysrootInclude = (0,external_node_path_namespaceObject.join)(ccSysroot, "include");
@@ -108966,13 +110291,13 @@ class LuaRocksPostInstallTarget {
                         this.getWindowsGccExternalDepsDirs()
                             .then(externalDepsDirs => {
                             const toolchainEnvVars = [
-                                { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                { key: "MAKE", value: UserInput.instance().getMake() },
+                                { key: "CC", value: UserInput.instance().getCC() },
+                                { key: "LD", value: UserInput.instance().getLD() },
+                                { key: "AR", value: UserInput.instance().getAR() },
+                                { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                { key: "RC", value: UserInput.instance().getRC() }
                             ];
                             const configChanges = [
                                 () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -109015,10 +110340,10 @@ class LuaRocksPostInstallTarget {
                         }
                         else {
                             const toolchainEnvVars = [
-                                { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                { key: "MAKE", value: UserInput.instance().getMake() },
+                                { key: "CC", value: UserInput.instance().getCC() },
+                                { key: "LD", value: UserInput.instance().getLD() },
+                                { key: "AR", value: UserInput.instance().getAR() }
                             ];
                             sequentialPromises([
                                 () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -109091,13 +110416,13 @@ class LuaRocksPostInstallTarget {
                                             this.getWindowsGccExternalDepsDirs()
                                                 .then(externalDepsDirs => {
                                                 const toolchainEnvVars = [
-                                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                                    { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                                    { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                                    { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                                    { key: "CC", value: UserInput.instance().getCC() },
+                                                    { key: "LD", value: UserInput.instance().getLD() },
+                                                    { key: "AR", value: UserInput.instance().getAR() },
+                                                    { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                                    { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                                    { key: "RC", value: UserInput.instance().getRC() }
                                                 ];
                                                 const configChanges = [
                                                     () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, "cmake_generator", "MinGW Makefiles"),
@@ -109138,10 +110463,10 @@ class LuaRocksPostInstallTarget {
                                             }
                                             else {
                                                 const toolchainEnvVars = [
-                                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                                    { key: "CC", value: UserInput.instance().getCC() },
+                                                    { key: "LD", value: UserInput.instance().getLD() },
+                                                    { key: "AR", value: UserInput.instance().getAR() }
                                                 ];
                                                 sequentialPromises([
                                                     () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
@@ -109173,12 +110498,12 @@ class LuaRocksPostInstallTarget {
                 checkFiles([luarocks, luarocksAdmin])
                     .then(() => {
                     const toolchainEnvVars = [
-                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() }
+                        { key: "MAKE", value: UserInput.instance().getMake() },
+                        { key: "CC", value: UserInput.instance().getCC() },
+                        { key: "LD", value: UserInput.instance().getLD() },
+                        { key: "AR", value: UserInput.instance().getAR() },
+                        { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                        { key: "RANLIB", value: UserInput.instance().getRANLIB() }
                     ];
                     sequentialPromises([
                         () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),

@@ -9,6 +9,485 @@ const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(impo
 const external_node_crypto_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:crypto");
 ;// CONCATENATED MODULE: external "node:fs/promises"
 const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs/promises");
+;// CONCATENATED MODULE: ./src/Util/ReadOnlyArray.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+class ReadOnlyArray {
+    constructor(array) {
+        this.ar = array.slice();
+    }
+    getLenght() {
+        return this.ar.length;
+    }
+    getItem(i) {
+        if (!(0 <= i && i <= this.ar.length)) {
+            throw new Error(`index ${i} is out of range`);
+        }
+        return this.ar[i];
+    }
+    createCopy() {
+        return this.ar.slice();
+    }
+    copyTo(array) {
+        if (array) {
+            this.ar.forEach(value => array.push(value));
+        }
+        else {
+            throw new Error("array expected as argument");
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/FileUriInfo.ts
+
+class FileUriInfo {
+    constructor(uriList) {
+        if (uriList.length <= 0) {
+            throw new Error("empty array of URIs are not allowed");
+        }
+        this.uriList = new ReadOnlyArray(uriList);
+    }
+    getUriArray() {
+        return this.uriList;
+    }
+    getMainUri() {
+        return this.uriList.getItem(0);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/CliGitHubCore.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+
+
+function appendContentToGitHubFile(fileKey, content) {
+    return new Promise((resolve, reject) => {
+        const githubSpecialFile = process.env[fileKey];
+        if (githubSpecialFile) {
+            (0,promises_namespaceObject.stat)(githubSpecialFile)
+                .then(fileStat => {
+                if (fileStat.isFile()) {
+                    const newline = external_node_os_namespaceObject.EOL;
+                    (0,promises_namespaceObject.appendFile)(githubSpecialFile, `${newline}${content}`, { flush: true })
+                        .then(resolve)
+                        .catch(reject);
+                }
+                else {
+                    reject(new Error(`\`${githubSpecialFile}' is not a file`));
+                }
+            })
+                .catch(reject);
+        }
+        else {
+            resolve();
+        }
+    });
+}
+function appendKeyValueToGitHubFile(fileKey, key, value) {
+    return appendContentToGitHubFile(fileKey, `${key.toUpperCase().replace(/\-/g, "_").replace(/\r\n|\r|\n/g, "")}=${value.replace(/\r\n|\r|\n/g, "")}`);
+}
+class CliGitHubCore {
+    static instance() {
+        if (!CliGitHubCore._instance) {
+            CliGitHubCore._instance = new CliGitHubCore();
+        }
+        return CliGitHubCore._instance;
+    }
+    getInput(variable) {
+        return process.env[`INPUT_${variable.replace(/ /g, "_").toUpperCase()}`];
+    }
+    appendToGitHubEnvironmentVariables(key, value) {
+        return key.toUpperCase() === "PATH" ? this.appendToGitHubPath(value) : appendKeyValueToGitHubFile("GITHUB_ENV", key, value);
+    }
+    appendToGitHubPath(value) {
+        return new Promise((resolve, reject) => {
+            const githubPath = process.env["GITHUB_PATH"];
+            if (githubPath) {
+                (0,promises_namespaceObject.stat)(githubPath)
+                    .then(fileStat => {
+                    if (fileStat.isFile()) {
+                        const safeValue = value.replace(/\r\n|\r|\n/g, "");
+                        const parts = safeValue.split(external_node_path_namespaceObject.delimiter).filter(v => v !== "");
+                        const newline = external_node_os_namespaceObject.EOL;
+                        const content = parts.reverse().join(newline);
+                        (0,promises_namespaceObject.appendFile)(githubPath, `${newline}${content}`)
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                    else {
+                        reject(new Error(`\`${githubPath}' is not a file`));
+                    }
+                })
+                    .catch(reject);
+            }
+            else {
+                resolve();
+            }
+        });
+    }
+    constructor() {
+    }
+}
+
+;// CONCATENATED MODULE: ./src/GitHubCore.ts
+
+const GitHubCore = CliGitHubCore;
+
+;// CONCATENATED MODULE: ./src/Util/GitHubInput.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+class GitHubInput {
+    static instance() {
+        if (!GitHubInput._instance) {
+            GitHubInput._instance = new GitHubInput();
+        }
+        return GitHubInput._instance;
+    }
+    getInputDebugSetupLua() {
+        const debugMode = GitHubCore.instance().getInput("debug-setup-lua");
+        return debugMode === "true" ||
+            debugMode === "True" ||
+            debugMode === "TRUE" ||
+            debugMode === "1" ||
+            debugMode === "on" ||
+            debugMode === "On" ||
+            debugMode === "ON" ||
+            debugMode === "y" ||
+            debugMode === "Y" ||
+            debugMode === "yes" ||
+            debugMode === "Yes" ||
+            debugMode === "YES";
+    }
+    getInputCC() {
+        return GitHubCore.instance().getInput("cc");
+    }
+    getInputLD() {
+        return GitHubCore.instance().getInput("ld");
+    }
+    getInputAR() {
+        return GitHubCore.instance().getInput("ar");
+    }
+    getInputSTRIP() {
+        return GitHubCore.instance().getInput("strip");
+    }
+    getInputRANLIB() {
+        return GitHubCore.instance().getInput("ranlib");
+    }
+    getInputRC() {
+        return GitHubCore.instance().getInput("rc");
+    }
+    getInputMake() {
+        return GitHubCore.instance().getInput("make");
+    }
+    getInputToolchainPrefix() {
+        return GitHubCore.instance().getInput("toolchain-prefix");
+    }
+    getInputLuaVersion() {
+        return GitHubCore.instance().getInput("lua-version");
+    }
+    getInputLuaRocksVersion() {
+        return GitHubCore.instance().getInput("luarocks-version");
+    }
+    getInputMacOSXDeploymentTarget() {
+        return GitHubCore.instance().getInput("macosx-deployment-target");
+    }
+    getInputUseCache() {
+        const useCache = GitHubCore.instance().getInput("use-cache");
+        return useCache === undefined ||
+            useCache === '' ||
+            useCache === "true" ||
+            useCache === "True" ||
+            useCache === "TRUE" ||
+            useCache === "1" ||
+            useCache === "on" ||
+            useCache === "On" ||
+            useCache === "ON" ||
+            useCache === "y" ||
+            useCache === "Y" ||
+            useCache === "yes" ||
+            useCache === "Yes" ||
+            useCache === "YES";
+    }
+    getInputCflagsExtra() {
+        return GitHubCore.instance().getInput("cflags-extra");
+    }
+    getInputIncDirsExtra() {
+        return GitHubCore.instance().getInput("incdirs-extra");
+    }
+    getInputLdflagsExtra() {
+        return GitHubCore.instance().getInput("ldflags-extra");
+    }
+    getInputLibDirsExtra() {
+        return GitHubCore.instance().getInput("libdirs-extra");
+    }
+    getInputLibsExtra() {
+        return GitHubCore.instance().getInput("libs-extra");
+    }
+    getInputLuaPatches() {
+        return GitHubCore.instance().getInput("lua-patches");
+    }
+    getInputLuaRocksPatches() {
+        return GitHubCore.instance().getInput("luarocks-patches");
+    }
+    getInputLuaMirrors() {
+        return GitHubCore.instance().getInput("lua-mirrors");
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Util/ParseInputSemiColon.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+function coreParseInputSemiColon(input) {
+    const l = input.length;
+    const tokens = [];
+    if (l > 0) {
+        let i = 0;
+        let s = 0;
+        while (i < l) {
+            if (input[i] === ";") {
+                if (i + 1 < l) {
+                    if (input[i + 1] === ";") {
+                        i += 2;
+                    }
+                    else {
+                        tokens.push(input.substring(s, i).replace(";;", ";"));
+                        i++;
+                        s = i;
+                    }
+                }
+                else {
+                    tokens.push(input.substring(s, i).replace(";;", ";"));
+                    i++;
+                    s = i;
+                }
+            }
+            else {
+                i++;
+            }
+        }
+        tokens.push(input.substring(s).replace(";;", ";"));
+    }
+    return tokens;
+}
+function parseInputSemiColon(input) {
+    return input ? coreParseInputSemiColon(input.trim()) : [];
+}
+
+;// CONCATENATED MODULE: ./src/UserInput.ts
+/*
+** The MIT License (MIT)
+**
+** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
+**
+** Permission is hereby granted, free of charge, to any person obtaining a copy
+** of this software and associated documentation files (the "Software"), to deal
+** in the Software without restriction, including without limitation the rights
+** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+** copies of the Software, and to permit persons to whom the Software is
+** furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in all
+** copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+** SOFTWARE.
+*/
+
+
+class UserInput {
+    static instance() {
+        if (!UserInput._instance) {
+            UserInput._instance = new UserInput();
+        }
+        return UserInput._instance;
+    }
+    getRawCC() {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
+        return (GitHubInput.instance().getInputCC() || process.env["CC"] ||
+            (process.env["VCINSTALLDIR"] ? "cl" :
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
+    }
+    getRawLD() {
+        let msystem = process.env["MSYSTEM"] || "";
+        if (msystem) {
+            msystem = msystem.toUpperCase().trim();
+        }
+        return (GitHubInput.instance().getInputLD() || process.env["LD"] ||
+            (process.env["VCINSTALLDIR"] ? "link" :
+                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
+    }
+    getRawAR() {
+        return (GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
+    }
+    getRawSTRIP() {
+        return (GitHubInput.instance().getInputSTRIP() || process.env["STRIP"] || "strip").trim();
+    }
+    getRawRANLIB() {
+        return (GitHubInput.instance().getInputRANLIB() || process.env["RANLIB"] || "ranlib").trim();
+    }
+    getRawRC() {
+        return (GitHubInput.instance().getInputRC() || process.env["RC"] || (process.env["VCINSTALLDIR"] ? "rc" : "windres")).trim();
+    }
+    getCC() {
+        return this.getToolchainPrefix() + this.getRawCC();
+    }
+    getLD() {
+        return this.getToolchainPrefix() + this.getRawLD();
+    }
+    getAR() {
+        return this.getToolchainPrefix() + this.getRawAR();
+    }
+    getSTRIP() {
+        return this.getToolchainPrefix() + this.getRawSTRIP();
+    }
+    getRANLIB() {
+        return this.getToolchainPrefix() + this.getRawRANLIB();
+    }
+    getRC() {
+        return this.getToolchainPrefix() + this.getRawRC();
+    }
+    getMake() {
+        return (GitHubInput.instance().getInputMake() || process.env["MAKE"] ||
+            (process.env["VCINSTALLDIR"] ? "nmake" :
+                (process.platform === 'win32' ?
+                    "mingw32-make" :
+                    (process.platform === 'freebsd' || process.platform === 'openbsd' || process.platform === 'netbsd') ?
+                        "gmake" : "make"))).trim();
+    }
+    getToolchainPrefix() {
+        return (GitHubInput.instance().getInputToolchainPrefix() || process.env["TOOLCHAIN_PREFIX"] || "");
+    }
+    getSemiColonSeparatedInput(inputGetter, inputName) {
+        const rawInput = inputGetter() || process.env[inputName];
+        return parseInputSemiColon(rawInput);
+    }
+    getCflagsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputCflagsExtra(), "CFLAGS_EXTRA");
+    }
+    getIncDirsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputIncDirsExtra(), "INCDIRS_EXTRA");
+    }
+    getLdFlagsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLdflagsExtra(), "LDFLAGS_EXTRA");
+    }
+    getLibDirsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibDirsExtra(), "LIBDIRS_EXTRA");
+    }
+    getLibsExtra() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibsExtra(), "LIBS_EXTRA");
+    }
+    getLuaPatches() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaPatches(), "LUA_PATCHES");
+    }
+    getLuaRocksPatches() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaRocksPatches(), "LUAROCKS_PATCHES");
+    }
+    getLuaMirrors() {
+        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaMirrors(), "LUA_MIRRORS");
+    }
+    constructor() {
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Util/CompareVersions.ts
 /*
 ** The MIT License (MIT)
@@ -79,6 +558,8 @@ function compareVersions(v1, v2) {
 ** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ** SOFTWARE.
 */
+
+
 
 const LATEST_LUA_RELEASE_VERSION = "5.5.1";
 const CONVERT_LUA_RELEASE_VERSION = {
@@ -346,8 +827,24 @@ class PucLuaReleaseVersion extends AbstractPucLuaVersion {
         const b = this.getBuild();
         return `${M}.${m}.${b}`;
     }
-    getDownloadUrl() {
-        return `https://lua.org/ftp/lua-${this.getString()}.tar.gz`;
+    getDownloadUriInfo() {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList = process.env["DEBUG_LUA_MIRRORS"] ?
+            [] :
+            [
+                `https://lua.org/ftp/${tarball}`,
+                `https://www.tecgraf.puc-rio.br/lua/mirror/ftp/${tarball}`
+            ];
+        const luaMirrors = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
     }
     constructor(major, minor, build, hashAlgorithm, hashValue) {
         super(major, minor, build, hashAlgorithm, hashValue);
@@ -366,10 +863,29 @@ class PucLuaWorkVersion extends AbstractPucLuaVersion {
         const b = this.getBuild();
         return `${M}.${m}.${b}-${this.suffix}`;
     }
-    getDownloadUrl() {
-        return this.current ?
-            `https://lua.org/work/lua-${this.getString()}.tar.gz` :
-            `https://lua.org/work/old/lua-${this.getString()}.tar.gz`;
+    getDownloadUriInfo() {
+        const tarball = `lua-${this.getString()}.tar.gz`;
+        const uriList = process.env["DEBUG_LUA_MIRRORS"] ?
+            [] :
+            (this.current ?
+                [
+                    `https://lua.org/work/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/${tarball}`
+                ] :
+                [
+                    `https://lua.org/work/old/${tarball}`,
+                    `https://www.tecgraf.puc-rio.br/lua/mirror/work/old/${tarball}`
+                ]);
+        const luaMirrors = UserInput.instance().getLuaMirrors();
+        for (const mirror of luaMirrors) {
+            if (mirror.endsWith("/")) {
+                uriList.push(mirror + tarball);
+            }
+            else {
+                uriList.push(`${mirror}/${tarball}`);
+            }
+        }
+        return new FileUriInfo(uriList);
     }
     constructor(major, minor, build, hashAlgorithm, hashValue, suffix, current) {
         super(major, minor, build, hashAlgorithm, hashValue);
@@ -528,57 +1044,6 @@ class GetSetProperty {
     }
     constructor(value) {
         this.value = value;
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Util/ReadOnlyArray.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-class ReadOnlyArray {
-    constructor(array) {
-        this.ar = array.slice();
-    }
-    getLenght() {
-        return this.ar.length;
-    }
-    getItem(i) {
-        if (!(0 <= i && i <= this.ar.length)) {
-            throw new Error(`index ${i} is out of range`);
-        }
-        return this.ar[i];
-    }
-    createCopy() {
-        return this.ar.slice();
-    }
-    copyTo(array) {
-        if (array) {
-            this.ar.forEach(value => array.push(value));
-        }
-        else {
-            throw new Error("array expected as argument");
-        }
     }
 }
 
@@ -978,411 +1443,6 @@ class PucLuaCreatePkgConfigFilesTarget {
     }
 }
 
-;// CONCATENATED MODULE: ./src/CliGitHubCore.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-
-
-function appendContentToGitHubFile(fileKey, content) {
-    return new Promise((resolve, reject) => {
-        const githubSpecialFile = process.env[fileKey];
-        if (githubSpecialFile) {
-            (0,promises_namespaceObject.stat)(githubSpecialFile)
-                .then(fileStat => {
-                if (fileStat.isFile()) {
-                    const newline = external_node_os_namespaceObject.EOL;
-                    (0,promises_namespaceObject.appendFile)(githubSpecialFile, `${newline}${content}`, { flush: true })
-                        .then(resolve)
-                        .catch(reject);
-                }
-                else {
-                    reject(new Error(`\`${githubSpecialFile}' is not a file`));
-                }
-            })
-                .catch(reject);
-        }
-        else {
-            resolve();
-        }
-    });
-}
-function appendKeyValueToGitHubFile(fileKey, key, value) {
-    return appendContentToGitHubFile(fileKey, `${key.toUpperCase().replace(/\-/g, "_").replace(/\r\n|\r|\n/g, "")}=${value.replace(/\r\n|\r|\n/g, "")}`);
-}
-class CliGitHubCore {
-    static instance() {
-        if (!CliGitHubCore._instance) {
-            CliGitHubCore._instance = new CliGitHubCore();
-        }
-        return CliGitHubCore._instance;
-    }
-    getInput(variable) {
-        return process.env[`INPUT_${variable.replace(/ /g, "_").toUpperCase()}`];
-    }
-    appendToGitHubEnvironmentVariables(key, value) {
-        return key.toUpperCase() === "PATH" ? this.appendToGitHubPath(value) : appendKeyValueToGitHubFile("GITHUB_ENV", key, value);
-    }
-    appendToGitHubPath(value) {
-        return new Promise((resolve, reject) => {
-            const githubPath = process.env["GITHUB_PATH"];
-            if (githubPath) {
-                (0,promises_namespaceObject.stat)(githubPath)
-                    .then(fileStat => {
-                    if (fileStat.isFile()) {
-                        const safeValue = value.replace(/\r\n|\r|\n/g, "");
-                        const parts = safeValue.split(external_node_path_namespaceObject.delimiter).filter(v => v !== "");
-                        const newline = external_node_os_namespaceObject.EOL;
-                        const content = parts.reverse().join(newline);
-                        (0,promises_namespaceObject.appendFile)(githubPath, `${newline}${content}`)
-                            .then(resolve)
-                            .catch(reject);
-                    }
-                    else {
-                        reject(new Error(`\`${githubPath}' is not a file`));
-                    }
-                })
-                    .catch(reject);
-            }
-            else {
-                resolve();
-            }
-        });
-    }
-    constructor() {
-    }
-}
-
-;// CONCATENATED MODULE: ./src/GitHubCore.ts
-
-const GitHubCore = CliGitHubCore;
-
-;// CONCATENATED MODULE: ./src/Util/GitHubInput.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-class GitHubInput {
-    static instance() {
-        if (!GitHubInput._instance) {
-            GitHubInput._instance = new GitHubInput();
-        }
-        return GitHubInput._instance;
-    }
-    getInputDebugSetupLua() {
-        const debugMode = GitHubCore.instance().getInput("debug-setup-lua");
-        return debugMode === "true" ||
-            debugMode === "True" ||
-            debugMode === "TRUE" ||
-            debugMode === "1" ||
-            debugMode === "on" ||
-            debugMode === "On" ||
-            debugMode === "ON" ||
-            debugMode === "y" ||
-            debugMode === "Y" ||
-            debugMode === "yes" ||
-            debugMode === "Yes" ||
-            debugMode === "YES";
-    }
-    getInputCC() {
-        return GitHubCore.instance().getInput("cc");
-    }
-    getInputLD() {
-        return GitHubCore.instance().getInput("ld");
-    }
-    getInputAR() {
-        return GitHubCore.instance().getInput("ar");
-    }
-    getInputSTRIP() {
-        return GitHubCore.instance().getInput("strip");
-    }
-    getInputRANLIB() {
-        return GitHubCore.instance().getInput("ranlib");
-    }
-    getInputRC() {
-        return GitHubCore.instance().getInput("rc");
-    }
-    getInputMake() {
-        return GitHubCore.instance().getInput("make");
-    }
-    getInputToolchainPrefix() {
-        return GitHubCore.instance().getInput("toolchain-prefix");
-    }
-    getInputLuaVersion() {
-        return GitHubCore.instance().getInput("lua-version");
-    }
-    getInputLuaRocksVersion() {
-        return GitHubCore.instance().getInput("luarocks-version");
-    }
-    getInputMacOSXDeploymentTarget() {
-        return GitHubCore.instance().getInput("macosx-deployment-target");
-    }
-    getInputUseCache() {
-        const useCache = GitHubCore.instance().getInput("use-cache");
-        return useCache === undefined ||
-            useCache === '' ||
-            useCache === "true" ||
-            useCache === "True" ||
-            useCache === "TRUE" ||
-            useCache === "1" ||
-            useCache === "on" ||
-            useCache === "On" ||
-            useCache === "ON" ||
-            useCache === "y" ||
-            useCache === "Y" ||
-            useCache === "yes" ||
-            useCache === "Yes" ||
-            useCache === "YES";
-    }
-    getInputCflagsExtra() {
-        return GitHubCore.instance().getInput("cflags-extra");
-    }
-    getInputIncDirsExtra() {
-        return GitHubCore.instance().getInput("incdirs-extra");
-    }
-    getInputLdflagsExtra() {
-        return GitHubCore.instance().getInput("ldflags-extra");
-    }
-    getInputLibDirsExtra() {
-        return GitHubCore.instance().getInput("libdirs-extra");
-    }
-    getInputLibsExtra() {
-        return GitHubCore.instance().getInput("libs-extra");
-    }
-    getInputLuaPatches() {
-        return GitHubCore.instance().getInput("lua-patches");
-    }
-    getInputLuaRocksPatches() {
-        return GitHubCore.instance().getInput("luarocks-patches");
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Util/ParseInputSemiColon.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-function coreParseInputSemiColon(input) {
-    const l = input.length;
-    const tokens = [];
-    if (l > 0) {
-        let i = 0;
-        let s = 0;
-        while (i < l) {
-            if (input[i] === ";") {
-                if (i + 1 < l) {
-                    if (input[i + 1] === ";") {
-                        i += 2;
-                    }
-                    else {
-                        tokens.push(input.substring(s, i).replace(";;", ";"));
-                        i++;
-                        s = i;
-                    }
-                }
-                else {
-                    tokens.push(input.substring(s, i).replace(";;", ";"));
-                    i++;
-                    s = i;
-                }
-            }
-            else {
-                i++;
-            }
-        }
-        tokens.push(input.substring(s).replace(";;", ";"));
-    }
-    return tokens;
-}
-function parseInputSemiColon(input) {
-    return input ? coreParseInputSemiColon(input.trim()) : [];
-}
-
-;// CONCATENATED MODULE: ./src/Toolchains/ToolchainEnvironmentVariables.ts
-/*
-** The MIT License (MIT)
-**
-** Copyright (c) 2025 - 2026 luau-project           [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-** Copyright (c) 2026 - 2026 setup-lua contributors [https://github.com/luau-project/setup-lua](https://github.com/luau-project/setup-lua)
-**
-** Permission is hereby granted, free of charge, to any person obtaining a copy
-** of this software and associated documentation files (the "Software"), to deal
-** in the Software without restriction, including without limitation the rights
-** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-** copies of the Software, and to permit persons to whom the Software is
-** furnished to do so, subject to the following conditions:
-**
-** The above copyright notice and this permission notice shall be included in all
-** copies or substantial portions of the Software.
-**
-** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-** SOFTWARE.
-*/
-
-
-class ToolchainEnvironmentVariables {
-    static instance() {
-        if (!ToolchainEnvironmentVariables._instance) {
-            ToolchainEnvironmentVariables._instance = new ToolchainEnvironmentVariables();
-        }
-        return ToolchainEnvironmentVariables._instance;
-    }
-    getRawCC() {
-        let msystem = process.env["MSYSTEM"] || "";
-        if (msystem) {
-            msystem = msystem.toUpperCase().trim();
-        }
-        return (GitHubInput.instance().getInputCC() || process.env["CC"] ||
-            (process.env["VCINSTALLDIR"] ? "cl" :
-                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
-    }
-    getRawLD() {
-        let msystem = process.env["MSYSTEM"] || "";
-        if (msystem) {
-            msystem = msystem.toUpperCase().trim();
-        }
-        return (GitHubInput.instance().getInputLD() || process.env["LD"] ||
-            (process.env["VCINSTALLDIR"] ? "link" :
-                ((process.platform === 'win32' && !msystem.startsWith("CLANG")) ? "gcc" : "cc"))).trim();
-    }
-    getRawAR() {
-        return (GitHubInput.instance().getInputAR() || process.env["AR"] || (process.env["VCINSTALLDIR"] ? "lib" : "ar")).trim();
-    }
-    getRawSTRIP() {
-        return (GitHubInput.instance().getInputSTRIP() || process.env["STRIP"] || "strip").trim();
-    }
-    getRawRANLIB() {
-        return (GitHubInput.instance().getInputRANLIB() || process.env["RANLIB"] || "ranlib").trim();
-    }
-    getRawRC() {
-        return (GitHubInput.instance().getInputRC() || process.env["RC"] || (process.env["VCINSTALLDIR"] ? "rc" : "windres")).trim();
-    }
-    getCC() {
-        return this.getToolchainPrefix() + this.getRawCC();
-    }
-    getLD() {
-        return this.getToolchainPrefix() + this.getRawLD();
-    }
-    getAR() {
-        return this.getToolchainPrefix() + this.getRawAR();
-    }
-    getSTRIP() {
-        return this.getToolchainPrefix() + this.getRawSTRIP();
-    }
-    getRANLIB() {
-        return this.getToolchainPrefix() + this.getRawRANLIB();
-    }
-    getRC() {
-        return this.getToolchainPrefix() + this.getRawRC();
-    }
-    getMake() {
-        return (GitHubInput.instance().getInputMake() || process.env["MAKE"] ||
-            (process.env["VCINSTALLDIR"] ? "nmake" :
-                (process.platform === 'win32' ?
-                    "mingw32-make" :
-                    (process.platform === 'freebsd' || process.platform === 'openbsd' || process.platform === 'netbsd') ?
-                        "gmake" : "make"))).trim();
-    }
-    getToolchainPrefix() {
-        return (GitHubInput.instance().getInputToolchainPrefix() || process.env["TOOLCHAIN_PREFIX"] || "");
-    }
-    getSemiColonSeparatedInput(inputGetter, inputName) {
-        const rawInput = inputGetter() || process.env[inputName];
-        return parseInputSemiColon(rawInput);
-    }
-    getCflagsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputCflagsExtra(), "CFLAGS_EXTRA");
-    }
-    getIncDirsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputIncDirsExtra(), "INCDIRS_EXTRA");
-    }
-    getLdFlagsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLdflagsExtra(), "LDFLAGS_EXTRA");
-    }
-    getLibDirsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibDirsExtra(), "LIBDIRS_EXTRA");
-    }
-    getLibsExtra() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLibsExtra(), "LIBS_EXTRA");
-    }
-    getLuaPatches() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaPatches(), "LUA_PATCHES");
-    }
-    getLuaRocksPatches() {
-        return this.getSemiColonSeparatedInput(() => GitHubInput.instance().getInputLuaRocksPatches(), "LUAROCKS_PATCHES");
-    }
-    constructor() {
-    }
-}
-
 ;// CONCATENATED MODULE: ./src/Projects/PucLua/Building/PucLuaLinkCompilerTarget.ts
 /*
 ** The MIT License (MIT)
@@ -1499,15 +1559,15 @@ class PucLuaLinkCompilerTarget {
                     linker.addLinkLibrary("dl");
                 }
             }
-            const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+            const libDirs = UserInput.instance().getLibDirsExtra();
             for (const libDir of libDirs) {
                 linker.addLibDir(libDir);
             }
-            const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+            const libs = UserInput.instance().getLibsExtra();
             for (const lib of libs) {
                 linker.addLinkLibrary(lib);
             }
-            const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+            const ldFlags = UserInput.instance().getLdFlagsExtra();
             for (const flag of ldFlags) {
                 linker.addFlag(flag);
             }
@@ -1671,11 +1731,11 @@ class PucLuaCompileCompilerTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getCompilerBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -1820,15 +1880,15 @@ class PucLuaLinkInterpreterTarget {
                     linker.addLinkLibrary("dl");
                 }
             }
-            const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+            const libDirs = UserInput.instance().getLibDirsExtra();
             for (const libDir of libDirs) {
                 linker.addLibDir(libDir);
             }
-            const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+            const libs = UserInput.instance().getLibsExtra();
             for (const lib of libs) {
                 linker.addLinkLibrary(lib);
             }
-            const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+            const ldFlags = UserInput.instance().getLdFlagsExtra();
             for (const flag of ldFlags) {
                 linker.addFlag(flag);
             }
@@ -1990,11 +2050,11 @@ class PucLuaCompileInterpreterTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getInterpreterBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -2279,11 +2339,11 @@ class PucLuaCompileStaticLibTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getStaticLibBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -2461,15 +2521,15 @@ class PucLuaLinkSharedLibTarget {
                 else {
                     linker.addLinkLibrary("dl");
                 }
-                const libDirs = ToolchainEnvironmentVariables.instance().getLibDirsExtra();
+                const libDirs = UserInput.instance().getLibDirsExtra();
                 for (const libDir of libDirs) {
                     linker.addLibDir(libDir);
                 }
-                const libs = ToolchainEnvironmentVariables.instance().getLibsExtra();
+                const libs = UserInput.instance().getLibsExtra();
                 for (const lib of libs) {
                     linker.addLinkLibrary(lib);
                 }
-                const ldFlags = ToolchainEnvironmentVariables.instance().getLdFlagsExtra();
+                const ldFlags = UserInput.instance().getLdFlagsExtra();
                 for (const flag of ldFlags) {
                     linker.addFlag(flag);
                 }
@@ -2651,11 +2711,11 @@ class PucLuaCompileSharedLibTarget {
                     const outputFile = (0,external_node_path_namespaceObject.join)(this.project.getSharedLibBuildDir(), fileBaseName.substring(0, fileBaseName.length - 2) + objExt);
                     compiler.setOutputFile(outputFile);
                     compiler.setInputFile(file);
-                    const incDirsExtra = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const incDirsExtra = UserInput.instance().getIncDirsExtra();
                     for (const incDir of incDirsExtra) {
                         compiler.addIncludeDir(incDir);
                     }
-                    const cflagsExtra = ToolchainEnvironmentVariables.instance().getCflagsExtra();
+                    const cflagsExtra = UserInput.instance().getCflagsExtra();
                     for (const cflag of cflagsExtra) {
                         compiler.addFlag(cflag);
                     }
@@ -3149,29 +3209,124 @@ const external_node_timers_promises_namespaceObject = __WEBPACK_EXTERNAL_createR
 
 
 
+
 const DEFAULT_MAX_TRIES = 5;
 const DOWNLOAD_MIN_BASE = 1.7;
 const DOWNLOAD_MAX_BASE = 2.3;
 function randomBetween(min, max) {
     return min + Math.random() * (max - min);
 }
-function getWaitingTimeInMilliseconds(retries) {
+/* B is the base number of exponential growth */
+function getWaitingTimeInMilliseconds(B, retries) {
     let waitingTimeInMilliseconds = 0;
     if (retries > 0) {
-        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const waitingTimeInSeconds = Math.pow(B, retries);
         waitingTimeInMilliseconds = Math.floor(waitingTimeInSeconds * 1000);
     }
     return waitingTimeInMilliseconds;
 }
+function downloadFileFromUriInfo(uriInfo, outFile, maxTries) {
+    return new Promise((resolve, reject) => {
+        const uriArray = uriInfo.getUriArray();
+        const nUrls = uriArray.getLenght();
+        if (nUrls <= 0) {
+            reject(new Error("internal error: empty URL list"));
+        }
+        else {
+            const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
+            const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
+            let succeed = false;
+            let execErr;
+            const downloadAttempt = (i) => {
+                if (!succeed && i < tries) {
+                    (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(B, i))
+                        .then(() => {
+                        const downloadAttemptFromUrl = (j) => {
+                            if (!succeed && j < nUrls) {
+                                const url = uriArray.getItem(j).toString();
+                                if (url.startsWith("http://") || url.startsWith("https://")) {
+                                    fetch(url).then(response => {
+                                        if (!response.ok) {
+                                            execErr = new Error("Response is not ok");
+                                            downloadAttemptFromUrl(j + 1);
+                                        }
+                                        else {
+                                            const body = response.body;
+                                            if (body === null) {
+                                                execErr = new Error("Response body is null");
+                                                downloadAttemptFromUrl(j + 1);
+                                            }
+                                            else {
+                                                external_node_stream_namespaceObject.Readable.fromWeb(body)
+                                                    .pipe((0,external_node_fs_namespaceObject.createWriteStream)(outFile))
+                                                    .on("error", err => {
+                                                    execErr = err;
+                                                    downloadAttemptFromUrl(j + 1);
+                                                })
+                                                    .on("finish", () => {
+                                                    succeed = true;
+                                                    downloadAttemptFromUrl(j + 1);
+                                                });
+                                            }
+                                        }
+                                    })
+                                        .catch(err => {
+                                        execErr = err;
+                                        downloadAttemptFromUrl(j + 1);
+                                    });
+                                }
+                                else {
+                                    (0,promises_namespaceObject.cp)(url, outFile)
+                                        .then(() => {
+                                        succeed = true;
+                                        downloadAttemptFromUrl(j + 1);
+                                    })
+                                        .catch(cpErr => {
+                                        execErr = cpErr;
+                                        downloadAttemptFromUrl(j + 1);
+                                    });
+                                }
+                            }
+                            else if (succeed) {
+                                resolve(outFile);
+                            }
+                            else if (execErr) {
+                                downloadAttempt(i + 1);
+                            }
+                            else {
+                                reject(new Error("internal error: unknown download condition"));
+                            }
+                        };
+                        downloadAttemptFromUrl(0);
+                    })
+                        .catch(timeoutErr => {
+                        execErr = timeoutErr;
+                        downloadAttempt(i + 1);
+                    });
+                }
+                else if (succeed) {
+                    resolve(outFile);
+                }
+                else if (execErr) {
+                    reject(execErr);
+                }
+                else {
+                    reject(new Error("internal error: unknown download condition"));
+                }
+            };
+            downloadAttempt(0);
+        }
+    });
+}
 function downloadFile(url, outFile, maxTries) {
     return new Promise((resolve, reject) => {
+        const B = randomBetween(DOWNLOAD_MIN_BASE, DOWNLOAD_MAX_BASE);
         const tries = (maxTries && maxTries > 0 ? maxTries : DEFAULT_MAX_TRIES) + 1;
         let succeed = false;
         let execErr;
         const iter = (i) => {
             if (!succeed && i < tries) {
-                (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(i))
+                (0,external_node_timers_promises_namespaceObject.setTimeout)(getWaitingTimeInMilliseconds(B, i))
                     .then(() => {
                     fetch(url).then(response => {
                         if (!response.ok) {
@@ -3500,9 +3655,10 @@ const CacheService = CliCacheService;
 
 
 
+
 class AbstractFetchCompressedTarget {
-    getUrl() {
-        return this.url;
+    getUriInfo() {
+        return this.uriInfo;
     }
     getWorkDir() {
         return this.workDir;
@@ -3510,14 +3666,19 @@ class AbstractFetchCompressedTarget {
     getCacheKey() {
         return this.cacheKey;
     }
-    constructor(url, workDir, cacheKey, handler, opts) {
+    constructor(uriInfo, workDir, cacheKey, handler, opts) {
         var _a;
-        this.url = url;
+        if (typeof uriInfo === "string" || uriInfo instanceof URL) {
+            this.uriInfo = new FileUriInfo([uriInfo]);
+        }
+        else {
+            this.uriInfo = uriInfo;
+        }
         this.workDir = workDir;
         this.cacheKey = cacheKey;
         this.handler = handler;
         this.opts = {};
-        this.opts.filename = (_a = opts === null || opts === void 0 ? void 0 : opts.filename) !== null && _a !== void 0 ? _a : (0,external_node_path_namespaceObject.basename)(url.toString());
+        this.opts.filename = (_a = opts === null || opts === void 0 ? void 0 : opts.filename) !== null && _a !== void 0 ? _a : (0,external_node_path_namespaceObject.basename)(this.uriInfo.getMainUri().toString());
         this.opts.maxTries = opts === null || opts === void 0 ? void 0 : opts.maxTries;
         if (opts === null || opts === void 0 ? void 0 : opts.fileHash) {
             this.opts.fileHash = {
@@ -3587,7 +3748,7 @@ class AbstractFetchCompressedTarget {
             const filename = this.opts.filename;
             const outFile = (0,external_node_path_namespaceObject.join)(this.workDir, filename);
             const performDownload = (useCache) => {
-                downloadFile(this.url, outFile, this.opts.maxTries)
+                downloadFileFromUriInfo(this.uriInfo, outFile, this.opts.maxTries)
                     .then(file => {
                     this.saveOnCache(file, useCache)
                         .then(resolve)
@@ -3641,8 +3802,8 @@ class AbstractFetchCompressedTarget {
 
 
 class AbstractFetchTarballTarget extends AbstractFetchCompressedTarget {
-    constructor(url, workDir, cacheKey, opts) {
-        super(url, workDir, cacheKey, extractTarGz, opts);
+    constructor(uriInfo, workDir, cacheKey, opts) {
+        super(uriInfo, workDir, cacheKey, extractTarGz, opts);
     }
 }
 
@@ -4533,7 +4694,7 @@ function replaceAllInFile(filePath, numberOfLinesToSkip, targetStr, replacementS
 
 class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
+        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -4622,7 +4783,7 @@ class PucLuaApplyPatchesTarget extends AbstractApplyPatchesTarget {
 
 class PucLuaFetchTarget extends AbstractFetchTarballTarget {
     constructor(project, parent) {
-        super(project.getVersion().getDownloadUrl(), project.getBuildDir(), `lua-${project.getVersion().getString()}`, {
+        super(project.getVersion().getDownloadUriInfo(), project.getBuildDir(), `lua-${project.getVersion().getString()}`, {
             fileHash: {
                 algorithm: project.getVersion().getHashAlgorithm(),
                 expectedHash: project.getVersion().getHashValue()
@@ -5987,13 +6148,13 @@ class GccArchiver {
         this.flags.splice(0, this.flags.length);
         this.inputs.splice(0, this.inputs.length);
         this.output = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getAR());
+        this._path.setValue(UserInput.instance().getAR());
     }
     constructor() {
         this.flags = [];
         this.inputs = [];
         this.output = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getAR());
+        this._path = new GetSetProperty(UserInput.instance().getAR());
         this.reset();
     }
     path() {
@@ -6116,7 +6277,7 @@ class GccCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getCC());
+        this._path.setValue(UserInput.instance().getCC());
     }
     constructor() {
         this.flags = [];
@@ -6126,7 +6287,7 @@ class GccCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getCC());
+        this._path = new GetSetProperty(UserInput.instance().getCC());
         this.reset();
     }
     path() {
@@ -6242,7 +6403,7 @@ class GccLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getLD());
+        this._path.setValue(UserInput.instance().getLD());
     }
     constructor() {
         this.flags = [];
@@ -6253,7 +6414,7 @@ class GccLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getLD());
+        this._path = new GetSetProperty(UserInput.instance().getLD());
         this.reset();
     }
     path() {
@@ -6330,12 +6491,12 @@ class GccRanlib {
     reset() {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path.setValue(UserInput.instance().getRANLIB());
     }
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getRANLIB());
+        this._path = new GetSetProperty(UserInput.instance().getRANLIB());
         this.reset();
     }
     path() {
@@ -6418,12 +6579,12 @@ class GccStrip {
     reset() {
         this.flags.splice(0, this.flags.length);
         this.input = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path.setValue(UserInput.instance().getSTRIP());
     }
     constructor() {
         this.flags = [];
         this.input = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getSTRIP());
+        this._path = new GetSetProperty(UserInput.instance().getSTRIP());
         this.reset();
     }
     path() {
@@ -6562,13 +6723,13 @@ class MsvcArchiver {
         this.flags.splice(0, this.flags.length);
         this.inputs.splice(0, this.inputs.length);
         this.output = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getAR());
+        this._path.setValue(UserInput.instance().getAR());
     }
     constructor() {
         this.flags = [];
         this.inputs = [];
         this.output = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getAR());
+        this._path = new GetSetProperty(UserInput.instance().getAR());
         this.reset();
     }
     path() {
@@ -6685,7 +6846,7 @@ class MsvcCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getCC());
+        this._path.setValue(UserInput.instance().getCC());
     }
     constructor() {
         this.flags = [];
@@ -6695,7 +6856,7 @@ class MsvcCompiler {
         this.output = undefined;
         this.optimization = undefined;
         this.warnings = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getCC());
+        this._path = new GetSetProperty(UserInput.instance().getCC());
         this.reset();
     }
     path() {
@@ -6808,7 +6969,7 @@ class MsvcLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path.setValue(ToolchainEnvironmentVariables.instance().getLD());
+        this._path.setValue(UserInput.instance().getLD());
     }
     constructor() {
         this.flags = [];
@@ -6819,7 +6980,7 @@ class MsvcLinker {
         this.outImplib = undefined;
         this.output = undefined;
         this.outputMode = undefined;
-        this._path = new GetSetProperty(ToolchainEnvironmentVariables.instance().getLD());
+        this._path = new GetSetProperty(UserInput.instance().getLD());
         this.reset();
     }
     path() {
@@ -7466,7 +7627,7 @@ class LuaJitConfigureSourcesTarget {
 
 class LuaJitApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaPatches());
+        super(project, parent, parent.getExtractedDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -8175,11 +8336,11 @@ class LuaJitBuildTarget {
                 ];
                 const cmd = (process.env["COMSPEC"] || "cmd").trim();
                 if (isGccLike) {
-                    const make = ToolchainEnvironmentVariables.instance().getMake();
-                    const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                    const envCC = ToolchainEnvironmentVariables.instance().getRawCC();
-                    const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                    const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                    const make = UserInput.instance().getMake();
+                    const cross = UserInput.instance().getToolchainPrefix();
+                    const envCC = UserInput.instance().getRawCC();
+                    const cflags = UserInput.instance().getCflagsExtra();
+                    const incDirs = UserInput.instance().getIncDirsExtra();
                     const combinedXcflags = [];
                     for (const flag of cflags) {
                         combinedXcflags.push(`"${flag}"`);
@@ -8280,11 +8441,11 @@ class LuaJitBuildTarget {
                 }
             }
             else {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
-                const cross = ToolchainEnvironmentVariables.instance().getToolchainPrefix();
-                const envCC = ToolchainEnvironmentVariables.instance().getCC();
-                const cflags = ToolchainEnvironmentVariables.instance().getCflagsExtra();
-                const incDirs = ToolchainEnvironmentVariables.instance().getIncDirsExtra();
+                const make = UserInput.instance().getMake();
+                const cross = UserInput.instance().getToolchainPrefix();
+                const envCC = UserInput.instance().getCC();
+                const cflags = UserInput.instance().getCflagsExtra();
+                const incDirs = UserInput.instance().getIncDirsExtra();
                 const combinedXcflags = [];
                 for (const flag of cflags) {
                     combinedXcflags.push(`"${flag}"`);
@@ -9782,7 +9943,7 @@ class LuaRocksConfigureSourcesTarget {
 
 class LuaRocksApplyPatchesTarget extends AbstractApplyPatchesTarget {
     constructor(project, parent) {
-        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), ToolchainEnvironmentVariables.instance().getLuaRocksPatches());
+        super(project, parent, parent.getLuaRocksSourcesInfo().getDir(), project.getRemotePatchesBuildDir(), UserInput.instance().getLuaRocksPatches());
     }
     init() {
         return new Promise((resolve, reject) => {
@@ -10663,7 +10824,7 @@ class LuaRocksBuildTarget {
                     .catch(reject);
             }
             else if (details instanceof LuaRocksUnixSourcesInfoDetails) {
-                const make = ToolchainEnvironmentVariables.instance().getMake();
+                const make = UserInput.instance().getMake();
                 const makeArgs = ["-C", this.srcInfo.getDir()];
                 executeProcess(make, {
                     args: makeArgs,
@@ -11041,7 +11202,7 @@ class LuaRocksPostInstallTarget {
                 }
             }
             externalDepsDirs.push((0,external_node_path_namespaceObject.join)("C:", "external"));
-            findProgram(ToolchainEnvironmentVariables.instance().getCC(), true)
+            findProgram(UserInput.instance().getCC(), true)
                 .then(ccPath => {
                 const ccBinDir = (0,external_node_path_namespaceObject.dirname)(ccPath);
                 if ((0,external_node_path_namespaceObject.basename)(ccBinDir).toLowerCase() === 'bin') {
@@ -11051,7 +11212,7 @@ class LuaRocksPostInstallTarget {
                         .then(ccIncludeStat => {
                         if (ccIncludeStat.isDirectory()) {
                             externalDepsDirs.push(ccDir);
-                            getFirstLineFromProcessExecution(ToolchainEnvironmentVariables.instance().getCC(), ["-dumpmachine"])
+                            getFirstLineFromProcessExecution(UserInput.instance().getCC(), ["-dumpmachine"])
                                 .then(dumpMachine => {
                                 const ccSysroot = (0,external_node_path_namespaceObject.join)(ccDir, dumpMachine);
                                 const ccSysrootInclude = (0,external_node_path_namespaceObject.join)(ccSysroot, "include");
@@ -11108,13 +11269,13 @@ class LuaRocksPostInstallTarget {
                         this.getWindowsGccExternalDepsDirs()
                             .then(externalDepsDirs => {
                             const toolchainEnvVars = [
-                                { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                { key: "MAKE", value: UserInput.instance().getMake() },
+                                { key: "CC", value: UserInput.instance().getCC() },
+                                { key: "LD", value: UserInput.instance().getLD() },
+                                { key: "AR", value: UserInput.instance().getAR() },
+                                { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                { key: "RC", value: UserInput.instance().getRC() }
                             ];
                             const configChanges = [
                                 () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -11157,10 +11318,10 @@ class LuaRocksPostInstallTarget {
                         }
                         else {
                             const toolchainEnvVars = [
-                                { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                { key: "MAKE", value: UserInput.instance().getMake() },
+                                { key: "CC", value: UserInput.instance().getCC() },
+                                { key: "LD", value: UserInput.instance().getLD() },
+                                { key: "AR", value: UserInput.instance().getAR() }
                             ];
                             sequentialPromises([
                                 () => this.setLuaRocksConfigSetupOnWindows(luarocks, luaInstallation.getLuaShortVersion(), installDir),
@@ -11233,13 +11394,13 @@ class LuaRocksPostInstallTarget {
                                             this.getWindowsGccExternalDepsDirs()
                                                 .then(externalDepsDirs => {
                                                 const toolchainEnvVars = [
-                                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                                                    { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                                                    { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() },
-                                                    { key: "RC", value: ToolchainEnvironmentVariables.instance().getRC() }
+                                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                                    { key: "CC", value: UserInput.instance().getCC() },
+                                                    { key: "LD", value: UserInput.instance().getLD() },
+                                                    { key: "AR", value: UserInput.instance().getAR() },
+                                                    { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                                                    { key: "RANLIB", value: UserInput.instance().getRANLIB() },
+                                                    { key: "RC", value: UserInput.instance().getRC() }
                                                 ];
                                                 const configChanges = [
                                                     () => this.setCygwinLuaRocksConfig(bash, luaRocksUnix, "cmake_generator", "MinGW Makefiles"),
@@ -11280,10 +11441,10 @@ class LuaRocksPostInstallTarget {
                                             }
                                             else {
                                                 const toolchainEnvVars = [
-                                                    { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                                                    { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                                                    { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                                                    { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() }
+                                                    { key: "MAKE", value: UserInput.instance().getMake() },
+                                                    { key: "CC", value: UserInput.instance().getCC() },
+                                                    { key: "LD", value: UserInput.instance().getLD() },
+                                                    { key: "AR", value: UserInput.instance().getAR() }
                                                 ];
                                                 sequentialPromises([
                                                     () => this.setCygwinLuaRocksConfigVariable(bash, luaRocksUnix, "PWD", "cd"),
@@ -11315,12 +11476,12 @@ class LuaRocksPostInstallTarget {
                 checkFiles([luarocks, luarocksAdmin])
                     .then(() => {
                     const toolchainEnvVars = [
-                        { key: "MAKE", value: ToolchainEnvironmentVariables.instance().getMake() },
-                        { key: "CC", value: ToolchainEnvironmentVariables.instance().getCC() },
-                        { key: "LD", value: ToolchainEnvironmentVariables.instance().getLD() },
-                        { key: "AR", value: ToolchainEnvironmentVariables.instance().getAR() },
-                        { key: "STRIP", value: ToolchainEnvironmentVariables.instance().getSTRIP() },
-                        { key: "RANLIB", value: ToolchainEnvironmentVariables.instance().getRANLIB() }
+                        { key: "MAKE", value: UserInput.instance().getMake() },
+                        { key: "CC", value: UserInput.instance().getCC() },
+                        { key: "LD", value: UserInput.instance().getLD() },
+                        { key: "AR", value: UserInput.instance().getAR() },
+                        { key: "STRIP", value: UserInput.instance().getSTRIP() },
+                        { key: "RANLIB", value: UserInput.instance().getRANLIB() }
                     ];
                     sequentialPromises([
                         () => this.setLuaRocksToolchainEnvVars(luarocks, toolchainEnvVars),
