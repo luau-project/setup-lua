@@ -130,6 +130,7 @@ This tool has awareness for the environment variables listed in the following ta
 | `LIBS_EXTRA` | `false` | Links Lua with additional libraries. |
 | `LUA_PATCHES` | `false` | Apply patches to Lua / LuaJIT / OpenResty after fetching the source code. |
 | `LUAROCKS_PATCHES` | `false` | Apply patches to LuaRocks after fetching the source code. |
+| `LUA_MIRRORS` | `false` | In addition to standard PUC-Lua URLs to download source code, use mirrors as fallback. |
 
 ## Building
 
